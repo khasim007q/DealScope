@@ -1,0 +1,119 @@
+{
+  "checked_at": "2026-10-11T14:07:47+00:00",
+  "balance": 200.0,
+  "endpoints": {
+    "/company/enrich": {
+      "status": "enabled",
+      "base_credits": 2.0,
+      "effective_rate_limit_rpm": 15,
+      "premium_fields": [
+        {
+          "field": "technographics",
+          "credits": 2.0
+        },
+        {
+          "field": "social_posts",
+          "credits": 5.0
+        }
+      ]
+    },
+    "/person/search": {
+      "status": "enabled",
+      "base_credits": 0.03,
+      "effective_rate_limit_rpm": 30,
+      "premium_fields": [
+        {
+          "field": "experience",
+          "credits": 0.1
+        },
+        {
+          "field": "education",
+          "credits": 0.1
+        },
+        {
+          "field": "honors",
+          "credits": 0.2
+        },
+        {
+          "field": "professional_network.connections",
+          "credits": 0.2
+        },
+        {
+          "field": "professional_network.followers",
+          "credits": 0.2
+        },
+        {
+          "field": "professional_network.open_to_cards",
+          "credits": 0.2
+        },
+        {
+          "field": "professional_network.languages",
+          "credits": 0.2
+        },
+        {
+          "field": "skills",
+          "credits": 0.1
+        },
+        {
+          "field": "certifications",
+          "credits": 0.2
+        },
+        {
+          "field": "professional_network.summary",
+          "credits": 0.2
+        }
+      ],
+      "premium_filters": [
+        {
+          "field": "experience",
+          "credits": 0.1
+        },
+        {
+          "field": "education",
+          "credits": 0.1
+        },
+        {
+          "field": "honors",
+          "credits": 0.2
+        },
+        {
+          "field": "professional_network.connections",
+          "credits": 0.2
+        },
+        {
+          "field": "professional_network.followers",
+          "credits": 0.2
+        },
+        {
+          "field": "professional_network.open_to_cards",
+          "credits": 0.2
+        },
+        {
+          "field": "professional_network.languages",
+          "credits": 0.2
+        },
+        {
+          "field": "skills",
+          "credits": 0.1
+        },
+        {
+          "field": "certifications",
+          "credits": 0.2
+        },
+        {
+          "field": "dev_platform_profiles.repos",
+          "credits": 2.5
+        },
+        {
+          "field": "dev_platform_profiles",
+          "credits": 0.8
+        }
+      ]
+    },
+    "/job/search": {
+      "status": "enabled",
+      "base_credits": 0.03,
+      "effective_rate_limit_rpm": 30
+    }
+  }
+}

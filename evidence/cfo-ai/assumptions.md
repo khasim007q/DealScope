@@ -1,6 +1,6 @@
 # cfo.ai assumptions
 
-Status: TODO. Enter the values actually entered in cfo.ai. Source docs: `docs/08-cfoai-business-plan.md`.
+Status: TODO. Enter the values actually entered in cfo.ai. Upload-ready brief: `dealscope-assumptions.md` (this folder). Source docs: `docs/08-cfoai-business-plan.md`.
 
 | Item | Value entered | Source | Assumption or actual |
 |---|---|---|---|

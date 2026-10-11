@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import Protocol
 
 from pydantic import BaseModel, ValidationError
@@ -41,11 +42,15 @@ class GeminiProvider:
 
     def __init__(self, api_key: str, model: str, escalation_model: str | None = None) -> None:
         from google import genai
+        from google.genai import types
 
         # Construct after tracing.init_tracing() so neatlogs can instrument the client.
-        self._client = tracing.wrap_llm_client(genai.Client(api_key=api_key))
+        # Bounded request time (ms); a cold model was observed to take ~45 s on the first call.
+        http = types.HttpOptions(timeout=60_000)
+        self._client = tracing.wrap_llm_client(genai.Client(api_key=api_key, http_options=http))
         self.model = model
         self.escalation_model = escalation_model
+        self.sleep = time.sleep
 
     def generate_json(self, system: str, prompt: str, schema: type[BaseModel], *, escalate: bool = False) -> str:
         from google.genai import types
@@ -55,17 +60,57 @@ class GeminiProvider:
             system_instruction=system,
             temperature=0.1,
             response_mime_type="application/json",
-            response_json_schema=schema.model_json_schema(),
-            max_output_tokens=4096,
+            response_json_schema=gemini_schema(schema),
+            max_output_tokens=8192,
         )
-        try:
-            resp = self._client.models.generate_content(model=model, contents=prompt, config=config)
-        except Exception as exc:  # SDK raises several error types; normalize them
-            raise LLMError(f"gemini call failed: {type(exc).__name__}: {str(exc)[:200]}") from exc
-        text = getattr(resp, "text", None)
-        if not text:
-            raise LLMError("gemini returned empty response")
-        return text
+        last: Exception | None = None
+        for attempt in range(TRANSIENT_RETRIES + 1):
+            try:
+                resp = self._client.models.generate_content(model=model, contents=prompt, config=config)
+            except Exception as exc:  # SDK raises several error types; normalize them
+                last = exc
+                if attempt < TRANSIENT_RETRIES and _is_transient(exc):
+                    self.sleep(2.0 * (attempt + 1))
+                    continue
+                raise LLMError(f"gemini call failed: {type(exc).__name__}: {str(exc)[:200]}") from exc
+            text = getattr(resp, "text", None)
+            if not text:
+                raise LLMError("gemini returned empty response")
+            return text
+        raise LLMError(f"gemini call failed: {last}")  # pragma: no cover - loop always returns or raises
+
+
+TRANSIENT_RETRIES = 1
+
+
+def _is_transient(exc: Exception) -> bool:
+    msg = str(exc)
+    return any(code in msg for code in ("503", "504", "UNAVAILABLE", "DEADLINE_EXCEEDED", "429"))
+
+
+def gemini_schema(schema: type[BaseModel]) -> dict:
+    """Pydantic JSON schema simplified for Gemini structured output: `$defs`/`$ref` inlined,
+    `anyOf [T, null]` collapsed to T, titles/defaults dropped, and array-size bounds removed — `maxItems` was observed
+    to trigger 400 INVALID_ARGUMENT on gemini-3.8-flash. Bounds are still enforced by pydantic when parsing."""
+    raw = schema.model_json_schema()
+    defs = raw.pop("$defs", {})
+
+    def walk(node):
+        if isinstance(node, dict):
+            if "$ref" in node:
+                return walk(defs[node["$ref"].rsplit("/", 1)[-1]])
+            if "anyOf" in node:
+                options = [o for o in node["anyOf"] if o.get("type") != "null"]
+                if len(options) == 1:
+                    merged = {k: v for k, v in node.items() if k != "anyOf"}
+                    merged.update(options[0])
+                    return walk(merged)
+            return {k: walk(v) for k, v in node.items() if k not in ("title", "default", "maxItems", "minItems")}
+        if isinstance(node, list):
+            return [walk(v) for v in node]
+        return node
+
+    return walk(raw)
 
 
 class ScriptedProvider:

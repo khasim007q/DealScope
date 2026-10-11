@@ -264,3 +264,12 @@ def test_unsupported_llm_claims_are_rejected_from_memo(tmp_path):
 
 def test_provider_result_contract_shape():
     assert {"provider", "endpoint", "items", "credits_used", "attempts"} <= set(ProviderResult.__dataclass_fields__)
+
+
+def test_gemini_schema_is_flat():
+    from dealscope.agent.synthesis import DraftReport
+    from dealscope.providers.llm import gemini_schema
+
+    text = json.dumps(gemini_schema(DraftReport))
+    assert "$ref" not in text and "$defs" not in text and "anyOf" not in text and '"title"' not in text and "maxItems" not in text
+    assert gemini_schema(DraftReport)["properties"]["claims"]["items"]["properties"]["claim_type"]["enum"]

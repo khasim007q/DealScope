@@ -1,6 +1,6 @@
 # cfo.ai evidence: how to capture
 
-Status: TODO. No plan has been generated yet.
+Status: plan created by owner on 2026-10-11 — shared link https://cfo.ai/s/LuzFz_Xw5PkfkLJJ. Exports/screenshots still TODO.
 
 1. Sign up through the neatHack flow: https://cfo.ai/neathacks (follow the on-page signup/cancellation guidance).
 2. Paste the prompt from `docs/08-cfoai-business-plan.md` ("Prompt to paste into cfo.ai").

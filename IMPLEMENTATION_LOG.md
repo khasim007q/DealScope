@@ -28,3 +28,27 @@ No secrets are recorded here. Times are IST (hackathon window 10–12 Oct 2026).
 - Planned live spend: free pricing check (0) -> one company enrichment smoke test (~2) -> one or two traced live cases
   (~26 estimated each: 4 enrichments = 8, 2-3 people searches x 25 results x 0.23 = 11.5-17.25, jobs 25 x 0.03 = 0.75
   if enabled). Failure-recovery and baseline-vs-improved experiments run on synthetic fixtures (0 Crustdata credits).
+
+### 2026-10-11 ~19:40 IST — first live run (Crustdata + Gemini + neatlogs)
+- Free checks: `GET /account/credits` = 200.0; `GET /account/endpoints` confirmed company enrich 2.0 base,
+  person search 0.03 base + experience 0.1 filter / 0.1 field, **job search 0.03 base, no premiums** -> set
+  `CRUSTDATA_JOB_COST_PER_RESULT=0.03` (account-confirmed). Evidence: `evidence/crustdata/pricing-*.json`.
+- Smoke test: one `/company/enrich` (retool.com) -> `X-Credits-Used: 2`, balance 200.0 -> 198.0.
+  Confirmed key spelling `headcount.by_function_timeseries.CURRENT_FUNCTION.Engineering`; only a 12m engineering
+  growth point was derivable (no matching 3m/6m points) -> S1 treats it as a single period.
+  Note: smoke script bypasses the tool-layer cache, so the live case re-enriched retool.com (2 credits).
+- Live case `case-8ddc70b2b4de` (retool.com vs appsmith.com, tooljet.com, budibase.com; cap 40):
+  stage complete, 7 tool calls, 4 planner turns, **9.18 credits actual** (from `X-Credits-Used`), risk 22.2,
+  coverage 92.5%, confidence 85.9, 4/4 material claims grounded. Plan: search_jobs (deterministic fallback after
+  two Gemini 504s) -> search_people x2 (chosen by Gemini) -> stop. neatlogs trace id
+  `af87b76d2681d7727d184d8aec363d39` (ingest returned 503 for some span batches during this run; trace may be
+  incomplete — check dashboard). Evidence: `evidence/neatlogs/live-run-*.json`.
+- Total Crustdata spend so far: 11.18 credits (2 smoke + 9.18 case).
+- Failures found and fixed:
+  - `gemini-2.5-flash` is no longer available to new users (404) -> default model now `gemini-3.8-flash`.
+  - Gemini structured output rejected `maxItems` with 400 INVALID_ARGUMENT -> `gemini_schema()` inlines $refs,
+    collapses nullable anyOf, drops titles/defaults/maxItems (pydantic still enforces bounds).
+  - Transient 503/504 from Gemini -> one retry with backoff; request timeout 60 s.
+  - Memo drafting fell back to deterministic claims (narrative unavailable) — the fail-safe path worked.
+- Blocker: Gemini key is on the free tier — `generate_content_free_tier_requests` limit 20/day for
+  gemini-3.8-flash, exhausted after testing; resets in ~9.5 h.

@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     # Runtime LLM (a coding-agent subscription is NOT a runtime key)
     llm_provider: str = "gemini"
     llm_api_key: SecretStr | None = None
-    llm_model: str = "gemini-2.5-flash"
+    llm_model: str = "gemini-3.8-flash"
     # Optional stronger model used only for report synthesis escalation.
     llm_escalation_model: str | None = None
 

@@ -20,9 +20,15 @@ Files: `evidence/entire/README.md`, `evidence/entire/screenshots/`
 
 ## cfo.ai
 Files: `evidence/cfo-ai/README.md`, `evidence/cfo-ai/assumptions.md`, `evidence/cfo-ai/plan.png` or `exported-plan.pdf` (not yet created)
-- Date plan generated: `TODO`
-- Export/screenshot path: `TODO`
-- Pricing/cost/revenue/runway sections verified: `TODO`
+- Shared model link: https://cfo.ai/s/LuzFz_Xw5PkfkLJJ (page "DealScope — Model formulas", horizon Oct-26 -> Sep-27)
+- Date plan generated: 2026-10-11 (shared by owner)
+- Export/screenshot path: `TODO` (owner to export/screenshot from the signed-in workspace into `evidence/cfo-ai/`)
+- Verified in shared view on 2026-10-11: monthly engine; 5 pricing alternatives (annual deal-team, hybrid,
+  per-audit low/base/high); paying/new customer equivalents; fixed costs ($750/month); audits delivered; earned
+  revenue; cash collections (annual/workspace fees collected on acquisition, earned over 12 months); funding gap
+  defined as cumulative cash deficit before opening cash (cash not invented).
+- Not visible in the shared view (check in workspace before claiming): variable cost per audit, gross/contribution
+  margin, burn and runway rows.
 
 ## Crustdata
 - Account usage before/after smoke test: `TODO`
