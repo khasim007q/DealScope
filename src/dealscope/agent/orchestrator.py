@@ -393,6 +393,14 @@ class Orchestrator:
                     vs.set_attribute(f"draft.{k}", v)
         state.claims = verification.accepted + verification.rejected
         self._transition(state, CaseStage.REPORTING, root)
+        limited = state.finish_reason not in (None, "planner_stop", "no_candidates")
+        failed = [c for c in state.completed_actions if c.outcome.startswith(("failed:", "unknown_outcome:"))]
+        if state.finish_reason is None:
+            state.finish_reason = "complete"
+        if failed and not limited:
+            # Evidence gaps from failed tool calls: report is partial and the case can be resumed.
+            limited = True
+            state.finish_reason = f"{state.finish_reason}_with_{len(failed)}_failed_actions"
         as_of = datetime.combine(self.as_of, datetime.min.time(), tzinfo=UTC) if self.as_of else datetime.now(UTC)
         with tracing.span("render_memo", kind="CHAIN", case_id=state.case_id):
             memo = render_memo(state, evidence, verification, scorecard, narrative, as_of)
@@ -409,9 +417,6 @@ class Orchestrator:
         }
         self.repo.save_report(state.case_id, memo, bundle, verification.accepted)
         state.runtime_seconds_used += time.monotonic() - started
-        limited = state.finish_reason not in (None, "planner_stop", "no_candidates")
-        if state.finish_reason is None:
-            state.finish_reason = "complete"
         self._transition(state, CaseStage.PARTIAL if limited else CaseStage.COMPLETE, root)
 
 

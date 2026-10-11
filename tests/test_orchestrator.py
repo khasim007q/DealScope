@@ -145,6 +145,7 @@ def test_t10_retry_exhausted_then_resume_without_repeating_calls(tmp_path):
     after_first = repo.load_case(state.case_id)
     failed = [c for c in after_first.completed_actions if c.outcome.startswith("failed:")]
     assert failed, "first enrichment should fail after bounded retries"
+    assert after_first.stage == CaseStage.PARTIAL and "failed_actions" in after_first.finish_reason
     succeeded_before = {r["idempotency_key"] for r in repo.list_tool_runs(state.case_id) if r["status"] == "succeeded"}
     evidence_before = {e.evidence_id for e in repo.get_evidence(state.case_id)}
 
