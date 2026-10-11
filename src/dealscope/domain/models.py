@@ -150,6 +150,8 @@ class CompanyProfilePayload(BaseModel):
     funding_total_usd: float | None = None
     industry: str | None = None
     hq_country: str | None = None
+    # Provider values dropped as implausible (e.g. 'engineering_growth_pct.3m=303.9 dropped: >100% in <=6m').
+    data_quality_flags: list[str] = Field(default_factory=list)
 
 
 class PersonHistoryPayload(BaseModel):

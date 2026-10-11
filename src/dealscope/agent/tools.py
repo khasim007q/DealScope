@@ -15,6 +15,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
 
+from dealscope.analysis.data_quality import sanitize_company
 from dealscope.budget.governor import BudgetDenied, CreditGovernor
 from dealscope.domain.enums import EvidenceKind, ToolName, ToolRunStatus
 from dealscope.domain.models import (
@@ -376,7 +377,9 @@ class ToolExecutor:
             valid_from=item.valid_from,
             valid_to=item.valid_to,
             field_coverage=list(item.field_coverage),
-            payload=item.payload,
+            payload=sanitize_company(item.payload)
+            if isinstance(item.payload, CompanyProfilePayload)
+            else item.payload,
             raw_hash=item.raw_hash,
             dedup_key=item.dedup_key,
             tool_run_id=run_id,

@@ -592,3 +592,44 @@ def test_account_helpers():
     assert seen[1].url.path == "/account/endpoints" and seen[1].url.params["path"] == "/company/enrich"
     with pytest.raises(BadRequestError):
         client.endpoint_pricing("../etc/passwd")
+
+
+def _identify_match(name, domain, size="501-1000"):
+    return {
+        "confidence_score": 1.0,
+        "company_data": {
+            "basic_info": {
+                "name": name,
+                "primary_domain": domain,
+                "all_domains": [domain] if domain else [],
+                "employee_count_range": size,
+            }
+        },
+    }
+
+
+def test_identify_ok_for_single_exact_match():
+    handler, seen = recorder([ok([{"matched_on": "notion.com", "matches": [_identify_match("Notion", "notion.com")]}])])
+    client, _, _ = make_client(handler)
+    check = client.identify_company("https://www.notion.com/")
+    assert check.ok and check.resolved_name == "Notion" and check.match_count == 1
+    assert seen[0].url.path == "/company/identify"
+    assert json.loads(seen[0].content) == {"domains": ["notion.com"], "exact_match": True}
+
+
+def test_identify_flags_ambiguous_hosting_domain():
+    # Observed live: notion.so matches ~23 unrelated small companies whose website is a notion.so page.
+    matches = [_identify_match("Notion Korea", "notion.com"), _identify_match("Propseller", "propseller.com")] + [
+        _identify_match(f"Small co {i}", None, "2-10") for i in range(20)
+    ]
+    handler, _ = recorder([ok([{"matched_on": "notion.so", "matches": matches}])])
+    client, _, _ = make_client(handler)
+    check = client.identify_company("notion.so")
+    assert not check.ok and check.status == "mismatch" and check.match_count == 22
+    assert any(c["primary_domain"] == "notion.com" for c in check.candidates)
+
+
+def test_identify_no_match():
+    handler, _ = recorder([ok([{"matched_on": "nothing.example", "matches": []}])])
+    client, _, _ = make_client(handler)
+    assert client.identify_company("nothing.example").status == "no_match"

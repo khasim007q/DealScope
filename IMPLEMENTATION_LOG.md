@@ -76,3 +76,22 @@ No secrets are recorded here. Times are IST (hackathon window 10–12 Oct 2026).
 - Entire: enabled by owner; 4 checkpoint refs pushed on 19:14 push. `prepare-commit-msg` hook blocks indefinitely when
   invoked from this agent session (idle, no log output; `entire doctor` reports OK). Commit `a86ab8d` completed only
   after the hook process was stopped (no Entire-Checkpoint trailer); commits otherwise paused pending owner decision.
+
+### 2026-10-11 ~21:50 IST — live browser test (Streamlit UI, live Crustdata)
+- Run 1 (`case-1177e8f2bcd0`, notion.so vs coda.io, airtable.com, clickup.com): target enrichment charged 6 credits
+  but produced no evidence; all signals not scored; INSUFFICIENT EVIDENCE shown honestly. Root cause: notion.so is an
+  ambiguous hosting domain in Crustdata (23 exact matches of unrelated small companies); Notion's indexed domain is
+  notion.com. The primary-domain check correctly refused the junk matches, but credits were already spent.
+- Fix (FR-01): free `/company/identify` pre-check for every domain before any metered call (UI and CLI). A run is
+  refused unless each domain resolves to exactly one company with that primary domain; candidates are shown.
+  Verified in the browser: notion.so flagged `mismatch` (23 matches, suggests notion.com), 0 credits spent.
+- Run 2 (`case-d60a330a199c`, notion.com): complete, 4 planner turns, 36 evidence, 4.82 credits actual, risk 32 (Watch),
+  coverage 92%, confidence 87, trace `b3875a81576975a4536e4bf132c8c7bb`. Exposed provider data discontinuities:
+  peer engineering growth of +304% to +500% (Airtable, ClickUp) that produced an absurd peer-range finding.
+- Fix: `analysis/data_quality.py` drops implausible growth values (>60%/1m, >100%/3–6m, >250%/12m, >500%/24m, for
+  headcount >= 20) before scoring; flags listed in the memo's data-coverage section. Growth figures rounded to 0.1.
+- Run 3 (`case-fedaa94215ba`, same inputs, fully cached, 0 credits): Gemini (gemini-3.1-flash-lite) chose all three
+  planner actions; memo 12 claims, 0 rejected; anomalies listed as data-quality flags; trace
+  `4e64b2898a114a65b3de4608de851bfe`.
+- Crustdata spend to date: 2 + 9.18 + 12.21 + 8 + 4.82 = 36.21 credits actual; balance ~163.8.
+- Tests: 265 passed; ruff clean.

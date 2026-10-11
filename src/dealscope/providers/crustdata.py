@@ -11,6 +11,7 @@ import random
 import re
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
 
@@ -43,6 +44,7 @@ PROVIDER = "crustdata"
 ENRICH_PATH = "/company/enrich"
 PERSON_SEARCH_PATH = "/person/search"
 JOB_SEARCH_PATH = "/job/search"
+IDENTIFY_PATH = "/company/identify"  # free
 
 MAX_PEOPLE_LIMIT = 100
 MAX_JOB_LIMIT = 50
@@ -449,6 +451,19 @@ def normalize_job(listing: dict, domain: str) -> NormalizedItem | None:
 # ---------------------------------------------------------------------------
 
 
+@dataclass(frozen=True)
+class IdentityCheck:
+    domain: str
+    status: str  # ok | ambiguous | mismatch | no_match
+    resolved_name: str | None
+    match_count: int
+    candidates: list[dict]
+
+    @property
+    def ok(self) -> bool:
+        return self.status == "ok"
+
+
 class CrustdataClient:
     provider_name = PROVIDER
 
@@ -656,6 +671,48 @@ class CrustdataClient:
         if not data["job_listings"]:
             notes.append("no match")
         return self._result(JOB_SEARCH_PATH, body, items, response, attempts, notes)
+
+    # -- free identity resolution (FR-01) --------------------------------
+
+    def identify_company(self, domain: str) -> IdentityCheck:
+        """Resolve a domain with the FREE /company/identify endpoint before any metered call.
+
+        `ok` only when exactly one exact match has this primary domain. Ambiguous domains (e.g. a hosting domain
+        that many small companies list as their website) are reported with candidates instead of being enriched."""
+        wanted = _clean_domain(domain)
+        data, response, attempts = self._request(
+            "POST", IDENTIFY_PATH, json_body={"domains": [wanted], "exact_match": True}
+        )
+        if not isinstance(data, list):
+            raise self._schema(response, attempts, f"{IDENTIFY_PATH}: expected a top-level array")
+        candidates: list[dict] = []
+        for entry in data:
+            for match in _as_list(_as_dict(entry).get("matches")):
+                basic = _as_dict(_as_dict(_as_dict(match).get("company_data")).get("basic_info"))
+                candidates.append(
+                    {
+                        "name": _str(basic.get("name")),
+                        "primary_domain": _host(basic.get("primary_domain")),
+                        "employee_count_range": _str(basic.get("employee_count_range")),
+                        "confidence": _num(_as_dict(match).get("confidence_score")),
+                    }
+                )
+        exact = [c for c in candidates if c["primary_domain"] == wanted]
+        if len(exact) == 1 and len(candidates) <= 3:
+            status = "ok"
+        elif not candidates:
+            status = "no_match"
+        elif exact:
+            status = "ambiguous"
+        else:
+            status = "mismatch"
+        return IdentityCheck(
+            domain=wanted,
+            status=status,
+            resolved_name=exact[0]["name"] if exact else None,
+            match_count=len(candidates),
+            candidates=candidates[:5],
+        )
 
     # -- free account helpers ---------------------------------------------
 

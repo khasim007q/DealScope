@@ -48,6 +48,44 @@ def _orchestrator(mode: RunMode, scenario: Path | None = None, faults: dict | No
     return build_orchestrator(settings, mode, repo=repo, fixture_path=scenario, faults=faults)
 
 
+def _identities_ok(domains: list[str]) -> bool:
+    """FR-01: resolve every domain with Crustdata's FREE identify endpoint before any metered call."""
+    from dealscope.providers.crustdata import CrustdataClient
+
+    client = CrustdataClient(
+        settings.crustdata_api_key.get_secret_value(),
+        api_version=settings.crustdata_api_version,
+        base_url=settings.crustdata_base_url,
+        timeout_s=settings.dealscope_http_timeout_seconds,
+        max_retries=settings.dealscope_max_retries,
+    )
+    rows, all_ok = [], True
+    with st.spinner("Resolving company identities (free)…"):
+        for d in domains:
+            try:
+                check = client.identify_company(d)
+            except Exception as exc:  # surfaced to the user; nothing metered was attempted
+                rows.append({"domain": d, "status": f"error: {type(exc).__name__}", "resolved": "", "candidates": ""})
+                all_ok = False
+                continue
+            all_ok &= check.ok
+            cands = "; ".join(
+                f"{c['name']} ({c['primary_domain'] or 'no domain'}, {c['employee_count_range'] or '?'})"
+                for c in check.candidates[:3]
+            )
+            rows.append(
+                {
+                    "domain": d,
+                    "status": check.status,
+                    "resolved": check.resolved_name or "",
+                    "matches": check.match_count,
+                    "candidates": "" if check.ok else cands,
+                }
+            )
+    st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+    return all_ok
+
+
 # ---------------------------------------------------------------- sidebar
 with st.sidebar:
     st.title("🔎 DealScope")
@@ -146,8 +184,15 @@ with tab_new:
         except Exception as exc:
             st.error(f"Invalid input: {exc}")
         else:
+            identity_ok = True
+            if mode == RunMode.LIVE and confirm:
+                identity_ok = _identities_ok(case_input.all_domains())
             if not confirm:
                 st.error("Confirm identities and budget before a live run.")
+            elif not identity_ok:
+                st.error(
+                    "Fix the domains flagged above before running. No credits were spent (identity check is free)."
+                )
             else:
                 try:
                     orch = _orchestrator(mode, scenario, faults)

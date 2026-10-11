@@ -56,7 +56,7 @@ MAX_FINDINGS = 12
 
 
 def _fmt(v: float) -> str:
-    return f"{v:g}"
+    return f"{round(v, 1):g}"
 
 
 _WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"]
@@ -568,6 +568,10 @@ def render_memo(
         "- Public-profile coverage is not a census; absence of a record is not evidence of absence.",
         "- Provider growth fields are returned only for fixed periods; no longer series is inferred.",
     ]
+    for e in evidence:
+        if isinstance(e.payload, CompanyProfilePayload):
+            for flag in e.payload.data_quality_flags:
+                out.append(f"- Data quality ({e.subject_domain}, `{e.evidence_id}`): {_cell(flag)}")
     for s in scorecard.signals:
         for lim in s.limitations:
             out.append(f"- {s.signal_id.value}: {_cell(lim)}")

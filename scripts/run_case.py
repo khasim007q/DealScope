@@ -160,6 +160,22 @@ def main() -> int:
                     max_case_credits=args.budget,
                     mode=RunMode.LIVE,
                 )
+                from dealscope.providers.crustdata import CrustdataClient
+
+                idc = CrustdataClient(
+                    settings.crustdata_api_key.get_secret_value(),
+                    api_version=settings.crustdata_api_version,
+                    base_url=settings.crustdata_base_url,
+                    timeout_s=25,
+                    max_retries=1,
+                )
+                checks = [idc.identify_company(d) for d in ci.all_domains()]  # free (FR-01)
+                bad = [c for c in checks if not c.ok]
+                for c in checks:
+                    print(f"identity {c.domain}: {c.status} {c.resolved_name or ''} ({c.match_count} matches)")
+                if bad:
+                    print("Refusing live run: fix ambiguous/unknown domains first (no credits spent).")
+                    return 2
                 out = run_one(settings, repo, RunMode.LIVE, ci, variant=args.variant)
             else:
                 out = run_one(
