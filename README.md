@@ -1,87 +1,120 @@
-# DealScope — Specification Pack
+# DealScope
 
-**Product:** DealScope — Evidence-Led Outside-In Diligence Agent  
-**Purpose:** Hackathon MVP for neatHack (10–12 October 2026)  
-**Primary data source:** Crustdata APIs (5,000 participant credits; do not assume AWS credits)  
-**Required partner products:** neatlogs, Entire, cfo.ai
+Evidence-led, outside-in organizational diligence agent for PE, growth-equity and corp-dev teams (neatHack MVP).
+It surfaces externally observable organizational signals that could undermine a deal thesis, shows the evidence
+behind each one, and turns them into a sourced list of questions to validate before signing.
 
-## What we are building
+**DealScope is not** an investment recommendation, valuation tool or legal opinion. It does not compute true employee
+attrition (public profiles are a sample, not a census), does not make causal or misconduct allegations from job moves,
+and treats missing data as "not enough data", never as reassurance. Fixture runs show a `SYNTHETIC DEMO DATA` banner.
 
-DealScope investigates a target company's externally observable organizational execution risk for a private-equity / M&A deal thesis. It plans a bounded investigation, calls tools, stores intermediate state, follows evidence gaps, tests alternative explanations, recovers from selected failures, verifies report claims against source records, and generates an investment-committee-style memo.
+## How the agent works
 
-It is **not** a generic research chatbot, a dashboard-only wrapper, a valuation engine, or a claim to measure true employee attrition from incomplete public profiles.
+A case (target domain, 2-5 peer domains, deal thesis, lookback) first builds a baseline: Crustdata company enrichment
+for the target and peers. Deterministic code then scores five signals (S1-S5) and enumerates the *candidate* next
+actions that are legal right now (allowlisted tool, registered domain, not already done, affordable). Gemini may pick
+exactly one candidate and explain why; with no `LLM_API_KEY`, or if its answer is invalid, a deterministic policy picks.
+The chosen tool runs through the credit governor (reserve before the call, settle after), the result is checkpointed to
+SQLite, signals are rescored, and the loop repeats until coverage is sufficient, a cap is hit, or no action would change a
+conclusion. Draft findings (template or LLM) must pass the deterministic claim verifier, which rejects uncited,
+causal or over-generalised claims, before anything reaches the memo. Failed runs can be resumed without replaying
+completed metered calls.
 
-## Read/build order
+## Quickstart
 
-1. `docs/00-product-and-scope.md`
-2. `docs/01-hld.md`
-3. `docs/02-lld.md`
-4. `docs/03-functional-spec.md`
-5. `docs/04-signal-catalog.md`
-6. `docs/05-technical-requirements.md`
-7. `docs/06-crustdata-credit-budget.md`
-8. `docs/07-hackathon-partner-requirements.md`
-9. `docs/08-cfoai-business-plan.md`
-10. `docs/09-evaluation-demo-submission.md`
-11. `CLAUDE_CODE_MASTER_PROMPT.md`
+Requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
 
-## Key product decisions (do not weaken these)
+Windows (Git Bash / PowerShell):
 
-- Score only five defined signals, with explicit `scorable`, `not_scored`, and `low_coverage` states.
-- Keep **risk** and **evidence confidence** separate. An unavailable signal is not a zero-risk signal.
-- Every factual claim in the final report must point to one or more evidence IDs and include observation dates/source metadata.
-- The agent must choose follow-up actions based on results, not execute a fixed chain regardless of findings.
-- Persist state after every tool call. A failed run must resume from a durable checkpoint rather than restart and blindly spend credits again.
-- Use Crustdata only for professional/company data needed for diligence. Do not request personal emails, phone numbers, or irrelevant personal details.
-- Never infer actual attrition rate, IP theft, technical debt, employee performance, or valuation haircut from public-profile signals alone.
-- Never claim a live Crustdata result when running fixture/demo mode.
-- neatlogs, Entire, and cfo.ai are mandatory hackathon requirements. Treat proof of actual use as a deliverable, not a README claim.
-- AWS credits are optional. Core app must run without AWS.
-
-## MVP acceptance in one sentence
-
-Given one target domain, three to five competitors, and an investment thesis, DealScope produces a source-linked diligence memo while making at least one evidence-driven follow-up decision, persisting recoverable state, and demonstrating a recoverable tool failure in neatlogs traces.
-
-## Project layout expected from Claude Code
-
-```text
-app.py                         # Streamlit shell
-src/dealscope/
-  config.py                    # env settings and feature flags
-  domain/                      # Pydantic domain models
-  providers/crustdata.py       # API client + field normalization
-  providers/llm.py             # configured model adapter
-  agent/planner.py             # structured next-action selection
-  agent/orchestrator.py        # bounded investigate/recover/stop loop
-  agent/tools.py               # allowlisted tool functions
-  analysis/signals.py          # deterministic scorecards
-  analysis/peer_benchmark.py   # robust peer comparisons
-  verification/claims.py       # citation/claim validation
-  persistence/repository.py    # SQLite case/checkpoint/evidence store
-  reports/memo.py              # Markdown/HTML memo builder
-  observability/neatlogs.py    # partner instrumentation
-scripts/
-tests/
-fixtures/
-reports/
+```
+uv venv --python 3.12 .venv
+uv pip install --python .venv -e ".[dev]"
+copy .env.example .env
+.venv\Scripts\streamlit run app.py
 ```
 
-Claude Code may adjust structure if it explains why in the implementation log. Do not create a microservice mesh.
+macOS / Linux:
 
-## Source of truth
+```
+uv venv --python 3.12 .venv
+uv pip install --python .venv -e ".[dev]"
+cp .env.example .env
+.venv/bin/streamlit run app.py
+```
 
-This pack was designed against the published neatHack page and publicly accessible Crustdata/neatlogs/Entire documentation. API schemas and per-endpoint prices can change. Before implementing an endpoint, inspect its current official docs and validate the response shape using a small, metered request. Do not guess an undocumented job-listing price.
+Tests and lint: `python -m pytest -q` and `ruff check .` (use the venv's interpreter).
 
-- Hackathon: https://neatlogs.com/hackathon
-- Crustdata company API: https://crustdata.com/company-data-api
-- Crustdata people API: https://crustdata.com/people-api
-- Crustdata jobs API: https://crustdata.com/apis/job-listing
-- Crustdata docs: https://docs.crustdata.com/
-- neatlogs Python SDK: https://docs.neatlogs.com/sdk/python
-- neatlogs evals: https://docs.neatlogs.com/docs/features/evals
-- Entire: https://entire.io/
-- cfo.ai neatHack page: https://cfo.ai/neathacks
+| Mode | Keys needed |
+|---|---|
+| Synthetic fixture | none |
+| Live Crustdata | `CRUSTDATA_API_KEY` |
+| LLM planner/synthesis (optional) | `LLM_API_KEY` (Gemini); without it the deterministic planner runs |
+| Traces | `NEATLOGS_API_KEY`; without it tracing is a no-op and the UI says "not connected" |
 
-## Hackathon timing
+Live mode never falls back to fixtures. Put secrets only in `.env` (never commit it).
 
-The published schedule says submissions close Monday, 12 October 2026, 7:00–11:55 PM IST (the page notes the final cutoff may be announced on Discord). Confirm the final cutoff in the official Discord before submission. All product code must be written during the hackathon window; this specification is a plan, not prebuilt product code.
+## Architecture
+
+| Module (`src/dealscope/`) | Role |
+|---|---|
+| `agent/planner.py` | Enumerates legal candidate actions; LLM picks one or deterministic policy decides |
+| `agent/orchestrator.py` | Bounded investigate / recover / stop loop; checkpoints every stage and tool result |
+| `agent/tools.py` | Allowlisted tools; schema + domain checks, idempotency, cache, credit reservation, retry |
+| `agent/synthesis.py` | LLM drafting of cited findings (baseline and improved prompt variants) |
+| `analysis/signals.py` | Deterministic S1-S5 scoring, composite scorecard, risk vs confidence vs coverage |
+| `analysis/peer_benchmark.py` | Pure peer-benchmark helpers (median/quartiles, weak-benchmark flags) |
+| `budget/governor.py` | Persisted, fail-closed credit accounting (reserve, settle, unknown-outcome) |
+| `persistence/repository.py` | SQLite (WAL) state, evidence, ledger; durable at each tool-result boundary |
+| `providers/crustdata.py` | Live Crustdata client (API 2025-11-01) and normalization |
+| `providers/fixture.py` | Synthetic data source with the same interface and fault injection |
+| `providers/http_retry.py` | Bounded retry (429/5xx, connect failures); unknown-outcome calls never replayed |
+| `providers/classify.py` | Deterministic job-title classifier and query vocabularies |
+| `providers/llm.py` | Configurable LLM adapter (Gemini); output treated as untrusted |
+| `verification/claims.py` | Deterministic claim verifier gating the memo |
+| `reports/memo.py` | Memo renderer and JSON evidence bundle (verified claims only) |
+| `observability/tracing.py` | neatlogs facade with safe attributes; no-op without a key |
+
+```mermaid
+flowchart LR
+  A[Case input] --> B[Baseline enrichment]
+  B --> C[Score S1-S5]
+  C --> D[Candidate actions]
+  D --> E{Gemini pick or deterministic fallback}
+  E --> F[Allowlisted tool via credit governor]
+  F --> G[(SQLite checkpoint)]
+  G --> C
+  C -->|stop condition| H[Claim verifier]
+  H --> I[Memo + downloads]
+```
+
+## Credit policy
+
+Crustdata budget: 5,000 total credits, 1,000 held as a global reserve (never spent), 300 maximum per case.
+Documented prices (docs/10 section 7): company enrich 2 per matched record; person search about 0.23 per result with
+employment history filtered and returned; jobs search 0.03 per result per docs, but live jobs stay **disabled
+(fail closed)** until the price is confirmed from account pricing and configured via `CRUSTDATA_JOB_COST_PER_RESULT`.
+Unknown prices block the call. Fixture runs use a separate simulated ledger pool and never touch the live budget.
+Figures in the UI are estimates unless marked actual.
+
+## Safety and limits
+
+- Per run: 8 planner turns, 12 tool calls, 240 s, 2 retries (configurable in `.env`).
+- Risk, evidence confidence and coverage are reported separately; low coverage is never shown as low risk.
+- No attrition rates, causal or misconduct allegations, or valuation/buy-pass advice.
+- No contact data requested; raw provider JSON is hashed, not stored; traces carry redacted attributes only.
+
+## Partner tools
+
+- **neatlogs** (runtime observability): traces plans, tool calls, retries, scores and verifier decisions. Proof pending:
+  [`evidence/neatlogs/`](evidence/neatlogs/successful-run.md) templates are not yet filled with real trace IDs.
+- **Entire** (dev workflow): checkpoints linking Claude Code sessions to commits. Proof pending:
+  [`evidence/entire/README.md`](evidence/entire/README.md).
+- **cfo.ai** (business plan): pricing, costs, revenue, runway. Proof pending:
+  [`evidence/cfo-ai/README.md`](evidence/cfo-ai/README.md), [`assumptions.md`](evidence/cfo-ai/assumptions.md).
+
+Index of all submission evidence: [`SUBMISSION_EVIDENCE.md`](SUBMISSION_EVIDENCE.md). Demo script: [`docs/demo-script.md`](docs/demo-script.md).
+
+## Specification pack
+
+Product scope, HLD/LLD, signal catalog, credit budget, partner requirements and the Crustdata API reference live in
+[`docs/`](docs/); the build brief is [`CLAUDE_CODE_MASTER_PROMPT.md`](CLAUDE_CODE_MASTER_PROMPT.md).
