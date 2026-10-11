@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from typing import Protocol
 
@@ -69,8 +70,9 @@ class GeminiProvider:
                 resp = self._client.models.generate_content(model=model, contents=prompt, config=config)
             except Exception as exc:  # SDK raises several error types; normalize them
                 last = exc
-                if attempt < TRANSIENT_RETRIES and _is_transient(exc):
-                    self.sleep(2.0 * (attempt + 1))
+                delay = _retry_delay(exc, attempt)
+                if attempt < TRANSIENT_RETRIES and delay is not None:
+                    self.sleep(delay)
                     continue
                 raise LLMError(f"gemini call failed: {type(exc).__name__}: {str(exc)[:200]}") from exc
             text = getattr(resp, "text", None)
@@ -83,9 +85,24 @@ class GeminiProvider:
 TRANSIENT_RETRIES = 1
 
 
-def _is_transient(exc: Exception) -> bool:
+MAX_RATE_LIMIT_WAIT_S = 40.0
+
+
+def _retry_delay(exc: Exception, attempt: int) -> float | None:
+    """Seconds to wait before retrying, or None when the error is not worth retrying.
+
+    429 per-minute limits carry an advised delay ("retry in 12.3s" / retryDelay "12s"); daily free-tier quota
+    advises hours, which we do not wait for."""
     msg = str(exc)
-    return any(code in msg for code in ("503", "504", "UNAVAILABLE", "DEADLINE_EXCEEDED", "429"))
+    if "429" in msg or "RESOURCE_EXHAUSTED" in msg:
+        m = re.search(r"retry in ([0-9.]+)s", msg) or re.search(r"retryDelay'?\"?:\s*'?\"?([0-9.]+)s", msg)
+        if "h" in msg.split("retry in", 1)[-1][:12] and "retry in" in msg:
+            return None  # e.g. "retry in 9h36m..." -> daily quota exhausted
+        advised = float(m.group(1)) if m else 20.0
+        return advised + 1.0 if advised <= MAX_RATE_LIMIT_WAIT_S else None
+    if any(code in msg for code in ("503", "504", "UNAVAILABLE", "DEADLINE_EXCEEDED")):
+        return 2.0 * (attempt + 1)
+    return None
 
 
 def gemini_schema(schema: type[BaseModel]) -> dict:

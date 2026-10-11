@@ -52,3 +52,27 @@ No secrets are recorded here. Times are IST (hackathon window 10–12 Oct 2026).
   - Memo drafting fell back to deterministic claims (narrative unavailable) — the fail-safe path worked.
 - Blocker: Gemini key is on the free tier — `generate_content_free_tier_requests` limit 20/day for
   gemini-3.8-flash, exhausted after testing; resets in ~9.5 h.
+
+### 2026-10-11 ~20:15 IST — traced proof runs and fixes
+- Gemini free tier: 20 requests/day per model family; gemini-3.8-flash and gemini-3.6-flash (shared with 3.5) both
+  exhausted during testing (503/504 retries also count). Owner declined billing. Switched to gemini-3.6-flash for the
+  live run, gemini-3.1-flash-lite for the eval. Added advised-delay retry for per-minute 429s (<=40 s); daily-quota
+  429s fail fast.
+- Bug found by the failure trace: resume cleared the failed baseline enrichment but never re-ran it (case reached
+  `complete` without target data). Fixed: pending baseline actions run on resume; test now asserts recovery.
+- Memo bug: S2 departure observation counted intervals outside the lookback window (2021–2026). Fixed to use the same
+  window as the S2 score.
+- neatlogs root span now records short input/output summaries (dashboard Input/Output columns were empty).
+- Live proof run `case-289f654e60f5` (airtable.com vs smartsheet.com, monday.com, clickup.com): 7 tool calls, all 3
+  planner decisions by Gemini, 12.21 credits actual, trace `d3a8f383b6cf980bfc51fcdc436478cd`; memo regenerated with
+  Gemini drafting (0 new tool calls) trace `81dd213dbdbc546acd906ecf44f66478`.
+- Failure recovery (synthetic): trace `9e30eca63a3634b9a6f1b8ffe29770c9` (partial after 503x3) ->
+  `3665d83293f0eab47ddb542835ff4622` (resumed, complete, no duplicate calls).
+- Baseline vs improved (deterministic planner, gemini-3.1-flash-lite drafting): no difference in unsupported claims
+  (0 vs 0 on both fixtures); improved produced more outright-verified claims (5 vs 2) and explicit questions.
+  Recorded as-is in `evidence/neatlogs/baseline-vs-improved.md`.
+- Crustdata spend to date: 2 (smoke) + 9.18 (Retool) + 12.21 (Airtable) = 23.39 credits actual of 200.
+- Tests: 260 passed; ruff clean.
+- Entire: enabled by owner; 4 checkpoint refs pushed on 19:14 push. `prepare-commit-msg` hook blocks indefinitely when
+  invoked from this agent session (idle, no log output; `entire doctor` reports OK). Commit `a86ab8d` completed only
+  after the hook process was stopped (no Entire-Checkpoint trailer); commits otherwise paused pending owner decision.

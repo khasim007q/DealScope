@@ -160,6 +160,13 @@ def test_t10_retry_exhausted_then_resume_without_repeating_calls(tmp_path):
     assert succeeded_before <= set(keys)
     assert evidence_before <= {e.evidence_id for e in repo2.get_evidence(state.case_id)}
     assert any(e["type"] == "resume" for e in repo2.list_events(state.case_id))
+    # The enrichment that failed before the restart must actually be retried and recovered.
+    target = state.input.target_domain
+    assert any(
+        e.kind.value == "company_profile" and e.subject_domain == target for e in repo2.get_evidence(state.case_id)
+    )
+    final = repo2.load_case(state.case_id)
+    assert final.scorecard.signals[0].state.value != "not_scored"  # S1 now has target department data
 
 
 def test_t07_auth_failure_stops_without_fixture_fallback(tmp_path):
@@ -271,5 +278,20 @@ def test_gemini_schema_is_flat():
     from dealscope.providers.llm import gemini_schema
 
     text = json.dumps(gemini_schema(DraftReport))
-    assert "$ref" not in text and "$defs" not in text and "anyOf" not in text and '"title"' not in text and "maxItems" not in text
+    assert (
+        "$ref" not in text
+        and "$defs" not in text
+        and "anyOf" not in text
+        and '"title"' not in text
+        and "maxItems" not in text
+    )
     assert gemini_schema(DraftReport)["properties"]["claims"]["items"]["properties"]["claim_type"]["enum"]
+
+
+def test_llm_retry_delay_policy():
+    from dealscope.providers.llm import _retry_delay
+
+    assert _retry_delay(Exception("429 RESOURCE_EXHAUSTED ... Please retry in 12.5s."), 0) == 13.5
+    assert _retry_delay(Exception("429 RESOURCE_EXHAUSTED ... Please retry in 9h36m16s."), 0) is None
+    assert _retry_delay(Exception("503 UNAVAILABLE high demand"), 0) == 2.0
+    assert _retry_delay(Exception("400 INVALID_ARGUMENT"), 0) is None

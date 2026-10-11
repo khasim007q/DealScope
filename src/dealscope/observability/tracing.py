@@ -67,6 +67,9 @@ class _NullSpan:
     def trace_id(self) -> str | None:
         return None
 
+    def set_io(self, input_text: str | None = None, output_text: str | None = None) -> None:
+        return None
+
 
 class _SpanHandle:
     def __init__(self, span: Any) -> None:
@@ -81,6 +84,13 @@ class _SpanHandle:
 
     def record_exception(self, exc: BaseException) -> None:
         self._span.record_exception(exc)
+
+    def set_io(self, input_text: str | None = None, output_text: str | None = None) -> None:
+        """Short, non-sensitive summaries shown in the neatlogs Input/Output columns."""
+        if input_text is not None:
+            self._span.set_attribute("input.value", str(input_text)[:_MAX_STR])
+        if output_text is not None:
+            self._span.set_attribute("output.value", str(output_text)[:_MAX_STR])
 
     def trace_id(self) -> str | None:
         try:

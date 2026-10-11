@@ -1,0 +1,141 @@
+{
+  "injected": "enrich_company: 503, 503, 503 (2 retries then RETRY_EXHAUSTED)",
+  "first_run": {
+    "case_id": "case-614abd88e5d0",
+    "mode": "synthetic",
+    "run_label": "improved",
+    "stage": "partial",
+    "finish_reason": "no_candidates_with_1_failed_actions",
+    "trace_ids": [
+      "9e30eca63a3634b9a6f1b8ffe29770c9"
+    ],
+    "tool_calls": 7,
+    "planner_turns": 4,
+    "plan_sequence": [
+      "search_people (deterministic_fallback)",
+      "search_people (deterministic_fallback)",
+      "search_jobs (deterministic_fallback)",
+      "stop (deterministic_fallback)"
+    ],
+    "elapsed_seconds": 2.02,
+    "credits": {
+      "budget": "40",
+      "reserved": "0",
+      "estimated_used": "20.250",
+      "actual_used": "0",
+      "unknown_count": "0",
+      "unknown_estimate": "0",
+      "remaining": "19.750"
+    },
+    "scorecard": {
+      "risk_score": null,
+      "coverage_pct": 57.5,
+      "evidence_confidence": 57.0,
+      "signals": {
+        "S1": [
+          "not_scored",
+          null
+        ],
+        "S2": [
+          "scorable",
+          25.0
+        ],
+        "S3": [
+          "low_coverage",
+          35.0
+        ],
+        "S4": [
+          "scorable",
+          50.0
+        ],
+        "S5": [
+          "low_coverage",
+          30.0
+        ]
+      }
+    },
+    "verification_published": {
+      "total": 4,
+      "verified": 4,
+      "qualified": 0,
+      "rejected": 0,
+      "material_total": 3,
+      "grounded_claim_rate": 1.0,
+      "unsupported_material_claims": 0,
+      "rejection_reasons": {}
+    },
+    "verification_draft_llm": {},
+    "llm_model": null,
+    "narrative_available": false
+  },
+  "after_restart_resume": {
+    "case_id": "case-614abd88e5d0",
+    "mode": "synthetic",
+    "run_label": "improved",
+    "stage": "complete",
+    "finish_reason": "no_candidates",
+    "trace_ids": [
+      "9e30eca63a3634b9a6f1b8ffe29770c9",
+      "3665d83293f0eab47ddb542835ff4622"
+    ],
+    "tool_calls": 8,
+    "planner_turns": 5,
+    "plan_sequence": [
+      "search_people (deterministic_fallback)",
+      "search_people (deterministic_fallback)",
+      "search_jobs (deterministic_fallback)",
+      "stop (deterministic_fallback)",
+      "stop (deterministic_fallback)"
+    ],
+    "elapsed_seconds": 0.53,
+    "credits": {
+      "budget": "40",
+      "reserved": "0",
+      "estimated_used": "22.250",
+      "actual_used": "0",
+      "unknown_count": "0",
+      "unknown_estimate": "0",
+      "remaining": "17.750"
+    },
+    "scorecard": {
+      "risk_score": 54.5,
+      "coverage_pct": 87.5,
+      "evidence_confidence": 91.7,
+      "signals": {
+        "S1": [
+          "scorable",
+          81.0
+        ],
+        "S2": [
+          "scorable",
+          25.0
+        ],
+        "S3": [
+          "low_coverage",
+          35.0
+        ],
+        "S4": [
+          "scorable",
+          65.0
+        ],
+        "S5": [
+          "low_coverage",
+          30.0
+        ]
+      }
+    },
+    "verification_published": {
+      "total": 9,
+      "verified": 9,
+      "qualified": 0,
+      "rejected": 0,
+      "material_total": 7,
+      "grounded_claim_rate": 1.0,
+      "unsupported_material_claims": 0,
+      "rejection_reasons": {}
+    },
+    "verification_draft_llm": {},
+    "llm_model": null,
+    "narrative_available": false
+  }
+}

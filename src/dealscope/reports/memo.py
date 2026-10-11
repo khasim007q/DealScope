@@ -11,6 +11,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
+from dealscope.analysis.signals import _in_window, _parse_date, _subtract_months, resolve_as_of
 from dealscope.domain.enums import ClaimType, EvidenceKind, RunMode, Severity, SignalId, SignalState
 from dealscope.domain.models import (
     CaseInput,
@@ -166,7 +167,16 @@ def deterministic_claims(
     for e in evidence:
         if e.kind is EvidenceKind.PERSON_HISTORY and e.subject_domain == target:
             people.setdefault(e.payload.person_ref, e)  # type: ignore[union-attr]
-    ended = [e for e in people.values() if isinstance(e.payload, PersonHistoryPayload) and e.payload.target_end]
+    # Same lookback window as S2: only intervals ending in [as_of - lookback, as_of] count as recent departures.
+    as_of = resolve_as_of(evidence)
+    window_start = _subtract_months(as_of, case_input.lookback_months)
+    ended = [
+        e
+        for e in people.values()
+        if isinstance(e.payload, PersonHistoryPayload)
+        and e.payload.target_end
+        and _in_window(_parse_date(e.payload.target_end), window_start, as_of)
+    ]
     if ended:
         ends = sorted(
             e.payload.target_end for e in ended if isinstance(e.payload, PersonHistoryPayload) and e.payload.target_end

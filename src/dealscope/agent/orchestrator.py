@@ -26,6 +26,7 @@ from dealscope.analysis.signals import compute_scorecard
 from dealscope.budget.governor import BudgetDenied, CreditGovernor
 from dealscope.config import Settings
 from dealscope.domain.enums import CaseStage, RunMode, ToolName, ToolRunStatus
+from dealscope.domain.enums import VerificationStatus as VS
 from dealscope.domain.models import CaseInput, CaseState, CompletedAction, PlannerAction, Scorecard
 from dealscope.observability import tracing
 from dealscope.persistence.repository import Repository
@@ -227,6 +228,10 @@ class Orchestrator:
             resume=resume,
         ) as root:
             trace_id = root.trace_id()
+            root.set_io(
+                input_text=f"{state.mode.value} case {state.case_id}: target {state.input.target_domain}; "
+                f"peers {', '.join(state.input.competitor_domains)}; resume={resume}"
+            )
             if trace_id:
                 self.repo.add_event(state.case_id, "trace", {"trace_id": trace_id})
             if resume:
@@ -240,6 +245,14 @@ class Orchestrator:
                 self._transition(state, CaseStage.FAILED, root)
                 raise
             root.set_attribute("finish_reason", state.finish_reason)
+            sc = state.scorecard
+            risk = "insufficient evidence" if sc is None or sc.risk_score is None else f"{sc.risk_score:.0f}"
+            accepted = sum(1 for c in state.claims if c.verification_status in (VS.VERIFIED, VS.QUALIFIED))
+            coverage = sc.coverage_pct if sc else 0
+            root.set_io(
+                output_text=f"{state.stage.value} ({state.finish_reason}); risk {risk}; coverage {coverage:.0f}%; "
+                f"tool calls {state.tool_call_count}; verified claims {accepted}"
+            )
             root.set_attribute("final_stage", state.stage.value)
             root.set_attribute("tool_calls", state.tool_call_count)
             root.set_attribute("iterations", state.iteration_count)
@@ -276,9 +289,13 @@ class Orchestrator:
             state.finish_reason = None
 
     def _run_inner(self, state: CaseState, started: float, root) -> None:
-        if state.stage in (CaseStage.CREATED, CaseStage.BASELINE):
+        # Pending baseline work also runs after a resume (e.g. an enrichment that failed before the restart).
+        pending_baseline = baseline_actions(state, self.repo.get_evidence(state.case_id))
+        if state.stage in (CaseStage.CREATED, CaseStage.BASELINE) or (
+            state.stage == CaseStage.INVESTIGATING and pending_baseline and state.finish_reason is None
+        ):
             self._transition(state, CaseStage.BASELINE, root)
-            for action in baseline_actions(state, self.repo.get_evidence(state.case_id)):
+            for action in pending_baseline:
                 if (hit := self._limits_hit(state, started)) is not None:
                     state.finish_reason = hit
                     break

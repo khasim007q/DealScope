@@ -31,6 +31,8 @@ from dealscope.persistence.repository import Repository  # noqa: E402
 
 FIX = ROOT / "fixtures"
 OUT = ROOT / "evidence" / "neatlogs"
+NO_LLM = False  # set by --no-llm: deterministic planner + deterministic findings only
+DETERMINISTIC_PLANNER = False  # set by --deterministic-planner: LLM used only for memo drafting
 
 
 def init(settings: Settings) -> bool:
@@ -102,7 +104,12 @@ def run_one(
         faults=faults,
         synthesis_variant=variant,
         as_of=date.today(),
+        llm=None if NO_LLM else "auto",
     )
+    if DETERMINISTIC_PLANNER:
+        from dealscope.agent.planner import Planner
+
+        orch.planner = Planner(None)  # identical, rule-based investigation for both eval variants
     if case_id is None:
         case_id = orch.create_case(case_input, run_label=variant).case_id
     t0 = time.monotonic()
@@ -119,6 +126,9 @@ def save(name: str, data: dict) -> Path:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--no-llm", action="store_true", help="run without the runtime LLM (deterministic planner)")
+    ap.add_argument("--deterministic-planner", action="store_true", help="use the LLM only for memo drafting")
+    ap.add_argument("--model", help="override LLM_MODEL for this run")
     sub = ap.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("case")
     c.add_argument("--scenario", default="scenario_a")
@@ -133,8 +143,11 @@ def main() -> int:
     e = sub.add_parser("eval")
     e.add_argument("--scenario", default="scenario_a")
     args = ap.parse_args()
+    global NO_LLM, DETERMINISTIC_PLANNER
+    NO_LLM = args.no_llm
+    DETERMINISTIC_PLANNER = args.deterministic_planner
 
-    settings = Settings()
+    settings = Settings(**({"llm_model": args.model} if args.model else {}))
     init(settings)
     repo = Repository(settings.dealscope_db_path)
     try:
