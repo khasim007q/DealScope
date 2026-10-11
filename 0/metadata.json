@@ -1,0 +1,132 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4NTHZJBFDKJ80R5FCA3CDZS",
+  "session_id": "9d2490e9-f406-446d-8f45-6979c161ecee",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-11T15:51:08.3307656Z",
+  "branch": "main",
+  "checkpoints_count": 8,
+  "save_step_count": 7,
+  "files_touched": [
+    "IMPLEMENTATION_LOG.md",
+    "SUBMISSION_EVIDENCE.md",
+    "evidence/cfo-ai/assumptions.md",
+    "evidence/neatlogs/baseline-vs-improved-20261011T144412Z.json",
+    "evidence/neatlogs/baseline-vs-improved-20261011T144435Z.json",
+    "evidence/neatlogs/baseline-vs-improved.md",
+    "evidence/neatlogs/failure-recovery-20261011T143846Z.json",
+    "evidence/neatlogs/failure-recovery.md",
+    "evidence/neatlogs/live-run-20261011T143949Z.json",
+    "evidence/neatlogs/successful-run.md",
+    "evidence/neatlogs/superseded/baseline-vs-improved-20261011T144325Z.json",
+    "scripts/run_case.py",
+    "src/dealscope/agent/orchestrator.py",
+    "src/dealscope/observability/tracing.py",
+    "src/dealscope/providers/llm.py",
+    "src/dealscope/reports/memo.py",
+    "tests/test_orchestrator.py"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "7fb51ba58b4c",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 412,
+    "cache_creation_tokens": 609685,
+    "cache_read_tokens": 57033499,
+    "output_tokens": 188876,
+    "api_call_count": 203,
+    "subagent_tokens": {
+      "input_tokens": 242,
+      "cache_creation_tokens": 695570,
+      "cache_read_tokens": 13752085,
+      "output_tokens": 181230,
+      "api_call_count": 121
+    }
+  },
+  "session_metrics": {
+    "turn_count": 8
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-11T15:51:08.2518029Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 22,
+    "human_modified": 3348,
+    "human_removed": 0,
+    "total_committed": 1445,
+    "total_lines_changed": 3370,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 85,
+      "agent_lines_removed": 1
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 384,
+      "user_lines_removed": 0,
+      "agent_lines_added": 143,
+      "agent_lines_removed": 53,
+      "user_added_per_file": {
+        "evidence/crustdata/pricing-20261011T140747Z.json": 119,
+        "evidence/crustdata/smoke-enrich-20261011T141124Z.json": 265
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 384,
+      "user_lines_removed": 0,
+      "agent_lines_added": 812,
+      "agent_lines_removed": 576,
+      "user_added_per_file": {
+        "evidence/crustdata/pricing-20261011T140747Z.json": 119,
+        "evidence/crustdata/smoke-enrich-20261011T141124Z.json": 265
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 1142,
+      "user_lines_removed": 979,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "evidence/neatlogs/failure-recovery-20261011T142718Z.json": 141,
+        "scripts/run_case.py": 216,
+        "src/dealscope/agent/orchestrator.py": 497,
+        "tests/test_orchestrator.py": 288
+      },
+      "user_removed_per_file": {
+        "scripts/run_case.py": 211,
+        "src/dealscope/agent/orchestrator.py": 493,
+        "tests/test_orchestrator.py": 275
+      }
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2396,
+      "agent_lines_removed": 1586
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2396,
+      "agent_lines_removed": 1586
+    }
+  ]
+}

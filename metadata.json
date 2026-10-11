@@ -1,0 +1,49 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4NTHZJBFDKJ80R5FCA3CDZS",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 8,
+  "files_touched": [
+    "IMPLEMENTATION_LOG.md",
+    "SUBMISSION_EVIDENCE.md",
+    "evidence/cfo-ai/assumptions.md",
+    "evidence/neatlogs/baseline-vs-improved-20261011T144412Z.json",
+    "evidence/neatlogs/baseline-vs-improved-20261011T144435Z.json",
+    "evidence/neatlogs/baseline-vs-improved.md",
+    "evidence/neatlogs/failure-recovery-20261011T143846Z.json",
+    "evidence/neatlogs/failure-recovery.md",
+    "evidence/neatlogs/live-run-20261011T143949Z.json",
+    "evidence/neatlogs/successful-run.md",
+    "evidence/neatlogs/superseded/baseline-vs-improved-20261011T144325Z.json",
+    "scripts/run_case.py",
+    "src/dealscope/agent/orchestrator.py",
+    "src/dealscope/observability/tracing.py",
+    "src/dealscope/providers/llm.py",
+    "src/dealscope/reports/memo.py",
+    "tests/test_orchestrator.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 412,
+    "cache_creation_tokens": 609685,
+    "cache_read_tokens": 57033499,
+    "output_tokens": 188876,
+    "api_call_count": 203,
+    "subagent_tokens": {
+      "input_tokens": 242,
+      "cache_creation_tokens": 695570,
+      "cache_read_tokens": 13752085,
+      "output_tokens": 181230,
+      "api_call_count": 121
+    }
+  }
+}
