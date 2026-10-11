@@ -1,0 +1,9 @@
+start with the "C:\Users\HI\Downloads\dealscope-spec-pack\CLAUDE_CODE_MASTER_PROMPT.md" spin opus 5.5 medium as master and use sonnet 5.5 medium-high (depending on task complexity) as slave. Assess the folder, understand the idea and start building. Use this repo for code commits, push. 
+
+```
+git remote add origin https://github.com/khasim007q/DealScope.git
+git branch -M main
+git push -u origin main
+```
+
+Have any doubts ask and then execute, do not assume.
