@@ -15,14 +15,14 @@ Files: `evidence/neatlogs/successful-run.md`, `evidence/neatlogs/failure-recover
 Files: `evidence/entire/README.md`, `evidence/entire/screenshots/`
 - CLI version: `Entire CLI 0.11.4`
 - Commands used (exact): install `irm https://entire.io/install.ps1 | iex`; owner ran `entire login`, `entire enable --agent claude-code`, `entire doctor`; agent ran `entire agent-help`, `entire status`
-- Checkpoint/commit/session link or screenshot: 4 checkpoint refs pushed to origin (`refs/entire/checkpoints/...`, see `git ls-remote origin`); commit-linked checkpoint + screenshot still TODO (prepare-commit-msg hook blocks from the agent session)
+- Checkpoint/commit/session link or screenshot: commit `70400f8` carries `Entire-Checkpoint: 01M4NTHZJBFDKJ80R5FCA3CDZS` (linked to this Claude Code session); 5 checkpoint refs on origin (`git ls-remote origin | grep checkpoints`). Screenshot TODO. Note: the hook asks an interactive "Link this commit to session context?" question, which is why agent-made commits blocked.
 - entire-graph output if available: `TODO`
 
 ## cfo.ai
 Files: `evidence/cfo-ai/README.md`, `evidence/cfo-ai/assumptions.md`, `evidence/cfo-ai/plan.png` or `exported-plan.pdf` (not yet created)
 - Shared model link: https://cfo.ai/s/LuzFz_Xw5PkfkLJJ (page "DealScope — Model formulas", horizon Oct-26 -> Sep-27)
 - Date plan generated: 2026-10-11 (shared by owner)
-- Export/screenshot path: `evidence/cfo-ai/exported-plan.pdf.xlsx` (owner export); screenshot TODO
+- Export/screenshot path: `evidence/cfo-ai/` (exported-plan.pdf.xlsx, investor-summary PDF, four workbooks)
 - Verified from the export (`evidence/cfo-ai/exported-plan.pdf.xlsx`, sheets "DealScope monthly model and pricing
   alternatives", "Model inputs", "Export notes"), monthly Oct-26 -> Sep-27:
   - Pricing: per audit $750 / $1,500 / $3,000; annual deal-team $24,000 incl. 24 audits + $1,000 overage; hybrid
@@ -34,9 +34,14 @@ Files: `evidence/cfo-ai/README.md`, `evidence/cfo-ai/assumptions.md`, `evidence/
     pricing model (plan: 93.7% gross / 90.0% contribution margin at $1,500/audit, 5 customers x 3 audits/month).
   - Runway: opening cash not supplied (cash switch 0) -> conditional cash balance left blank; cumulative funding gap
     0 because the modeled plan is cash-generative. No cash or traction invented.
-- Gaps vs docs/08: only one scenario ("Main Scenario", the base case) is in the export — conservative and growth
-  scenarios are not present. Crustdata credits/audit is the pre-run estimate (26); measured live runs used 9.18 and
-  12.21 credits (immaterial to COGS: $0.92–$1.22 vs $2.60 per audit).
+- Scenarios and runway (owner exports added 2026-10-11): `DealScope-investor-summary.pdf` (one-page summary;
+  conservative / base / growth: revenue $30,000 / $270,000 / $390,000, gross margin 87.20% / 93.69% / 90.54%,
+  peak modeled funding need $1,500 / $0 / $0; cash unknown, runway blank), `DealScope — Business summary.xlsx`
+  (scenario comparison, conditional runway), `DealScope — Financial projection.xlsx` (12-month projection, variable
+  cost detail, conditional cash and runway), `DealScope — Pricing and sensitivity.xlsx` (audit frequency, discount,
+  data-cost sensitivities), `DealScope — Assumptions.xlsx` (editable drivers).
+- Note: Crustdata credits/audit in the model is the pre-run estimate (26); measured live runs used 9.18 and 12.21
+  credits, so the modeled data cost is conservative.
 
 ## Crustdata
 - Account usage before/after smoke test: 200.0 -> 198.0 (`X-Credits-Used: 2`)

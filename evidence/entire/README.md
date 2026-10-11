@@ -28,3 +28,12 @@ Confirm flags against `entire --help` / `entire agent-help` for the installed ve
 | `entire checkpoint explain` output | TODO |
 | Screenshot paths | TODO (`evidence/entire/screenshots/...`) |
 | entire-graph output (optional) | TODO |
+
+## Captured 2026-10-11
+- `entire status`: Enabled on branch main, agent Claude Code, checkpoints sync to origin.
+- Commit `70400f8` ("Record traced proof runs, resume fix, eval results") trailer: `Entire-Checkpoint: 01M4NTHZJBFDKJ80R5FCA3CDZS`.
+  Inspect with `entire checkpoint explain 01M4NTHZJBFDKJ80R5FCA3CDZS`.
+- 5 checkpoint refs pushed to origin (`git ls-remote origin | grep refs/entire/checkpoints`).
+- `entire doctor`: metadata branches OK, git hooks OK, Claude Code hook config OK, no stuck sessions.
+- Gotcha: the `prepare-commit-msg` hook prompts "Link this commit to session context? [Y]es / [n]o / [a]lways"; from a
+  non-interactive agent shell it waits forever. Answering `a` once in a terminal remembers the choice.
