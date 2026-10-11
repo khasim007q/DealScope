@@ -89,7 +89,8 @@ flowchart LR
 
 ## Credit policy
 
-Crustdata budget: 5,000 total credits, 1,000 held as a global reserve (never spent), 300 maximum per case.
+Crustdata budget is configured from the real account balance. Our account has 200 credits, so `.env.example` sets
+200 total, a 40-credit global reserve (never spent) and a 40-credit per-case cap (spec defaults were 5,000 / 1,000 / 300).
 Documented prices (docs/10 section 7): company enrich 2 per matched record; person search about 0.23 per result with
 employment history filtered and returned; jobs search 0.03 per result per docs, but live jobs stay **disabled
 (fail closed)** until the price is confirmed from account pricing and configured via `CRUSTDATA_JOB_COST_PER_RESULT`.

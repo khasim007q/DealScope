@@ -21,3 +21,10 @@ No secrets are recorded here. Times are IST (hackathon window 10–12 Oct 2026).
 - Synthetic runs use the documented 0.03 job price for *simulated* accounting only; live job price comes exclusively from config (absent → `UNKNOWN_PRICE_FAIL_CLOSED`).
 - Planner: deterministic code enumerates legal candidate actions (allowlisted, registered domains, not done, affordable). The LLM returns a candidate index + rationale; invalid output gets one corrective retry, then the deterministic policy decides. Raw LLM arguments never reach HTTP.
 - Failed actions are not retried within a run (HTTP retry already bounded at 2); an explicit Resume gives failed actions one more attempt; unknown-outcome calls are never replayed automatically.
+
+### 2026-10-11 Budget re-scoped to the real account balance
+- Owner reports the Crustdata account has **200 credits**, not 5,000. Policy scaled via config only (no code change):
+  total 200, global reserve 40 (20%, never spent), per-case cap 40, people-search result cap 25.
+- Planned live spend: free pricing check (0) -> one company enrichment smoke test (~2) -> one or two traced live cases
+  (~26 estimated each: 4 enrichments = 8, 2-3 people searches x 25 results x 0.23 = 11.5-17.25, jobs 25 x 0.03 = 0.75
+  if enabled). Failure-recovery and baseline-vs-improved experiments run on synthetic fixtures (0 Crustdata credits).
