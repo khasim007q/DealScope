@@ -1,0 +1,345 @@
+{
+  "mode": "synthetic",
+  "synthetic_banner": "SYNTHETIC DEMO DATA — NOT A REAL COMPANY ASSESSMENT",
+  "case": {
+    "case_id": "demo-case-a",
+    "target_domain": "northstar-platform.example",
+    "competitor_domains": [
+      "apex-cloud.example",
+      "cedar-stack.example",
+      "orbit-data.example"
+    ],
+    "deal_thesis": "Expand an enterprise workflow platform while maintaining reliability and secure data processing.",
+    "lookback_months": 12
+  },
+  "companies": {
+    "northstar-platform.example": {
+      "name": "Northstar Platform (synthetic)",
+      "domain": "northstar-platform.example",
+      "total_headcount": 480,
+      "total_growth_pct": {
+        "6m": 11.0,
+        "12m": 18.0
+      },
+      "engineering_headcount": 112,
+      "engineering_growth_pct": {
+        "6m": -4.0,
+        "12m": -2.0
+      },
+      "job_openings_count": 14,
+      "funding_total_usd": 85000000.0,
+      "industry": "Enterprise Software (synthetic)",
+      "hq_country": "US"
+    },
+    "apex-cloud.example": {
+      "name": "Apex Cloud (synthetic)",
+      "domain": "apex-cloud.example",
+      "total_headcount": 620,
+      "total_growth_pct": {
+        "6m": 8.0,
+        "12m": 14.0
+      },
+      "engineering_headcount": 190,
+      "engineering_growth_pct": {
+        "6m": 7.0,
+        "12m": 12.0
+      },
+      "job_openings_count": 21,
+      "funding_total_usd": 120000000.0,
+      "industry": "Enterprise Software (synthetic)",
+      "hq_country": "US"
+    },
+    "cedar-stack.example": {
+      "name": "Cedar Stack (synthetic)",
+      "domain": "cedar-stack.example",
+      "total_headcount": 410,
+      "total_growth_pct": {
+        "6m": 9.0,
+        "12m": 16.0
+      },
+      "engineering_headcount": 130,
+      "engineering_growth_pct": {
+        "6m": 8.0,
+        "12m": 14.0
+      },
+      "job_openings_count": 17,
+      "funding_total_usd": 70000000.0,
+      "industry": "Enterprise Software (synthetic)",
+      "hq_country": "US"
+    },
+    "orbit-data.example": {
+      "name": "Orbit Data (synthetic)",
+      "domain": "orbit-data.example",
+      "total_headcount": 350,
+      "total_growth_pct": {
+        "6m": 4.0,
+        "12m": 7.0
+      },
+      "engineering_headcount": 105,
+      "engineering_growth_pct": {
+        "6m": 3.0,
+        "12m": 5.0
+      },
+      "job_openings_count": 9,
+      "funding_total_usd": 60000000.0,
+      "industry": "Enterprise Software (synthetic)",
+      "hq_country": "US"
+    }
+  },
+  "people": [
+    {
+      "person_ref": "p-syn-a001",
+      "subject_domain": "northstar-platform.example",
+      "relationship_tags": [
+        "past_target_employment"
+      ],
+      "role_group": "technical_leadership",
+      "capability": "general_engineering",
+      "title_at_target": "VP Engineering",
+      "seniority": "Vice President",
+      "target_start": "2021-03",
+      "target_end": "2026-05",
+      "currently_at_target": false,
+      "current_employer_name": "Apex Cloud (synthetic)",
+      "current_employer_domain": "apex-cloud.example",
+      "current_title": "VP Engineering"
+    },
+    {
+      "person_ref": "p-syn-a002",
+      "subject_domain": "northstar-platform.example",
+      "relationship_tags": [
+        "past_target_employment"
+      ],
+      "role_group": "senior_technical_ic",
+      "capability": "general_engineering",
+      "title_at_target": "Principal Engineer",
+      "seniority": "Senior",
+      "target_start": "2020-06",
+      "target_end": "2026-02",
+      "currently_at_target": false,
+      "current_employer_name": "Apex Cloud (synthetic)",
+      "current_employer_domain": "apex-cloud.example",
+      "current_title": "Staff Engineer"
+    },
+    {
+      "person_ref": "p-syn-a003",
+      "subject_domain": "northstar-platform.example",
+      "relationship_tags": [
+        "past_target_employment"
+      ],
+      "role_group": "data_ml",
+      "capability": "data_ml",
+      "title_at_target": "Director of Data Science",
+      "seniority": "Director",
+      "target_start": "2022-01",
+      "target_end": "2025-12",
+      "currently_at_target": false,
+      "current_employer_name": "Orbit Data (synthetic)",
+      "current_employer_domain": "orbit-data.example",
+      "current_title": "Head of Data Science"
+    },
+    {
+      "person_ref": "p-syn-a004",
+      "subject_domain": "northstar-platform.example",
+      "relationship_tags": [
+        "past_target_employment"
+      ],
+      "role_group": "senior_technical_ic",
+      "capability": "reliability",
+      "title_at_target": "Staff Site Reliability Engineer",
+      "seniority": "Senior",
+      "target_start": "2021-09",
+      "target_end": "2026-07",
+      "currently_at_target": false,
+      "current_employer_name": "Brightfield Labs (synthetic)",
+      "current_employer_domain": "brightfield-labs.example",
+      "current_title": "Staff Site Reliability Engineer"
+    },
+    {
+      "person_ref": "p-syn-a005",
+      "subject_domain": "northstar-platform.example",
+      "relationship_tags": [
+        "past_target_employment"
+      ],
+      "role_group": "technical_leadership",
+      "capability": "general_engineering",
+      "title_at_target": "Chief Architect",
+      "seniority": "CXO",
+      "target_start": "2019-09",
+      "target_end": null,
+      "currently_at_target": null,
+      "current_employer_name": "Harbor Systems (synthetic)",
+      "current_employer_domain": "harbor-systems.example",
+      "current_title": "Chief Architect"
+    },
+    {
+      "person_ref": "p-syn-a006",
+      "subject_domain": "northstar-platform.example",
+      "relationship_tags": [
+        "current_target_employment"
+      ],
+      "role_group": "technical_leadership",
+      "capability": "platform_engineering",
+      "title_at_target": "Head of Platform Engineering",
+      "seniority": "Director",
+      "target_start": "2020-02",
+      "target_end": null,
+      "currently_at_target": true,
+      "current_employer_name": "Northstar Platform (synthetic)",
+      "current_employer_domain": "northstar-platform.example",
+      "current_title": "Head of Platform Engineering"
+    },
+    {
+      "person_ref": "p-syn-a007",
+      "subject_domain": "northstar-platform.example",
+      "relationship_tags": [
+        "current_target_employment"
+      ],
+      "role_group": "data_ml",
+      "capability": "data_ml",
+      "title_at_target": "Head of Machine Learning",
+      "seniority": "Director",
+      "target_start": "2022-05",
+      "target_end": null,
+      "currently_at_target": true,
+      "current_employer_name": "Northstar Platform (synthetic)",
+      "current_employer_domain": "northstar-platform.example",
+      "current_title": "Head of Machine Learning"
+    },
+    {
+      "person_ref": "p-syn-a008",
+      "subject_domain": "northstar-platform.example",
+      "relationship_tags": [
+        "current_target_employment"
+      ],
+      "role_group": "senior_technical_ic",
+      "capability": "platform_engineering",
+      "title_at_target": "Staff Platform Engineer",
+      "seniority": "Senior",
+      "target_start": "2021-11",
+      "target_end": null,
+      "currently_at_target": true,
+      "current_employer_name": "Northstar Platform (synthetic)",
+      "current_employer_domain": "northstar-platform.example",
+      "current_title": "Staff Platform Engineer"
+    }
+  ],
+  "jobs": {
+    "northstar-platform.example": [
+      {
+        "source_record_id": "syn-job-a-001",
+        "title": "Principal Platform Engineer",
+        "role_group": "senior_technical_ic",
+        "capability": "platform_engineering",
+        "date_added": "2026-08-01",
+        "date_updated": "2026-09-20",
+        "reposted": true,
+        "number_of_openings": 1,
+        "url": "https://jobs.northstar-platform.example/syn-job-a-001",
+        "category": "Engineering"
+      },
+      {
+        "source_record_id": "syn-job-a-002",
+        "title": "Security Engineering Manager",
+        "role_group": "security",
+        "capability": "security",
+        "date_added": "2026-08-18",
+        "date_updated": "2026-09-12",
+        "reposted": false,
+        "number_of_openings": 1,
+        "url": "https://jobs.northstar-platform.example/syn-job-a-002",
+        "category": "Engineering"
+      },
+      {
+        "source_record_id": "syn-job-a-003",
+        "title": "Staff Site Reliability Engineer",
+        "role_group": "senior_technical_ic",
+        "capability": "reliability",
+        "date_added": "2026-07-22",
+        "date_updated": "2026-09-30",
+        "reposted": true,
+        "number_of_openings": 1,
+        "url": "https://jobs.northstar-platform.example/syn-job-a-003",
+        "category": "Engineering"
+      },
+      {
+        "source_record_id": "syn-job-a-004",
+        "title": "Head of Security",
+        "role_group": "security",
+        "capability": "security",
+        "date_added": "2026-09-03",
+        "date_updated": "2026-09-03",
+        "reposted": false,
+        "number_of_openings": 1,
+        "url": "https://jobs.northstar-platform.example/syn-job-a-004",
+        "category": "Engineering"
+      },
+      {
+        "source_record_id": "syn-job-a-005",
+        "title": "Machine Learning Platform Engineer",
+        "role_group": "data_ml",
+        "capability": "data_ml",
+        "date_added": "2026-09-14",
+        "date_updated": "2026-09-14",
+        "reposted": false,
+        "number_of_openings": 1,
+        "url": "https://jobs.northstar-platform.example/syn-job-a-005",
+        "category": "Engineering"
+      }
+    ],
+    "apex-cloud.example": [
+      {
+        "source_record_id": "syn-job-a-101",
+        "title": "Senior Backend Engineer",
+        "role_group": "other_technical",
+        "capability": "platform_engineering",
+        "date_added": "2026-09-01",
+        "date_updated": "2026-09-01",
+        "reposted": false,
+        "number_of_openings": 1,
+        "url": "https://jobs.apex-cloud.example/syn-job-a-101",
+        "category": "Engineering"
+      }
+    ],
+    "cedar-stack.example": [
+      {
+        "source_record_id": "syn-job-a-201",
+        "title": "Platform Engineer",
+        "role_group": "other_technical",
+        "capability": "platform_engineering",
+        "date_added": "2026-08-25",
+        "date_updated": "2026-08-25",
+        "reposted": false,
+        "number_of_openings": 1,
+        "url": "https://jobs.cedar-stack.example/syn-job-a-201",
+        "category": "Engineering"
+      },
+      {
+        "source_record_id": "syn-job-a-202",
+        "title": "Security Engineer",
+        "role_group": "security",
+        "capability": "security",
+        "date_added": "2026-09-10",
+        "date_updated": "2026-09-10",
+        "reposted": false,
+        "number_of_openings": 1,
+        "url": "https://jobs.cedar-stack.example/syn-job-a-202",
+        "category": "Engineering"
+      }
+    ],
+    "orbit-data.example": [
+      {
+        "source_record_id": "syn-job-a-301",
+        "title": "Data Engineer",
+        "role_group": "data_ml",
+        "capability": "data_ml",
+        "date_added": "2026-09-08",
+        "date_updated": "2026-09-08",
+        "reposted": false,
+        "number_of_openings": 1,
+        "url": "https://jobs.orbit-data.example/syn-job-a-301",
+        "category": "Engineering"
+      }
+    ]
+  }
+}

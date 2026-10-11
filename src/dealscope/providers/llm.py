@@ -1,0 +1,110 @@
+"""Configurable runtime LLM adapter.
+
+The LLM is used only to (a) choose the next investigative action from an allowlist and
+(b) draft cited findings. Its output is untrusted: callers validate it against pydantic
+schemas, the tool allowlist, the credit governor, and the deterministic claim verifier.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+from typing import Protocol
+
+from pydantic import BaseModel, ValidationError
+
+from dealscope.config import Settings
+from dealscope.observability import tracing
+
+log = logging.getLogger(__name__)
+
+
+class LLMError(RuntimeError):
+    pass
+
+
+class LLMUnavailable(LLMError):
+    pass
+
+
+class LLMProvider(Protocol):
+    name: str
+    model: str
+
+    def generate_json(self, system: str, prompt: str, schema: type[BaseModel], *, escalate: bool = False) -> str:
+        """Return a raw JSON string intended to match `schema` (caller validates)."""
+        ...
+
+
+class GeminiProvider:
+    name = "gemini"
+
+    def __init__(self, api_key: str, model: str, escalation_model: str | None = None) -> None:
+        from google import genai
+
+        # Construct after tracing.init_tracing() so neatlogs can instrument the client.
+        self._client = tracing.wrap_llm_client(genai.Client(api_key=api_key))
+        self.model = model
+        self.escalation_model = escalation_model
+
+    def generate_json(self, system: str, prompt: str, schema: type[BaseModel], *, escalate: bool = False) -> str:
+        from google.genai import types
+
+        model = self.escalation_model if (escalate and self.escalation_model) else self.model
+        config = types.GenerateContentConfig(
+            system_instruction=system,
+            temperature=0.1,
+            response_mime_type="application/json",
+            response_json_schema=schema.model_json_schema(),
+            max_output_tokens=4096,
+        )
+        try:
+            resp = self._client.models.generate_content(model=model, contents=prompt, config=config)
+        except Exception as exc:  # SDK raises several error types; normalize them
+            raise LLMError(f"gemini call failed: {type(exc).__name__}: {str(exc)[:200]}") from exc
+        text = getattr(resp, "text", None)
+        if not text:
+            raise LLMError("gemini returned empty response")
+        return text
+
+
+class ScriptedProvider:
+    """Deterministic provider for tests/eval: returns queued JSON strings in order."""
+
+    name = "scripted"
+
+    def __init__(self, responses: list[str | dict], model: str = "scripted-v1") -> None:
+        self._responses = list(responses)
+        self.model = model
+        self.calls: list[dict[str, str]] = []
+
+    def generate_json(self, system: str, prompt: str, schema: type[BaseModel], *, escalate: bool = False) -> str:
+        self.calls.append({"system": system, "prompt": prompt, "schema": schema.__name__})
+        if not self._responses:
+            raise LLMUnavailable("scripted provider exhausted")
+        item = self._responses.pop(0)
+        return item if isinstance(item, str) else json.dumps(item)
+
+
+def build_provider(settings: Settings) -> LLMProvider | None:
+    """Return the configured provider, or None when no runtime key is configured."""
+    if settings.llm_api_key is None:
+        return None
+    if settings.llm_provider.lower() in {"gemini", "google"}:
+        return GeminiProvider(
+            settings.llm_api_key.get_secret_value(), settings.llm_model, settings.llm_escalation_model
+        )
+    raise LLMError(f"unsupported LLM_PROVIDER={settings.llm_provider!r}")
+
+
+def parse_structured[T: BaseModel](raw: str, schema: type[T]) -> T:
+    """Validate an LLM JSON string; strips markdown fences defensively."""
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        text = text.split("\n", 1)[1] if "\n" in text else text
+        text = text.rsplit("```", 1)[0]
+    try:
+        return schema.model_validate_json(text)
+    except ValidationError as exc:
+        raise LLMError(f"structured output failed validation: {exc.error_count()} errors") from exc

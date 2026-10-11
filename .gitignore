@@ -12,3 +12,7 @@ reports/live/
 evidence/private/
 *.sqlite3
 *.db
+*.egg-info/
+build/
+dist/
+.ruff_cache/
