@@ -1,0 +1,14 @@
+# Secrets and local run artifacts
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+data/
+reports/live/
+evidence/private/
+*.sqlite3
+*.db

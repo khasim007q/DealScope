@@ -1,0 +1,101 @@
+{
+  "mode": "synthetic",
+  "case": {
+    "case_id": "demo-case-001",
+    "target_domain": "northstar-platform.example",
+    "competitor_domains": [
+      "apex-cloud.example",
+      "cedar-stack.example",
+      "orbit-data.example"
+    ],
+    "deal_thesis": "Expand an enterprise workflow platform while maintaining reliability and secure data processing.",
+    "lookback_months": 12
+  },
+  "synthetic_banner": "SYNTHETIC DEMO DATA — NOT A REAL COMPANY ASSESSMENT",
+  "evidence": [
+    {
+      "evidence_id": "ev-syn-001",
+      "kind": "company_headcount",
+      "subject_domain": "northstar-platform.example",
+      "source_provider": "fixture",
+      "retrieved_at": "2026-10-11T10:00:00+05:30",
+      "synthetic": true,
+      "normalized_payload": {
+        "total_headcount": 480,
+        "total_growth_6m_pct": 11,
+        "engineering_growth_6m_pct": -4
+      }
+    },
+    {
+      "evidence_id": "ev-syn-002",
+      "kind": "job_posting",
+      "subject_domain": "northstar-platform.example",
+      "source_provider": "fixture",
+      "retrieved_at": "2026-10-11T10:00:00+05:30",
+      "synthetic": true,
+      "normalized_payload": {
+        "title": "Principal Platform Engineer",
+        "reposted": true,
+        "number_of_openings": 1,
+        "date_added": "2026-08-01"
+      }
+    },
+    {
+      "evidence_id": "ev-syn-003",
+      "kind": "person_history",
+      "subject_domain": "northstar-platform.example",
+      "source_provider": "fixture",
+      "retrieved_at": "2026-10-11T10:00:00+05:30",
+      "synthetic": true,
+      "normalized_payload": {
+        "role_group": "technical_leadership",
+        "employment_end_month": "2026-05",
+        "current_employer_domain": "apex-cloud.example"
+      }
+    },
+    {
+      "evidence_id": "ev-syn-004",
+      "kind": "peer_headcount",
+      "subject_domain": "apex-cloud.example",
+      "source_provider": "fixture",
+      "retrieved_at": "2026-10-11T10:00:00+05:30",
+      "synthetic": true,
+      "normalized_payload": {
+        "total_growth_6m_pct": 8,
+        "engineering_growth_6m_pct": 7
+      }
+    },
+    {
+      "evidence_id": "ev-syn-005",
+      "kind": "peer_headcount",
+      "subject_domain": "cedar-stack.example",
+      "source_provider": "fixture",
+      "retrieved_at": "2026-10-11T10:00:00+05:30",
+      "synthetic": true,
+      "normalized_payload": {
+        "total_growth_6m_pct": 9,
+        "engineering_growth_6m_pct": 8
+      }
+    },
+    {
+      "evidence_id": "ev-syn-006",
+      "kind": "peer_headcount",
+      "subject_domain": "orbit-data.example",
+      "source_provider": "fixture",
+      "retrieved_at": "2026-10-11T10:00:00+05:30",
+      "synthetic": true,
+      "normalized_payload": {
+        "total_growth_6m_pct": 4,
+        "engineering_growth_6m_pct": 3
+      }
+    }
+  ],
+  "expected_behaviors": [
+    "S1 may score because target engineering growth (-4%) diverges from total headcount growth (+11%) and peers; mark all values synthetic.",
+    "Agent selects role-continuity / job-posting follow-up because trajectory evidence indicates a capability gap.",
+    "Report says one observed synthetic leadership history is not company-wide attrition proof.",
+    "Report includes alternative explanations and asks for authorized internal validation.",
+    "Changing engineering growth to +12% should change the next action and/or score.",
+    "No valuation haircut and no allegation of IP leakage."
+  ]
+}
