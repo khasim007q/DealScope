@@ -4,6 +4,7 @@ Every public write method commits its own transaction, so state is durable at ev
 boundary and a restarted process can resume from the last persisted result. Decimals are stored as
 TEXT strings and parsed back with :class:`decimal.Decimal` (never floats).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -404,9 +405,7 @@ class Repository:
         row = self._one("SELECT * FROM report_versions WHERE case_id=? ORDER BY id DESC LIMIT 1", (case_id,))
         if row is None:
             return None
-        claim_rows = self._all(
-            "SELECT claim_json FROM claims WHERE report_version_id=? ORDER BY rowid", (row["id"],)
-        )
+        claim_rows = self._all("SELECT claim_json FROM claims WHERE report_version_id=? ORDER BY rowid", (row["id"],))
         return {
             "id": row["id"],
             "case_id": row["case_id"],

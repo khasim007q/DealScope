@@ -228,7 +228,7 @@ def deterministic_choice(
         action=ToolName.STOP,
         question="",
         decided_by="deterministic_fallback",
-        why_this_action="No remaining action is likely to change a conclusion.",
+        why_this_action="No remaining data source is likely to change the conclusion.",
         expected_information_gain="low",
     )
 
@@ -340,7 +340,7 @@ class Planner:
                 PlannerAction(
                     action=ToolName.STOP,
                     decided_by="deterministic_fallback",
-                    why_this_action="No legal candidate actions remain.",
+                    why_this_action="Every useful data source for this case has already been checked.",
                 )
             )
         if self.llm is None:

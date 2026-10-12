@@ -1,7 +1,7 @@
 # neatlogs: successful live run
 
 Status: captured 2026-10-11. Values below come from `live-run-*.json` in this folder and the SQLite run log.
-Screenshots of the neatlogs dashboard still need to be added by the owner.
+Dashboard screenshots are in `evidence/neatlogs/screenshots/` (see paths below).
 
 ## Primary proof run — Airtable (fresh Crustdata calls)
 
@@ -20,7 +20,7 @@ Screenshots of the neatlogs dashboard still need to be added by the owner.
 | Outcome | complete; risk 42.7 (Watch, heuristic); coverage 92.5%; evidence confidence 90 |
 | Verification | memo: 14 claims, 13 verified + 1 qualified, 0 rejected, grounded-claim rate 1.0; Gemini draft: 6 claims, 0 rejected |
 | Notes | First investigation run's drafting hit Gemini's per-minute free-tier limit (429) and fell back to deterministic findings; regenerated after adding advised-delay retry. |
-| Screenshot path | TODO (`evidence/neatlogs/screenshots/...`) |
+| Screenshot path | `evidence/neatlogs/screenshots/Screenshot 2026-10-11 213732.png` (investigation), `evidence/neatlogs/screenshots/Screenshot 2026-10-11 213710.png` (memo regeneration, Gemini 11,146 tokens, $0.02) |
 
 ## Earlier live run — Retool (trace likely incomplete)
 

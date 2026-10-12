@@ -1,7 +1,7 @@
 # neatlogs: baseline vs improved
 
 Status: measured 2026-10-11. Raw results: `baseline-vs-improved-20261011T144412Z.json` (scenario A) and
-`baseline-vs-improved-20261011T144435Z.json` (scenario B). Command:
+`baseline-vs-improved-20261012T102646Z.json` (scenario B, re-run after a budget-pool bug fix). Command:
 `python scripts/run_case.py --deterministic-planner --model gemini-3.1-flash-lite eval --scenario <a|b>`.
 
 ## Design
@@ -18,8 +18,8 @@ Status: measured 2026-10-11. Raw results: `baseline-vs-improved-20261011T144412Z
 |---|---|---|---:|---:|---|---:|---:|---:|---:|
 | A | baseline | `28fe5ba00882582eb3d298795274dff9` | 4 | 0 | 2 / 2 | 1.0 | 4 | 7 | 4.5 s |
 | A | improved | `4475d391852dad1707054011b73a3d11` | 6 | 0 | 5 / 1 | 1.0 | 15 | 7 | 5.0 s |
-| B | baseline | `d0e4b0e650a5dd7fe21fc9b8a244decf` | 3 | 0 | 2 / 1 | 1.0 | 3 | — | — |
-| B | improved | `526d3215aee19b3f355e610e2ae47c19` | 7 | 0 | 5 / 2 | 1.0 | 10 | — | — |
+| B | baseline | `39ee81cc2045fe5f160e428bb24943cd` | 3 | 0 | 1 / 2 | 1.0 | 3 | 8 | 16.1 s |
+| B | improved | `e63bac7e90a7d4de175c300f139a82a2` | 6 | 0 | 6 / 0 | 1.0 | 17 | 8 | 15.2 s |
 
 Simulated Crustdata accounting for each scenario-A run: 20.25 credits (synthetic pool; no real credits spent).
 
@@ -32,5 +32,11 @@ Simulated Crustdata accounting for each scenario-A run: 20.25 credits (synthetic
 - The verifier's rejection behaviour is demonstrated separately by unit tests and by
   `test_unsupported_llm_claims_are_rejected_from_memo` (fabricated ID, "40% left", IP-leak and valuation claims all
   rejected).
+- Scenario B was re-run on 2026-10-12: the first B run (`superseded/baseline-vs-improved-20261011T144435Z.json`)
+  was invalid because simulated (synthetic) credit spend from earlier demo runs had been counted against the live
+  account-wide cap, so some tool calls were blocked (GLOBAL_SPENDABLE_BUDGET_EXCEEDED). Fixed: the global cap now
+  applies to the live pool only; synthetic runs keep their per-case cap.
 - Superseded attempt (`superseded/`): first eval run on gemini-3.6-flash hit 503/429 errors so neither variant got
   an LLM draft; it is kept for transparency, not used as a result.
+
+Screenshots: `evidence/neatlogs/screenshots/Screenshot 2026-10-11 213426.png` (synthesis span, 2,175 tokens, $0.0015), `evidence/neatlogs/screenshots/Screenshot 2026-10-11 213450.png`, `evidence/neatlogs/screenshots/Screenshot 2026-10-11 213516.png`, `evidence/neatlogs/screenshots/Screenshot 2026-10-11 213542.png`.

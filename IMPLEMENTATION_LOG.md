@@ -95,3 +95,24 @@ No secrets are recorded here. Times are IST (hackathon window 10–12 Oct 2026).
   `4e64b2898a114a65b3de4608de851bfe`.
 - Crustdata spend to date: 2 + 9.18 + 12.21 + 8 + 4.82 = 36.21 credits actual; balance ~163.8.
 - Tests: 265 passed; ruff clean.
+
+### 2026-10-12 — TypeScript frontend, plain-language API, walkthrough
+- Owner feedback: the Streamlit UI showed internals a normal user could not interpret. Replaced with a React +
+  TypeScript (Vite) frontend (`frontend/`) and a FastAPI server (`src/dealscope/api/server.py`). `api/views.py`
+  translates reason codes, stages and outcome codes into plain sentences; raw codes only appear under
+  "Technical details". No emojis. Streamlit app removed.
+- Contract-first build: Opus wrote `frontend/src/api/types.ts` and `frontend/src/content/types.ts`; one Sonnet agent
+  built the frontend against them while another wrote `docs/walkthrough.md` and the in-app "How it works" content
+  (13 neatlogs screenshots mapped; Entire transcript referenced).
+- Bug found while reconciling walkthrough facts: synthetic (demo) runs were counted against the live account-wide
+  cap, so after many demo runs synthetic tool calls were blocked (GLOBAL_SPENDABLE_BUDGET_EXCEEDED); this
+  invalidated the first scenario B eval. Fixed (global cap applies to the live pool only; per-case cap still applies)
+  and scenario B re-run: baseline `39ee81cc2045fe5f160e428bb24943cd`, improved `e63bac7e90a7d4de175c300f139a82a2`.
+- Live browser test of the new UI (`case-0e61a0b82462`, notion.com vs coda.io, airtable.com, clickup.com): free
+  identity check all matched; complete; risk 32 (Watch), coverage 93%, confidence 84; Gemini (gemini-3.1-flash-lite)
+  made the planner choices and drafted findings; 10.82 credits actual.
+- Fixes from that review: memo departure count now uses the same critical role groups as S2 (was "two" vs signal "1");
+  engineering-growth limitation text corrected; risk shown as an integer everywhere; planner wording ("Every useful
+  data source ... has already been checked"); step titles use "Next step: search ..."; unknown `/api/*` paths 404.
+- Crustdata spend to date: 36.21 + 10.82 = 47.03 credits actual. Tests: 272 passed; ruff clean; frontend typecheck
+  and build pass.

@@ -9,6 +9,7 @@ Lifecycle of a metered action:
     release()  -> ``released``: ONLY when no HTTP request was sent (4xx/5xx responses may still be billed)
     mark_unknown() -> ``unknown``: outcome unknown after a network failure; counts against the budget
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -125,10 +126,15 @@ class CreditGovernor:
             case = self.repo.ledger_totals(case_id)
             if case["reserved"] + case["estimated_used"] + case["unknown_estimate"] + amount > limit:
                 raise BudgetDenied(PER_CASE_EXCEEDED, f"{operation} x{quantity} needs {amount}, case limit {limit}")
-            glob = self.repo.ledger_totals(None, self.pool)
-            spendable = self.settings.spendable_global_credits
-            if glob["reserved"] + glob["estimated_used"] + glob["unknown_estimate"] + amount > spendable:
-                raise BudgetDenied(GLOBAL_EXCEEDED, f"{operation} x{quantity} needs {amount}, spendable {spendable}")
+            # The account-wide allowance/reserve applies to real (live) credits only. Synthetic runs keep simulated
+            # per-case accounting but must not be throttled by the sum of all past demo runs.
+            if self.pool == "live":
+                glob = self.repo.ledger_totals(None, self.pool)
+                spendable = self.settings.spendable_global_credits
+                if glob["reserved"] + glob["estimated_used"] + glob["unknown_estimate"] + amount > spendable:
+                    raise BudgetDenied(
+                        GLOBAL_EXCEEDED, f"{operation} x{quantity} needs {amount}, spendable {spendable}"
+                    )
             ledger_id = self.repo.ledger_insert(
                 case_id, operation, quantity, amount, LedgerStatus.RESERVED, tool_run_id=tool_run_id, pool=self.pool
             )

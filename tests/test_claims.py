@@ -42,41 +42,59 @@ def build_evidence() -> list[EvidenceRecord]:
     prof = EvidenceKind.COMPANY_PROFILE
     return [
         make_ev(
-            "ev-syn-001", prof, TARGET,
+            "ev-syn-001",
+            prof,
+            TARGET,
             CompanyProfilePayload(
                 domain=TARGET, total_headcount=480, total_growth_pct={"6m": 11}, engineering_growth_pct={"6m": -4}
             ),
         ),
         make_ev(
-            "ev-syn-002", EvidenceKind.JOB_POSTING, TARGET,
+            "ev-syn-002",
+            EvidenceKind.JOB_POSTING,
+            TARGET,
             JobPostingPayload(
                 title="Principal Platform Engineer", reposted=True, number_of_openings=1, date_added="2026-08-01"
             ),
         ),
         make_ev(
-            "ev-syn-003", EvidenceKind.PERSON_HISTORY, TARGET,
+            "ev-syn-003",
+            EvidenceKind.PERSON_HISTORY,
+            TARGET,
             PersonHistoryPayload(
-                person_ref="p-syn-001", role_group="technical_leadership", target_end="2026-05",
+                person_ref="p-syn-001",
+                role_group="technical_leadership",
+                target_end="2026-05",
                 current_employer_domain=APEX,
             ),
         ),
         make_ev(
-            "ev-syn-004", prof, APEX,
+            "ev-syn-004",
+            prof,
+            APEX,
             CompanyProfilePayload(domain=APEX, total_growth_pct={"6m": 8}, engineering_growth_pct={"6m": 7}),
         ),
         make_ev(
-            "ev-syn-005", prof, CEDAR,
+            "ev-syn-005",
+            prof,
+            CEDAR,
             CompanyProfilePayload(domain=CEDAR, total_growth_pct={"6m": 9}, engineering_growth_pct={"6m": 8}),
         ),
         make_ev(
-            "ev-syn-006", prof, ORBIT,
+            "ev-syn-006",
+            prof,
+            ORBIT,
             CompanyProfilePayload(domain=ORBIT, total_growth_pct={"6m": 4}, engineering_growth_pct={"6m": 3}),
         ),
         # second person history of the same target, plus a restructuring-style counter record
         make_ev(
-            "ev-syn-007", EvidenceKind.PERSON_HISTORY, TARGET,
+            "ev-syn-007",
+            EvidenceKind.PERSON_HISTORY,
+            TARGET,
             PersonHistoryPayload(
-                person_ref="p-syn-002", role_group="technical_leadership", target_end="2026-04",
+                person_ref="p-syn-002",
+                role_group="technical_leadership",
+                target_end="2026-04",
                 current_employer_domain=None,
             ),
         ),
@@ -155,8 +173,11 @@ def test_subject_domain_mismatch_rejected(evidence, case_input):
 
 
 def test_subject_domain_matches_via_current_employer(evidence, case_input):
-    cl = claim("One observed technical-leadership profile now lists a peer as current employer.",
-               ids=("ev-syn-003",), subject_domain=APEX)
+    cl = claim(
+        "One observed technical-leadership profile now lists a peer as current employer.",
+        ids=("ev-syn-003",),
+        subject_domain=APEX,
+    )
     c, _ = run(cl, evidence, case_input)
     assert c.verification_status is VerificationStatus.VERIFIED
 
@@ -184,20 +205,27 @@ def test_t04_overstated_attrition_rejected_and_safe_rewrite_accepted(evidence, c
 def test_attrition_rate_phrase_rejected_but_negated_allowed(evidence, case_input):
     bad, res = run(claim("The attrition rate is elevated.", ids=("ev-syn-003",)), evidence, case_input)
     assert "PROHIBITED_ATTRITION_RATE" in codes(bad, res)
-    ok, _ = run(claim("One observed profile does not establish an attrition rate.", ids=("ev-syn-003",)),
-                evidence, case_input)
+    ok, _ = run(
+        claim("One observed profile does not establish an attrition rate.", ids=("ev-syn-003",)), evidence, case_input
+    )
     assert ok.verification_status is not VerificationStatus.REJECTED
 
 
 def test_overstated_count_of_profiles_rejected(evidence, case_input):
-    c, res = run(claim("Three observed profiles have intervals ending in the period.",
-                       ids=("ev-syn-003", "ev-syn-007")), evidence, case_input)
+    c, res = run(
+        claim("Three observed profiles have intervals ending in the period.", ids=("ev-syn-003", "ev-syn-007")),
+        evidence,
+        case_input,
+    )
     assert "UNSUPPORTED_NUMBER" in codes(c, res)
 
 
 def test_t05_causal_allegation_rejected_and_observed_move_accepted(evidence, case_input):
-    bad, res = run(claim("The target leaked IP because an engineer joined a competitor.", ids=("ev-syn-003",)),
-                   evidence, case_input)
+    bad, res = run(
+        claim("The target leaked IP because an engineer joined a competitor.", ids=("ev-syn-003",)),
+        evidence,
+        case_input,
+    )
     assert "PROHIBITED_CAUSAL_ALLEGATION" in codes(bad, res)
     good, _ = run(
         claim(
@@ -210,11 +238,14 @@ def test_t05_causal_allegation_rejected_and_observed_move_accepted(evidence, cas
     assert good.verification_status is VerificationStatus.VERIFIED
 
 
-@pytest.mark.parametrize("text", [
-    "A valuation haircut of 10% is warranted.",
-    "We should not invest in the target.",
-    "The buyer should pass on the deal.",
-])
+@pytest.mark.parametrize(
+    "text",
+    [
+        "A valuation haircut of 10% is warranted.",
+        "We should not invest in the target.",
+        "The buyer should pass on the deal.",
+    ],
+)
 def test_valuation_recommendations_rejected(text, evidence, case_input):
     c, res = run(claim(text), evidence, case_input)
     assert "PROHIBITED_VALUATION" in codes(c, res)
@@ -234,33 +265,40 @@ def test_direction_mismatch_rejected(evidence, case_input):
 
 
 def test_correct_direction_accepted(evidence, case_input):
-    c, _ = run(claim("Target engineering headcount contracted while total headcount grew over 6m."),
-               evidence, case_input)
+    c, _ = run(
+        claim("Target engineering headcount contracted while total headcount grew over 6m."), evidence, case_input
+    )
     assert c.verification_status is VerificationStatus.VERIFIED
 
 
 def test_unsupported_number_rejected(evidence, case_input):
-    c, res = run(claim("Target engineering headcount growth over 6m was -9% versus total of 11%."),
-                 evidence, case_input)
+    c, res = run(
+        claim("Target engineering headcount growth over 6m was -9% versus total of 11%."), evidence, case_input
+    )
     assert "UNSUPPORTED_NUMBER" in codes(c, res)
 
 
-@pytest.mark.parametrize("text", [
-    "Target engineering headcount growth over 6m was -4% versus total headcount growth of 11%.",
-    "Target engineering headcount growth was -4.0% versus total headcount growth of +11%.",
-    "The gap between total and engineering growth over 6m was 15 points.",
-])
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Target engineering headcount growth over 6m was -4% versus total headcount growth of 11%.",
+        "Target engineering headcount growth was -4.0% versus total headcount growth of +11%.",
+        "The gap between total and engineering growth over 6m was 15 points.",
+    ],
+)
 def test_number_formatting_and_derivations_accepted(text, evidence, case_input):
     c, _ = run(claim(text), evidence, case_input)
     assert c.verification_status is VerificationStatus.VERIFIED
 
 
 def test_unsupported_date_rejected(evidence, case_input):
-    c, res = run(claim("One observed profile has a target interval ending 2024-01.", ids=("ev-syn-003",)),
-                 evidence, case_input)
+    c, res = run(
+        claim("One observed profile has a target interval ending 2024-01.", ids=("ev-syn-003",)), evidence, case_input
+    )
     assert "UNSUPPORTED_DATE" in codes(c, res)
-    ok, _ = run(claim("One observed profile has a target interval ending 2026-05.", ids=("ev-syn-003",)),
-                evidence, case_input)
+    ok, _ = run(
+        claim("One observed profile has a target interval ending 2026-05.", ids=("ev-syn-003",)), evidence, case_input
+    )
     assert ok.verification_status is VerificationStatus.VERIFIED
     bad_year, res3 = run(claim("The job was added in 2025.", ids=("ev-syn-002",)), evidence, case_input)
     assert "UNSUPPORTED_DATE" in codes(bad_year, res3)
@@ -301,14 +339,27 @@ def test_single_source_interpretation_qualified_and_default_alternative_added(ev
 
 def test_duplicate_independence_group_is_not_corroboration(case_input):
     ev = [
-        make_ev("e1", EvidenceKind.PERSON_HISTORY, TARGET,
-                PersonHistoryPayload(person_ref="a", role_group="security", target_end="2026-05"), group="same"),
-        make_ev("e2", EvidenceKind.PERSON_HISTORY, TARGET,
-                PersonHistoryPayload(person_ref="b", role_group="security", target_end="2026-04"), group="same"),
+        make_ev(
+            "e1",
+            EvidenceKind.PERSON_HISTORY,
+            TARGET,
+            PersonHistoryPayload(person_ref="a", role_group="security", target_end="2026-05"),
+            group="same",
+        ),
+        make_ev(
+            "e2",
+            EvidenceKind.PERSON_HISTORY,
+            TARGET,
+            PersonHistoryPayload(person_ref="b", role_group="security", target_end="2026-04"),
+            group="same",
+        ),
         make_ev("e3", EvidenceKind.JOB_POSTING, TARGET, JobPostingPayload(title="Security Lead"), group="other"),
     ]
-    cl = FindingClaim(text="Security leadership coverage appears thin.", claim_type=ClaimType.INTERPRETATION,
-                      evidence_ids=["e1", "e2"])
+    cl = FindingClaim(
+        text="Security leadership coverage appears thin.",
+        claim_type=ClaimType.INTERPRETATION,
+        evidence_ids=["e1", "e2"],
+    )
     out = verify_claims([cl], ev, case_input, None).accepted[0]
     assert out.verification_status is VerificationStatus.QUALIFIED
     assert any("independence group" in n for n in out.verification_notes)
@@ -334,9 +385,16 @@ def test_metrics(evidence, case_input):
 
 def test_rewrite_hints_cover_all_codes():
     assert "does not establish company-wide attrition" in REWRITE_HINTS["PROHIBITED_ATTRITION_RATE"]
-    for code in ("NO_EVIDENCE", "UNKNOWN_EVIDENCE_ID", "ENTITY_MISMATCH", "UNSUPPORTED_NUMBER",
-                 "DIRECTION_MISMATCH", "UNSUPPORTED_DATE", "PROHIBITED_VALUATION",
-                 "PROHIBITED_CAUSAL_ALLEGATION"):
+    for code in (
+        "NO_EVIDENCE",
+        "UNKNOWN_EVIDENCE_ID",
+        "ENTITY_MISMATCH",
+        "UNSUPPORTED_NUMBER",
+        "DIRECTION_MISMATCH",
+        "UNSUPPORTED_DATE",
+        "PROHIBITED_VALUATION",
+        "PROHIBITED_CAUSAL_ALLEGATION",
+    ):
         assert REWRITE_HINTS[code]
 
 
@@ -345,13 +403,27 @@ def test_related_signal_numbers_allowed(evidence, case_input):
     from dealscope.domain.models import Scorecard, SignalResult
 
     sc = Scorecard(
-        signals=[SignalResult(signal_id=SignalId.S1, name="x", signal_version="v1", state=SignalState.SCORABLE,
-                              score=55, weight=0.3, raw_measure={"gap_pts": 15.0, "peer_median": 7.0},
-                              confidence=60)],
-        risk_score=55, coverage_pct=30, coverage_label="insufficient_evidence", risk_band="Elevated",
-        evidence_confidence=50, signal_version="v1",
+        signals=[
+            SignalResult(
+                signal_id=SignalId.S1,
+                name="x",
+                signal_version="v1",
+                state=SignalState.SCORABLE,
+                score=55,
+                weight=0.3,
+                raw_measure={"gap_pts": 15.0, "peer_median": 7.0},
+                confidence=60,
+            )
+        ],
+        risk_score=55,
+        coverage_pct=30,
+        coverage_label="insufficient_evidence",
+        risk_band="Elevated",
+        evidence_confidence=50,
+        signal_version="v1",
     )
-    cl = claim("The S1 engineering gap versus total was 15 points and the S1 score was 55.",
-               related_signals=[SignalId.S1])
+    cl = claim(
+        "The S1 engineering gap versus total was 15 points and the S1 score was 55.", related_signals=[SignalId.S1]
+    )
     res = verify_claims([cl], evidence, case_input, sc)
     assert res.accepted

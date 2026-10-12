@@ -201,3 +201,16 @@ def test_synthetic_pool_never_consumes_live_budget(repo):
     sim.settle(sim.reserve("syn", Decimal("300"), "company_enrich", 5), None)  # 10 simulated credits
     assert live.global_summary()["estimated_used"] == Decimal("0")
     live.reserve("c1", Decimal("300"), "company_enrich", 5)  # full live budget still available
+
+
+def test_synthetic_pool_has_no_global_cap(repo):
+    sim = CreditGovernor(
+        repo,
+        Settings(_env_file=None, crustdata_total_credits=Decimal("10"), crustdata_global_reserve_credits=Decimal("0")),
+        pool="synthetic",
+    )
+    for i in range(5):  # 5 demo cases x 4 credits = 20 simulated credits > 10 "spendable"
+        sim.settle(sim.reserve(f"demo-{i}", Decimal("300"), "company_enrich", 2), None)
+    with pytest.raises(BudgetDenied) as exc:  # the per-case cap still applies
+        sim.reserve("demo-x", Decimal("3"), "company_enrich", 2)
+    assert exc.value.reason == "PER_CASE_BUDGET_EXCEEDED"

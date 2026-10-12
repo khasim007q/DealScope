@@ -1,0 +1,142 @@
+// Dev-only sample data. Loaded only when VITE_USE_MOCKS === "true"; never part of the production path.
+import type { CaseView, StepView } from "../api/types";
+
+const steps: StepView[] = [
+  { n: 1, at: "2026-10-12T09:00:02Z", kind: "plan", title: "Planned the investigation", detail: "Decided to compare engineering growth at northwind.example against two peers.", actor: "AI planner", tone: "info", credits: null },
+  { n: 2, at: "2026-10-12T09:00:05Z", kind: "tool", title: "Looked up company profiles", detail: "Found headcount and growth for all 3 companies.", actor: "System", tone: "good", credits: "3 credits (confirmed)" },
+  { n: 3, at: "2026-10-12T09:00:09Z", kind: "retry", title: "Retried a job search", detail: "The provider was briefly unavailable; the second attempt worked.", actor: "Retry policy", tone: "caution", credits: "from cache, 0 credits" },
+  { n: 4, at: "2026-10-12T09:00:14Z", kind: "tool", title: "Checked open engineering roles at northwind.example", detail: "Found 25 postings; 14 were reposted.", actor: "Rule-based planner", tone: "good", credits: "2 credits (confirmed)" },
+  { n: 5, at: "2026-10-12T09:00:20Z", kind: "score", title: "Scored five risk signals", detail: "Four signals had enough data to score.", actor: "System", tone: "good", credits: null },
+];
+
+export const sampleCase: CaseView = {
+  case_id: "case_demo_0001",
+  mode: "synthetic",
+  synthetic: true,
+  target: "northwind.example",
+  peers: ["contoso.example", "fabrikam.example"],
+  thesis:
+    "We expect the engineering team to keep pace with company growth after the acquisition, and that no key technical leaders are about to leave.",
+  lookback_months: 12,
+  running: false,
+  status_label: "Complete",
+  status_tone: "good",
+  status_detail: "The investigation finished and the memo is ready.",
+  can_resume: false,
+  current_question: null,
+  planner_turns: 6,
+  tool_calls: 9,
+  assessment: {
+    risk_score: 41,
+    risk_band: "Watch",
+    risk_tone: "caution",
+    headline: "Engineering is growing more slowly than the company, and two senior engineers moved to a competitor.",
+    coverage_pct: 80,
+    coverage_label: "Enough evidence to score",
+    confidence: 62,
+    confidence_label: "Medium",
+    explainer:
+      "Risk says how concerning the signals are. Coverage says how much of the needed evidence we found. Confidence says how reliable that evidence is. A low risk score with low coverage is not reassuring.",
+  },
+  signals: [
+    {
+      id: "S1", name: "Engineering team vs. company growth", question: "Is the engineering team keeping pace with the company?",
+      weight_pct: 30, scored: true, score: 58, band: "Elevated", tone: "caution", status_label: "Scored", confidence: 70,
+      finding: "Engineering headcount grew 2.1% over 12 months while the company grew 14.8%.",
+      why_it_matters: "A widening gap can signal delivery risk or hidden attrition in the team.",
+      limitations: ["Headcount data is a monthly estimate, not an exact count."], evidence_ids: ["e1"],
+      technical: { reason_codes: ["ENG_GROWTH_LAG", "PEER_BASELINE_OK"], state: "scored" },
+    },
+    {
+      id: "S2", name: "Departures of technical leaders", question: "Have senior technical people left recently?",
+      weight_pct: 25, scored: true, score: 66, band: "Elevated", tone: "bad", status_label: "Scored", confidence: 60,
+      finding: "Two senior engineers left in the last 12 months and now work at a competitor.",
+      why_it_matters: "Leaders leaving to competitors can take know-how and relationships with them.",
+      limitations: [], evidence_ids: ["e2"],
+      technical: { reason_codes: ["LEADER_EXIT_COMPETITOR"], state: "scored" },
+    },
+    {
+      id: "S3", name: "Hiring pressure", question: "Is the company struggling to fill technical roles?",
+      weight_pct: 20, scored: true, score: 22, band: "Low signal", tone: "good", status_label: "Scored", confidence: 55,
+      finding: "Open roles are in line with peers; 14 of 25 postings were reposted.",
+      why_it_matters: "Frequent reposting can mean roles are hard to fill.",
+      limitations: ["Posting dates come from the job boards and may be refreshed."], evidence_ids: ["e3"],
+      technical: { reason_codes: ["REPOST_RATE_MED"], state: "scored" },
+    },
+    {
+      id: "S4", name: "Security and reliability capacity", question: "Is the company hiring for security and reliability?",
+      weight_pct: 15, scored: true, score: 35, band: "Watch", tone: "caution", status_label: "Partly scored (thin data)", confidence: 40,
+      finding: "Only one security role is open, fewer than peers.",
+      why_it_matters: "Thin security staffing raises the cost of fixing issues after closing.",
+      limitations: ["Only a small number of postings were available."], evidence_ids: ["e3"],
+      technical: { reason_codes: ["SEC_ROLES_LOW", "THIN_DATA"], state: "partial" },
+    },
+    {
+      id: "S5", name: "Data quality of public sources", question: "Can we trust the public numbers?",
+      weight_pct: 10, scored: false, score: null, band: null, tone: "neutral", status_label: "Not scored", confidence: 0,
+      finding: "Not enough overlapping data to judge.",
+      why_it_matters: "Weak source data lowers the reliability of every other signal.",
+      limitations: ["Two sources disagreed on headcount."], evidence_ids: [],
+      technical: { reason_codes: ["INSUFFICIENT_DATA"], state: "not_scored" },
+    },
+  ],
+  findings: [
+    {
+      id: "f1", kind: "Fact", severity: "high",
+      text: "Two senior engineers who left northwind.example in the last year are now employed by contoso.example.",
+      verification: "Verified", caveats: [],
+      evidence: [{ id: "e2", label: "Person history - senior engineer", date: "2026-05-01", source: "Synthetic fixture" }],
+      counter_evidence: [], alternatives: [], limitations: [],
+    },
+    {
+      id: "f2", kind: "Interpretation", severity: "medium",
+      text: "Engineering growth is lagging the company, which may indicate under-investment in the product team.",
+      verification: "Verified with caveats", caveats: ["Headcount is estimated from profile data."],
+      evidence: [{ id: "e1", label: "Company profile - northwind.example", date: "2026-10-01", source: "Synthetic fixture" }],
+      counter_evidence: [{ id: "e3", label: "Job posting - Staff SRE", date: "2026-09-12", source: "Synthetic fixture" }],
+      alternatives: ["The company may be outsourcing engineering work.", "Hiring may have been delayed to a later quarter."],
+      limitations: ["Cannot see contractors."],
+    },
+    {
+      id: "f3", kind: "Hypothesis", severity: "low",
+      text: "Frequent reposting of senior roles could mean compensation is below market.",
+      verification: "Verified with caveats", caveats: ["No salary data was available."],
+      evidence: [{ id: "e3", label: "Job posting - Principal Engineer", date: "2026-08-30", source: "Synthetic fixture" }],
+      counter_evidence: [], alternatives: ["Roles may be reposted for internal process reasons."], limitations: [],
+    },
+    {
+      id: "f4", kind: "Question", severity: "medium",
+      text: "Who owns the platform roadmap now that two senior engineers have left?",
+      verification: "Verified", caveats: [], evidence: [], counter_evidence: [], alternatives: [], limitations: [],
+    },
+  ],
+  questions: [
+    "Who replaced the two senior engineers who left, and what is the handover plan?",
+    "Is the gap between engineering and company growth intentional?",
+    "How much engineering work is done by contractors?",
+  ],
+  steps,
+  companies: [
+    { domain: "northwind.example", role: "Target", name: "Northwind Systems", headcount: 842, total_growth: { "3m": 3.2, "6m": 7.9, "12m": 14.8 }, engineering_headcount: 215, engineering_growth: { "3m": -0.4, "6m": 0.9, "12m": 2.1 }, open_jobs: 25, data_quality_flags: ["Two sources disagree on headcount by more than 10%."], evidence_id: "e1" },
+    { domain: "contoso.example", role: "Peer", name: "Contoso Labs", headcount: 1210, total_growth: { "3m": 2.0, "6m": 5.1, "12m": 9.6 }, engineering_headcount: 402, engineering_growth: { "3m": 1.8, "6m": 4.9, "12m": 10.2 }, open_jobs: 31, data_quality_flags: [], evidence_id: "e4" },
+    { domain: "fabrikam.example", role: "Peer", name: null, headcount: null, total_growth: {}, engineering_headcount: null, engineering_growth: {}, open_jobs: null, data_quality_flags: ["No company profile was found for this domain."], evidence_id: "e5" },
+  ],
+  people: [
+    { ref: "p1", role_group: "Technical leadership", title_at_target: "Principal Engineer", left_target: "2026-05", status: "Left in lookback window", now_at: "Contoso Labs", now_at_competitor: true, evidence_id: "e2" },
+    { ref: "p2", role_group: "Engineering management", title_at_target: "Engineering Manager", left_target: null, status: "Still at target", now_at: null, now_at_competitor: false, evidence_id: "e2" },
+  ],
+  jobs: [
+    { title: "Staff Site Reliability Engineer", capability: "Reliability", posted: "2026-09-12", reposted: true, openings: 2, url: "https://example.com/jobs/1", evidence_id: "e3" },
+    { title: "Security Engineer", capability: "Security", posted: "2026-08-30", reposted: false, openings: 1, url: null, evidence_id: "e3" },
+  ],
+  credits: { cap: 40, estimated_used: 12, actual_used: 10, reserved: 2, remaining: 26, unknown_calls: 0, simulated: true },
+  verification: {
+    published: 4, verified: 2, with_caveats: 2, rejected: 1, grounded_rate: 0.94,
+    rejected_reasons: [{ reason: "The claim cited evidence that did not mention it.", count: 1 }],
+    ai_draft_used: true,
+  },
+  trace_ids: ["nl_trace_8f2c1a9d4b7e", "nl_trace_1c0d77ab92f3"],
+  llm_model: "gemini-3.1-flash-lite",
+  updated_at: "2026-10-12T09:00:25Z",
+  report_available: true,
+};

@@ -20,6 +20,7 @@ Qualification (accepted but labelled): interpretation with a single independence
 about continuity or attrition lacking an alternative explanation (default one is added), interpretation that
 cites counter-evidence, and any use of synthetic evidence (note only).
 """
+
 from __future__ import annotations
 
 import re

@@ -27,25 +27,55 @@ def _load_validator():
 
 def make_scorecard(coverage=70.0, risk=48.0):
     sigs = [
-        SignalResult(signal_id=SignalId.S1, name="Technical-function trajectory divergence", signal_version="v1.0",
-                     state=SignalState.SCORABLE, score=55, weight=0.30, reason_codes=["TECH_BELOW_TOTAL"],
-                     evidence_ids=["ev-syn-001"], confidence=65),
-        SignalResult(signal_id=SignalId.S4, name="Critical-role hiring pressure", signal_version="v1.0",
-                     state=SignalState.NOT_SCORED, weight=0.20, reason_codes=["NO_JOB_DATA"], confidence=0,
-                     limitations=["Job endpoint price unknown."]),
+        SignalResult(
+            signal_id=SignalId.S1,
+            name="Technical-function trajectory divergence",
+            signal_version="v1.0",
+            state=SignalState.SCORABLE,
+            score=55,
+            weight=0.30,
+            reason_codes=["TECH_BELOW_TOTAL"],
+            evidence_ids=["ev-syn-001"],
+            confidence=65,
+        ),
+        SignalResult(
+            signal_id=SignalId.S4,
+            name="Critical-role hiring pressure",
+            signal_version="v1.0",
+            state=SignalState.NOT_SCORED,
+            weight=0.20,
+            reason_codes=["NO_JOB_DATA"],
+            confidence=0,
+            limitations=["Job endpoint price unknown."],
+        ),
     ]
-    return Scorecard(signals=sigs, risk_score=risk, coverage_pct=coverage,
-                     coverage_label="provisional" if coverage >= 60 else "insufficient_evidence",
-                     risk_band="Watch", evidence_confidence=58.0, signal_version="v1.0")
+    return Scorecard(
+        signals=sigs,
+        risk_score=risk,
+        coverage_pct=coverage,
+        coverage_label="provisional" if coverage >= 60 else "insufficient_evidence",
+        risk_band="Watch",
+        evidence_confidence=58.0,
+        signal_version="v1.0",
+    )
 
 
 def make_state(mode=RunMode.SYNTHETIC):
-    inp = CaseInput(target_domain=TARGET, competitor_domains=[APEX, CEDAR, ORBIT],
-                    deal_thesis="Expand an enterprise workflow platform while maintaining reliability.", mode=mode)
-    return CaseState(case_id="demo-case-001", input=inp, mode=mode, credit_budget=Decimal("300"),
-                     credit_estimated_used=Decimal("12"),
-                     unavailable_tools={"search_jobs": "UNKNOWN_PRICE_FAIL_CLOSED"},
-                     open_questions=["Can management provide the engineering org chart?"])
+    inp = CaseInput(
+        target_domain=TARGET,
+        competitor_domains=[APEX, CEDAR, ORBIT],
+        deal_thesis="Expand an enterprise workflow platform while maintaining reliability.",
+        mode=mode,
+    )
+    return CaseState(
+        case_id="demo-case-001",
+        input=inp,
+        mode=mode,
+        credit_budget=Decimal("300"),
+        credit_estimated_used=Decimal("12"),
+        unavailable_tools={"search_jobs": "UNKNOWN_PRICE_FAIL_CLOSED"},
+        open_questions=["Can management provide the engineering org chart?"],
+    )
 
 
 @pytest.fixture
@@ -137,12 +167,19 @@ def test_memo_excludes_rejected_claim_text(setup):
     state, evidence = setup
     sc = make_scorecard()
     bad = [
-        FindingClaim(text="The target leaked IP because an engineer joined a competitor.",
-                     claim_type=ClaimType.OBSERVATION, evidence_ids=["ev-syn-003"]),
-        FindingClaim(text="A valuation haircut of 15% is warranted.", claim_type=ClaimType.OBSERVATION,
-                     evidence_ids=["ev-syn-001"]),
-        FindingClaim(text="Fabricated statement about headcount.", claim_type=ClaimType.OBSERVATION,
-                     evidence_ids=["ev-fake"]),
+        FindingClaim(
+            text="The target leaked IP because an engineer joined a competitor.",
+            claim_type=ClaimType.OBSERVATION,
+            evidence_ids=["ev-syn-003"],
+        ),
+        FindingClaim(
+            text="A valuation haircut of 15% is warranted.",
+            claim_type=ClaimType.OBSERVATION,
+            evidence_ids=["ev-syn-001"],
+        ),
+        FindingClaim(
+            text="Fabricated statement about headcount.", claim_type=ClaimType.OBSERVATION, evidence_ids=["ev-fake"]
+        ),
     ]
     _, ver = full_run(state, evidence, sc, bad)
     assert len(ver.rejected) == 3
@@ -160,8 +197,10 @@ def test_memo_counter_evidence_and_alternatives(setup):
     sc = make_scorecard()
     t11 = FindingClaim(
         text="Observed departures of technical leaders may indicate a continuity risk.",
-        claim_type=ClaimType.INTERPRETATION, evidence_ids=["ev-syn-003", "ev-syn-007"],
-        counter_evidence_ids=["ev-syn-001"], subject_domain=TARGET,
+        claim_type=ClaimType.INTERPRETATION,
+        evidence_ids=["ev-syn-003", "ev-syn-007"],
+        counter_evidence_ids=["ev-syn-001"],
+        subject_domain=TARGET,
     )
     _, ver = full_run(state, evidence, sc, [t11])
     memo = render_memo(state, evidence, ver, sc, True, AS_OF)

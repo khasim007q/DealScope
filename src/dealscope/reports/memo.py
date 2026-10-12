@@ -3,6 +3,7 @@
 Only claims that passed `verify_claims` are rendered as findings. Rejected claims appear in the appendix as codes and
 guidance only (never their text). Person evidence is shown as an opaque reference plus role group, never a name.
 """
+
 from __future__ import annotations
 
 import statistics
@@ -11,7 +12,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from dealscope.analysis.signals import _in_window, _parse_date, _subtract_months, resolve_as_of
+from dealscope.analysis.signals import CRITICAL_ROLE_GROUPS, _in_window, _parse_date, _subtract_months, resolve_as_of
 from dealscope.domain.enums import ClaimType, EvidenceKind, RunMode, Severity, SignalId, SignalState
 from dealscope.domain.models import (
     CaseInput,
@@ -120,7 +121,10 @@ def deterministic_claims(
                     subject_domain=target,
                     related_signals=[SignalId.S1],
                     evidence_ids=[tgt.evidence_id],
-                    limitations=["Provider growth percentages only; no department-level history was returned."],
+                    limitations=[
+                        "Growth for fixed periods as reported by the provider (engineering derived from its "
+                        "department headcount history); no longer series is inferred."
+                    ],
                 )
             )
             s1_made = True
@@ -174,6 +178,8 @@ def deterministic_claims(
         e
         for e in people.values()
         if isinstance(e.payload, PersonHistoryPayload)
+        and e.payload.role_group in CRITICAL_ROLE_GROUPS  # same population as the S2 signal
+        and not e.payload.currently_at_target
         and e.payload.target_end
         and _in_window(_parse_date(e.payload.target_end), window_start, as_of)
     ]
@@ -242,9 +248,7 @@ def deterministic_claims(
         n = len(jobs)
         reposted = sum(1 for j in jobs if isinstance(j.payload, JobPostingPayload) and j.payload.reposted)
         added = sorted(
-            j.payload.date_added
-            for j in jobs
-            if isinstance(j.payload, JobPostingPayload) and j.payload.date_added
+            j.payload.date_added for j in jobs if isinstance(j.payload, JobPostingPayload) and j.payload.date_added
         )
         text = (
             f"{_count_text(n, True)} current job {'posting' if n == 1 else 'postings'} for thesis-relevant technical "
@@ -531,8 +535,11 @@ def render_memo(
                 continue
             cnt = Counter(e.payload.role_group for e in rows.values())  # type: ignore[union-attr]
             out.append(
-                f"| {comp} | " + " | ".join(str(cnt.get(g, 0)) for g in groups) + " | "
-                + ", ".join(f"`{e.evidence_id}`" for e in rows.values()) + " |"
+                f"| {comp} | "
+                + " | ".join(str(cnt.get(g, 0)) for g in groups)
+                + " | "
+                + ", ".join(f"`{e.evidence_id}`" for e in rows.values())
+                + " |"
             )
         out += ["", "Counts are unique observed profiles. A job move alone is not evidence of risk.", ""]
     else:

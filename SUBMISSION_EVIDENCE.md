@@ -6,16 +6,16 @@ This file is a checklist/index. It does not itself prove that integrations were 
 Files: `evidence/neatlogs/successful-run.md`, `evidence/neatlogs/failure-recovery.md`, `evidence/neatlogs/baseline-vs-improved.md`, `evidence/neatlogs/screenshots/`
 - Successful live trace URL/ID: `d3a8f383b6cf980bfc51fcdc436478cd` (+ memo regeneration `81dd213dbdbc546acd906ecf44f66478`) — see `evidence/neatlogs/successful-run.md`
 - Failure-recovery trace URL/ID: `9e30eca63a3634b9a6f1b8ffe29770c9` -> resume `3665d83293f0eab47ddb542835ff4622` — see `evidence/neatlogs/failure-recovery.md`
-- Baseline run trace URL/ID: A `28fe5ba00882582eb3d298795274dff9`, B `d0e4b0e650a5dd7fe21fc9b8a244decf`
-- Improved run trace URL/ID: A `4475d391852dad1707054011b73a3d11`, B `526d3215aee19b3f355e610e2ae47c19`
-- Metrics compared and measured values: see `evidence/neatlogs/baseline-vs-improved.md` (unsupported 0 vs 0; verified 2 vs 5)
-- Screenshot paths: `TODO`
+- Baseline run trace URL/ID: A `28fe5ba00882582eb3d298795274dff9`, B `39ee81cc2045fe5f160e428bb24943cd`
+- Improved run trace URL/ID: A `4475d391852dad1707054011b73a3d11`, B `e63bac7e90a7d4de175c300f139a82a2`
+- Metrics compared and measured values: see `evidence/neatlogs/baseline-vs-improved.md` (unsupported 0 vs 0 on both scenarios; draft claims verified outright A 2 vs 5, B 1 vs 6)
+- Screenshot paths: `evidence/neatlogs/screenshots/` (13 captures; mapped in `docs/walkthrough.md`)
 
 ## Entire
 Files: `evidence/entire/README.md`, `evidence/entire/screenshots/`
 - CLI version: `Entire CLI 0.11.4`
 - Commands used (exact): install `irm https://entire.io/install.ps1 | iex`; owner ran `entire login`, `entire enable --agent claude-code`, `entire doctor`; agent ran `entire agent-help`, `entire status`
-- Checkpoint/commit/session link or screenshot: commit `70400f8` carries `Entire-Checkpoint: 01M4NTHZJBFDKJ80R5FCA3CDZS` (linked to this Claude Code session); 5 checkpoint refs on origin (`git ls-remote origin | grep checkpoints`). Screenshot TODO. Note: the hook asks an interactive "Link this commit to session context?" question, which is why agent-made commits blocked.
+- Checkpoint/commit/session link or screenshot: commit `75783c2` carries `Entire-Checkpoint: 01M4NW7H2CWZJSACHHWFK2QWS9`; commit `70400f8` carries `Entire-Checkpoint: 01M4NTHZJBFDKJ80R5FCA3CDZS` (linked to this Claude Code session); 5 checkpoint refs on origin (`git ls-remote origin | grep checkpoints`). Screenshot TODO. Note: the hook asks an interactive "Link this commit to session context?" question, which is why agent-made commits blocked.
 - entire-graph output if available: `TODO`
 
 ## cfo.ai

@@ -377,9 +377,7 @@ class ToolExecutor:
             valid_from=item.valid_from,
             valid_to=item.valid_to,
             field_coverage=list(item.field_coverage),
-            payload=sanitize_company(item.payload)
-            if isinstance(item.payload, CompanyProfilePayload)
-            else item.payload,
+            payload=sanitize_company(item.payload) if isinstance(item.payload, CompanyProfilePayload) else item.payload,
             raw_hash=item.raw_hash,
             dedup_key=item.dedup_key,
             tool_run_id=run_id,

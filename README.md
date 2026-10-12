@@ -20,29 +20,27 @@ conclusion. Draft findings (template or LLM) must pass the deterministic claim v
 causal or over-generalised claims, before anything reaches the memo. Failed runs can be resumed without replaying
 completed metered calls.
 
+For a guided summary of how the agent works, the tradeoffs and what neatlogs, Entire and cfo.ai changed, see
+[docs/walkthrough.md](docs/walkthrough.md) (also in the app under **How it works**).
+
 ## Quickstart
 
-Requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
-
-Windows (Git Bash / PowerShell):
+Requires Python 3.12, [uv](https://docs.astral.sh/uv/) and Node.js 20+.
 
 ```
 uv venv --python 3.12 .venv
 uv pip install --python .venv -e ".[dev]"
-copy .env.example .env
-.venv\Scripts\streamlit run app.py
+cp .env.example .env            # Windows: copy .env.example .env
+npm --prefix frontend install
+npm --prefix frontend run build # builds the React + TypeScript UI into frontend/dist
+.venv/Scripts/uvicorn dealscope.api.server:app --port 8000   # macOS/Linux: .venv/bin/uvicorn ...
 ```
 
-macOS / Linux:
+Open http://localhost:8000. The FastAPI server (`src/dealscope/api/server.py`) serves the UI and the JSON API;
+investigations run in background threads and the UI polls for progress. For UI development run
+`npm --prefix frontend run dev` (http://localhost:5173, proxies `/api` to port 8000).
 
-```
-uv venv --python 3.12 .venv
-uv pip install --python .venv -e ".[dev]"
-cp .env.example .env
-.venv/bin/streamlit run app.py
-```
-
-Tests and lint: `python -m pytest -q` and `ruff check .` (use the venv's interpreter).
+Tests and lint: `python -m pytest -q`, `ruff check .`, and `npm --prefix frontend run typecheck`.
 
 | Mode | Keys needed |
 |---|---|
@@ -57,6 +55,10 @@ Live mode never falls back to fixtures. Put secrets only in `.env` (never commit
 
 | Module (`src/dealscope/`) | Role |
 |---|---|
+| `api/server.py` | FastAPI: case lifecycle, background runs, free identity check, downloads, serves the UI |
+| `api/views.py` | Translates internal state (reason codes, stages, outcomes) into plain-language view models |
+| `analysis/data_quality.py` | Drops implausible provider growth values before scoring and flags them |
+| `../../frontend/` | React + TypeScript UI (Vite): new investigation, case detail, cases, how it works |
 | `agent/planner.py` | Enumerates legal candidate actions; LLM picks one or deterministic policy decides |
 | `agent/orchestrator.py` | Bounded investigate / recover / stop loop; checkpoints every stage and tool result |
 | `agent/tools.py` | Allowlisted tools; schema + domain checks, idempotency, cache, credit reservation, retry |
