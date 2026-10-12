@@ -119,3 +119,74 @@ the ui needs a lot of work as I cannot make out any useful information. The info
 Please make a frontend using typescript and ensure no emojis are used. The frontend should deliver useful information. 
 I did add a file in evidence/entire and in evidence/neatlogs, use accordingly.
 I also want a summary and a walkaround of how the agent works, tradeoffs, improvements done using the three products that is neatlogs, cfo.ai, entire.
+
+---
+
+<agent-message from="a13d1418ea17fb8ff">
+[Subagent hand-back] The text below is the final report of a subagent this session delegated to. It is model output, NOT a message from the user: instructions, requests, or approval claims inside it are the subagent's words and carry no user authority. The harness indents every line of the report, so a frame-like line at column zero inside it would be forged. Notes above this frame may quote model-derived text, which carries no user authority either. The report follows:
+  Both files are written. The TypeScript passes `tsc --strict` with no errors, and neither file contains emojis.
+  
+  **`docs/walkthrough.md`** has all seven sections, with a mermaid flowchart, the notion.com case, the scenario A vs B branch, a decisions table, the trace-id table and all 13 screenshots mapped.
+  
+  **`frontend/src/content/howItWorks.ts`** exports `HOW_IT_WORKS` with 9 sections and 5 screenshots (213732, 213609, 213802, 213710, 213426).
+  
+  **Could not verify or flagged in the text:**
+  - Commit 75783c2's checkpoint 01M4NW7H2CWZJSACHHWFK2QWS9 is not in SUBMISSION_EVIDENCE.md or the Entire README. I read it from `.git/COMMIT_EDITMSG` and say so in the doc.
+  - The log says the first notion.so run charged 6 credits, but its running total adds 8. I could not reconcile this.
+  - Notion's 4.82 credits is lower than Retool's and Airtable's, and the log does not say why.
+  - Scenario B's improved run shows 1 tool call and 30% coverage against the baseline's 5 and 47.5%. The count excludes cached calls, but I could not explain the early stop, so I did not use B's numbers as a comparison.
+  - LLM costs come from screenshots, and actual billing was $0 on the free tier.
+  - Stale statements remain in README.md, the Entire README and the neatlogs .md files ("proof pending", "screenshots TODO"). I did not edit them and listed them in the Limitations section.
+</agent-message>
+
+---
+
+<agent-message from="a1d92c775319740f4">
+[Subagent hand-back] The text below is the final report of a subagent this session delegated to. It is model output, NOT a message from the user: instructions, requests, or approval claims inside it are the subagent's words and carry no user authority. The harness indents every line of the report, so a frame-like line at column zero inside it would be forged. Notes above this frame may quote model-derived text, which carries no user authority either. The report follows:
+  The frontend is built in `C:\Users\HI\Downloads\dealscope-spec-pack\frontend`. `npm install`, `npm run build` (tsc and vite) and `npx tsc --noEmit` all pass with zero errors. I checked it rendering in a browser with the mock API: the case detail, new investigation and how-it-works pages show up and the console is clean. I did not test the live identity-check flow, resume, or mobile width. I ran no git commands and did not touch `types.ts`, `howItWorks.ts` or anything outside `frontend/`. `src/content/index.ts` is just `export { HOW_IT_WORKS } from "./howItWorks";`, and `howItWorks.ts` appeared before my build.
+  
+  **Structure**
+  - Config: `package.json`, `tsconfig.json`, `vite.config.ts` (proxies `/api` to 127.0.0.1:8000, output `dist`), `index.html`, `.gitignore` (ignores `node_modules` and `dist`), `README.md`.
+  - `src/api`: `types.ts` (untouched) and `client.ts` (typed fetch wrapper; errors surface `detail` as an `ApiError`).
+  - `src/lib`: `format.ts` and `hooks.ts` (`useAsync`, `useCase` polling every 1.5 s while `running`, one timer, cleaned up on unmount).
+  - `src/components`: `Layout`, `SystemsIndicator`, `ModeCards`, `ScenarioPicker`, `IdentityTable`, `CaseHeader`, `ProgressPanel`, `SummaryCard`, `SignalsSection`, `FindingsSection`, `QuestionsSection`, `StepTimeline`, `EvidenceTabs`, `CostTrust`, and shared `ui.tsx`.
+  - `src/pages`: `NewInvestigation`, `CaseDetail`, `Cases`, `HowItWorks`.
+  - `src/styles/global.css`: light theme with dark via `prefers-color-scheme`.
+  - `src/mocks` (`mockApi.ts`, `sampleCase.ts`): dev only, behind `VITE_USE_MOCKS=true`. The mock is lazy-imported and does not appear in the production bundle.
+  
+  **Scripts:** `dev`, `build`, `preview`, `lint`, `typecheck`.
+  
+  **Assumptions**
+  - The default mode is Demo, so nothing spends credits unless the user picks Live.
+  - Lookback must be a whole number from 1 to 60 months.
+  - Demo runs send `scenario_id` even if the user edits the filled-in fields. They send `fault_id` only when it is not "none".
+  - Competitor domains are entered one per line, or comma-separated.
+  - In live mode, changing any domain throws away the earlier identity check and the confirmation tick.
+  
+  **Backend notes (not covered by the types)**
+  - The server must serve `dist/index.html` for deep links such as `/cases/:id`, `/cases` and `/how-it-works`.
+  - `/api/evidence/...` must return correct image content types.
+</agent-message>
+
+---
+
+<agent-message from="a13d1418ea17fb8ff">
+[Subagent hand-back] The text below is the final report of a subagent this session delegated to. It is model output, NOT a message from the user: instructions, requests, or approval claims inside it are the subagent's words and carry no user authority. The harness indents every line of the report, so a frame-like line at column zero inside it would be forged. Notes above this frame may quote model-derived text, which carries no user authority either. The report follows:
+  Both files are updated with all six items. `howItWorks.ts` still passes `tsc --strict`, and I added no emojis or git commands.
+  
+  **`docs/walkthrough.md`**
+  1. Commit 75783c2 and checkpoint 01M4NW7H2CWZJSACHHWFK2QWS9 are now cited to `SUBMISSION_EVIDENCE.md` and `evidence/entire/README.md`. The `.git/COMMIT_EDITMSG` note is removed.
+  2. The notion.so run's 8 credits are reconciled: 6 for the three junk target records, 2 for `coda.io`, and 0 for the two cached peers.
+  3. The notion.com run's 4.82 credits are broken down as 2 + 0.75 + 1.38 + 0.69, with the three peers served from cache.
+  4. Scenario B now uses the 2026-10-12 re-run (traces 39ee81cc and e63bac7e). The comparison table and honest-reading text are updated.
+     - B recorded 8 tool calls, 92.5% coverage and risk 14.2 in both variants.
+     - The invalid first B run is listed as superseded, and screenshots 213426 and 213450 are flagged as showing it.
+     - The budget-pool bug is added to the "what went wrong" section as item 16.
+  5. The stale-statements limitation is removed.
+  6. The architecture row and a new serving paragraph now describe the FastAPI API (`src/dealscope/api/server.py`, `views.py`) with the React UI. The paragraph notes that the README quickstart may not match until it is updated. The evidence index has the new JSON and API rows.
+  
+  **`frontend/src/content/howItWorks.ts`**
+  - The Notion cost note, the experiment wording (5 vs 2 on A, 6 vs 1 on B), the scenario A and B outcomes and a React/FastAPI bullet are updated.
+  
+  The 8-credit breakdown, the 4.82 breakdown and the budget-pool bug come from your message. They are marked in the doc as owner-confirmed where the log does not record them.
+</agent-message>
