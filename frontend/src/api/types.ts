@@ -226,6 +226,7 @@ export interface CaseView {
   people: PersonRow[];
   jobs: JobRow[];
   credits: CreditsView;
+  plan_comparison: PlanComparison | null;
   verification: VerificationView | null;
   trace_ids: string[];
   llm_model: string | null;
@@ -310,4 +311,28 @@ export interface EvidenceSummary {
     prices: { endpoint: string; credits: string }[];
     notes: string[];
   };
+}
+
+// Case cost vs the cfo.ai business-plan assumptions per audit (USD). Plan values are editable assumptions.
+export interface PlanComparison {
+  dollars_per_credit: number;
+  credits_used: number;
+  credits_basis: string; // "confirmed credits" | "estimated credits" | "simulated credits (demo data)"
+  simulated: boolean;
+  data_cost_case: number;
+  data_cost_plan: number;
+  plan_credits_per_audit: number;
+  llm_cost_plan: number;
+  llm_tokens: number | null; // tokens in the latest run, as reported by the provider
+  llm_calls: number | null;
+  llm_model: string | null;
+  review_cost: number;
+  tooling_cost: number;
+  total_case: number;
+  total_plan: number;
+  price: number;
+  margin_case_pct: number | null;
+  margin_plan_pct: number | null;
+  summary: string;
+  notes: string[];
 }

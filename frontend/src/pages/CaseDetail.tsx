@@ -76,6 +76,7 @@ export function CaseDetail() {
         llmModel={v.llm_model}
         traceIds={v.trace_ids}
         synthetic={v.synthetic}
+        planComparison={v.plan_comparison}
       />
     </>
   );

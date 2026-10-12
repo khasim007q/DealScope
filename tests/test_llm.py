@@ -18,6 +18,7 @@ class Out(BaseModel):
 class _Resp:
     def __init__(self, text: str) -> None:
         self.text = text
+        self.usage_metadata = type("U", (), {"total_token_count": 1200})()
 
 
 class _Models:
@@ -39,6 +40,7 @@ def provider(script: dict[str, list], primary: str, fallbacks: list[str]) -> tup
     p._client = type("C", (), {"models": models})()
     p.model, p.escalation_model, p.fallback_models, p.last_model = primary, None, fallbacks, None
     p.sleep = lambda s: None
+    p.tokens_used, p.calls_made = 0, 0
     return p, models
 
 
@@ -65,3 +67,10 @@ def test_primary_success_does_not_touch_fallbacks():
     p, m = provider({"a": ['{"ok": true}']}, "a", ["b"])
     p.generate_json("sys", "prompt", Out)
     assert m.calls == ["a"] and p.last_model == "a"
+
+
+def test_tokens_counted_for_successful_calls_only():
+    p, _ = provider({"a": [DAILY], "b": ['{"ok": true}', '{"ok": true}']}, "a", ["b"])
+    p.generate_json("sys", "prompt", Out)
+    p.generate_json("sys", "prompt", Out)
+    assert p.tokens_used == 2400 and p.calls_made == 2

@@ -57,6 +57,9 @@ def test_synthetic_case_produces_plain_language_view(client):
     assert view["steps"] and any(s["actor"] in ("Rule-based planner", "AI planner") for s in view["steps"])
     assert view["companies"] and view["jobs"] and view["people"]
     assert view["verification"]["published"] > 0
+    pc = view["plan_comparison"]
+    assert pc["simulated"] and pc["data_cost_plan"] == 2.6 and pc["total_plan"] == 94.65
+    assert pc["data_cost_case"] == round(pc["credits_used"] * 0.10, 2) and "business plan" in pc["summary"]
     assert client.get(f"/api/cases/{view['case_id']}/report.md").status_code == 200
     items = client.get("/api/cases").json()
     assert items[0]["case_id"] == view["case_id"]

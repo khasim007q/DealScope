@@ -41,6 +41,15 @@ class Settings(BaseSettings):
     def llm_fallback_list(self) -> list[str]:
         return [m.strip() for m in self.llm_fallback_models.split(",") if m.strip() and m.strip() != self.llm_model]
 
+    # Business-plan assumptions per audit, from the cfo.ai model (evidence/cfo-ai/). Editable; used only to compare a
+    # case's real cost with the plan. Dollars per credit is an assumption (Crustdata does not publish it).
+    plan_dollars_per_credit: Decimal = Decimal("0.10")
+    plan_credits_per_audit: Decimal = Decimal("26")
+    plan_llm_cost_per_audit: Decimal = Decimal("0.05")
+    plan_review_cost_per_audit: Decimal = Decimal("90")
+    plan_tooling_cost_per_audit: Decimal = Decimal("2")
+    plan_price_per_audit: Decimal = Decimal("1500")
+
     neatlogs_api_key: SecretStr | None = None
 
     dealscope_mode: RunMode = RunMode.SYNTHETIC

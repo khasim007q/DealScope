@@ -435,6 +435,8 @@ class Orchestrator:
             "finish_reason": state.finish_reason,
             "runtime_seconds": round(state.runtime_seconds_used + time.monotonic() - started, 2),
             "llm_model": getattr(self.llm, "last_model", None) or getattr(self.llm, "model", None),
+            "llm_tokens": getattr(self.llm, "tokens_used", None),
+            "llm_calls": getattr(self.llm, "calls_made", None),
             "narrative_available": narrative,
         }
         self.repo.save_report(state.case_id, memo, bundle, verification.accepted)

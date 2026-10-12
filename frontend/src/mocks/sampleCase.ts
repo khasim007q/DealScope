@@ -130,6 +130,14 @@ export const sampleCase: CaseView = {
     { title: "Security Engineer", capability: "Security", posted: "2026-08-30", reposted: false, openings: 1, url: null, evidence_id: "e3" },
   ],
   credits: { cap: 40, estimated_used: 12, actual_used: 10, reserved: 2, remaining: 26, unknown_calls: 0, simulated: true },
+  plan_comparison: {
+    dollars_per_credit: 0.1, credits_used: 10, credits_basis: "simulated credits (demo data)", simulated: true,
+    data_cost_case: 1, data_cost_plan: 2.6, plan_credits_per_audit: 26, llm_cost_plan: 0.05, llm_tokens: 5510,
+    llm_calls: 4, llm_model: "gemini-3.1-flash-lite", review_cost: 90, tooling_cost: 2, total_case: 93.05,
+    total_plan: 94.65, price: 1500, margin_case_pct: 93.8, margin_plan_pct: 93.7,
+    summary: "Data for this case cost about $1.00 (10 simulated credits (demo data)) against $2.60 assumed in the business plan (under by $1.60). Human review ($90) is still most of the cost of an audit.",
+    notes: ["Dollars per credit ($0.10) is the business plan's assumption; Crustdata does not publish it."],
+  },
   verification: {
     published: 4, verified: 2, with_caveats: 2, rejected: 1, grounded_rate: 0.94,
     rejected_reasons: [{ reason: "The claim cited evidence that did not mention it.", count: 1 }],

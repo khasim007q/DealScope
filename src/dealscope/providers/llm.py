@@ -55,6 +55,8 @@ class GeminiProvider:
         self.escalation_model = escalation_model
         self.fallback_models = list(fallback_models or [])
         self.last_model: str | None = None  # model that produced the most recent successful response
+        self.tokens_used = 0  # total tokens reported by the provider across successful calls
+        self.calls_made = 0
         self.sleep = time.sleep
 
     def generate_json(self, system: str, prompt: str, schema: type[BaseModel], *, escalate: bool = False) -> str:
@@ -96,6 +98,9 @@ class GeminiProvider:
             text = getattr(resp, "text", None)
             if not text:
                 raise LLMError("gemini returned empty response")
+            usage = getattr(resp, "usage_metadata", None)
+            self.tokens_used += int(getattr(usage, "total_token_count", 0) or 0)
+            self.calls_made += 1
             return text
         raise LLMError(f"gemini call failed: {last}")  # pragma: no cover - loop always returns or raises
 

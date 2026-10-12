@@ -123,6 +123,7 @@ Note on provenance: the first scenario-B run was invalid because of a budget-poo
 - **Evidence page**: judge-facing summary of neatlogs runs and the experiment, Entire commit-checkpoint pairs read from git, cfo.ai scenarios and Crustdata credit governance (`GET /api/evidence-summary`, `src/dealscope/api/evidence.py`).
 - **Compare**: two cases side by side, signal by signal (`/compare?a=..&b=..`).
 - **Featured live example**: a recorded live case imported at server start for instant, credit-free demos. Because it contains real professional records, `fixtures/featured/` is gitignored and never published (spec: no real profiles in Git).
+- **Cost vs business plan**: each case page compares its real data cost (credits x the plan's $0.10/credit assumption) and AI token usage with the cfo.ai plan's per-audit assumptions, and shows cost per audit and margin at the base price. The figma.com live case used about $1.05 of data against $2.60 assumed.
 - **CI**: GitHub Actions runs ruff, pytest and the frontend typecheck/build on every push (`.github/workflows/ci.yml`).
 
 ## 3. Key design decisions and tradeoffs

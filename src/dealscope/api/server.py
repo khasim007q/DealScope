@@ -411,6 +411,7 @@ def get_case(case_id: str) -> dict:
             repo.latest_report(case_id),
             summary,
             _running(case_id),
+            s,
         )
     finally:
         repo.close()

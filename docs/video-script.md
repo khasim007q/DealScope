@@ -65,11 +65,15 @@ Traces also gave us real cost: about a fifth of a cent to two cents per AI write
 recorded it. Every commit is linked to the session that produced it - ten checkpoints, 145 file changes - so any line
 of code can be traced back to the conversation and decision behind it."
 
-## 2:30 - 2:50 | cfo.ai  (screen: cfo.ai plan / investor summary PDF)
+## 2:30 - 2:50 | cfo.ai  (screen: cfo.ai plan, then a case page "Cost vs business plan" panel)
 
-"We built the business plan in cfo.ai: per-audit and annual pricing, a delivery cost of about 95 dollars per audit -
-mostly human review - and conservative, base and growth scenarios. We have no customers yet, and cash is unknown, so
-runway is left blank rather than invented. Our real runs show data and AI costs are lower than the plan assumes."
+"We built the business plan in cfo.ai: per-audit and annual pricing, conservative, base and growth scenarios, and a
+delivery cost of about 95 dollars per audit - and 90 of that is human review, not data or AI. That's why DealScope
+focuses on verified, cited findings that are quick to check. Cash is unknown, so runway is left blank rather than
+invented.
+
+And the plan is wired into the product: every case shows its real cost against the plan. This live Figma run used
+about a dollar of data against 2.60 assumed - under plan."
 
 ## 2:50 - 3:00 | Close  (screen: Evidence page, then GitHub repo)
 
@@ -91,6 +95,7 @@ diligence questions, not guesses."
 | AI write-up cost $0.0015 - $0.02 | screenshots 213426 and 213710 |
 | 10 checkpoints, 145 file changes | `evidence/entire/screenshots/entire-session-timeline.png` |
 | $94.65 per audit, three scenarios, runway blank | `evidence/cfo-ai/DealScope-investor-summary.pdf` |
+| Figma run: about $1.05 data vs $2.60 plan | `case-879ba1a331fb`, 10.46 confirmed credits x $0.10 plan assumption |
 
 Note: if the neatlogs incidents view groups these differently, keep the four stories and point at whichever incident
 entries contain those failing spans.

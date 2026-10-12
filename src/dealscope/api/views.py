@@ -721,6 +721,7 @@ def case_view(
     report: dict | None,
     credit_summary: dict,
     running: bool,
+    settings: Any = None,
 ) -> dict:
     by_id = {e.evidence_id: e for e in evidence}
     label, tone, detail, can_resume = status_of(state, running)
@@ -752,6 +753,14 @@ def case_view(
         "people": people,
         "jobs": jobs,
         "credits": credits_view(credit_summary, state.mode == RunMode.SYNTHETIC),
+        "plan_comparison": plan_comparison(
+            credits_view(credit_summary, state.mode == RunMode.SYNTHETIC),
+            state.mode == RunMode.SYNTHETIC,
+            report,
+            settings,
+        )
+        if settings is not None
+        else None,
         "verification": verification_view(report),
         "trace_ids": [
             e["payload"]["trace_id"] for e in events if e["type"] == "trace" and e["payload"].get("trace_id")
@@ -759,6 +768,67 @@ def case_view(
         "llm_model": (bundle.get("run") or {}).get("llm_model"),
         "updated_at": state.updated_at.isoformat(),
         "report_available": report is not None,
+    }
+
+
+def plan_comparison(credits: dict, synthetic: bool, report: dict | None, settings: Any) -> dict:
+    """Compare this case's real cost with the per-audit assumptions of the cfo.ai business plan.
+
+    Data cost uses confirmed credits (estimated when nothing is confirmed) at the plan's dollars-per-credit assumption.
+    AI cost is not priced in-app: the run's token count is shown and the plan figure is kept, because the Gemini
+    free tier billed $0 and per-token prices for these models are not configured."""
+    run = ((report or {}).get("bundle") or {}).get("run") or {}
+    dpc = _f(settings.plan_dollars_per_credit)
+    used = credits["actual_used"] if credits["actual_used"] > 0 else credits["estimated_used"]
+    data_actual = round(used * dpc, 2)
+    plan_data = round(_f(settings.plan_credits_per_audit) * dpc, 2)
+    llm, review, tooling = (
+        _f(settings.plan_llm_cost_per_audit),
+        _f(settings.plan_review_cost_per_audit),
+        _f(settings.plan_tooling_cost_per_audit),
+    )
+    plan_total = round(plan_data + llm + review + tooling, 2)
+    case_total = round(data_actual + llm + review + tooling, 2)
+    price = _f(settings.plan_price_per_audit)
+    margin = round((price - case_total) / price * 100, 1) if price > 0 else None
+    plan_margin = round((price - plan_total) / price * 100, 1) if price > 0 else None
+    basis = (
+        "simulated credits (demo data)"
+        if synthetic
+        else ("confirmed credits" if credits["actual_used"] > 0 else "estimated credits")
+    )
+    diff = round(data_actual - plan_data, 2)
+    summary = (
+        f"Data for this case cost about ${data_actual:.2f} ({used:g} {basis}) against ${plan_data:.2f} assumed "
+        f"in the business plan ({'under' if diff <= 0 else 'over'} by ${abs(diff):.2f}). "
+        f"Human review (${review:.0f}) is still most of the cost of an audit."
+    )
+    return {
+        "dollars_per_credit": dpc,
+        "credits_used": round(used, 2),
+        "credits_basis": basis,
+        "simulated": synthetic,
+        "data_cost_case": data_actual,
+        "data_cost_plan": plan_data,
+        "plan_credits_per_audit": _f(settings.plan_credits_per_audit),
+        "llm_cost_plan": llm,
+        "llm_tokens": run.get("llm_tokens"),
+        "llm_calls": run.get("llm_calls"),
+        "llm_model": run.get("llm_model"),
+        "review_cost": review,
+        "tooling_cost": tooling,
+        "total_case": case_total,
+        "total_plan": plan_total,
+        "price": price,
+        "margin_case_pct": margin,
+        "margin_plan_pct": plan_margin,
+        "summary": summary,
+        "notes": [
+            f"Dollars per credit (${dpc:.2f}) is the business plan's assumption; Crustdata does not publish it.",
+            "AI cost uses the plan figure. Tokens come from the provider; the free tier billed $0, and neatlogs traces "
+            "measured $0.0015-$0.02 per AI write-up.",
+            "Review and tooling costs are plan assumptions (1.5 hours of analyst review at $60/hour).",
+        ],
     }
 
 

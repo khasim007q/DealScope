@@ -131,3 +131,13 @@ No secrets are recorded here. Times are IST (hackathon window 10–12 Oct 2026).
   10.46 credits actual; coverage 57.5% so no overall score (people search returned no profiles); 12 published claims,
   0 rejected; trace `f739b2ac2e4ab00c2b8bb7d47f42cb8c`.
 - Crustdata spend to date: 47.03 + 10.46 = 57.49 credits actual (balance ~142.5).
+
+### 2026-10-12 — case cost vs cfo.ai business plan
+- Case page "Cost vs business plan" panel (`views.plan_comparison`, `PlanComparisonCard.tsx`): confirmed (or estimated /
+  simulated) credits x the plan's $0.10/credit assumption vs the plan's 26 credits per audit; AI shown as provider token
+  count (priced at the plan figure because the free tier billed $0); review $90 and tooling $2 from the plan; cost per
+  audit and gross margin at the $1,500 base price. Plan assumptions are `PLAN_*` settings.
+- Gemini adapter now records tokens/calls per run (`tokens_used`, `calls_made`) into the run bundle.
+- Demo verification: synthetic case recorded 12,251 tokens over 4 calls answered by gemini-3.1-flash-lite while the
+  configured primary was gemini-3.8-flash, i.e. the fallback chain engaged on real calls. Figma live case: $1.05 data vs
+  $2.60 plan.
