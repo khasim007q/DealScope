@@ -1,0 +1,53 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4R5S0KVG98EWKTRN92FEFNQ",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "frontend/src/api/client.ts",
+    "frontend/src/api/types.ts",
+    "frontend/src/components/CaseTraces.tsx",
+    "frontend/src/components/TraceWaterfall.tsx",
+    "frontend/src/lib/format.ts",
+    "frontend/src/mocks/mockApi.ts",
+    "frontend/src/mocks/sampleTrace.ts",
+    "frontend/src/pages/CaseDetail.tsx",
+    "frontend/src/pages/Evidence.tsx",
+    "frontend/src/styles/global.css",
+    "scripts/run_case.py",
+    "scripts/validate_report.py",
+    "src/dealscope/agent/orchestrator.py",
+    "src/dealscope/api/evidence.py",
+    "src/dealscope/api/server.py",
+    "src/dealscope/observability/tracing.py",
+    "src/dealscope/persistence/repository.py",
+    "src/dealscope/persistence/sqlite_schema.sql",
+    "src/dealscope/providers/llm.py",
+    "tests/test_api.py",
+    "tests/test_llm.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 908,
+    "cache_creation_tokens": 1820662,
+    "cache_read_tokens": 213936734,
+    "output_tokens": 411560,
+    "api_call_count": 449,
+    "subagent_tokens": {
+      "input_tokens": 140,
+      "cache_creation_tokens": 336244,
+      "cache_read_tokens": 8392064,
+      "output_tokens": 85039,
+      "api_call_count": 69
+    }
+  }
+}
