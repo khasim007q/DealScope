@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, errorMessage } from "../api/client";
 import type { CaseView } from "../api/types";
@@ -8,12 +8,21 @@ import { Banner, Disclosure, Icon, ModeBadge, StatusPill } from "./ui";
 interface Props {
   view: CaseView;
   onResumed: () => void;
+  onStopped?: () => void;
 }
 
-export function CaseHeader({ view, onResumed }: Props) {
+export function CaseHeader({ view, onResumed, onStopped }: Props) {
   const navigate = useNavigate();
   const [resuming, setResuming] = useState(false);
   const [resumeError, setResumeError] = useState<string | null>(null);
+  const [confirmStop, setConfirmStop] = useState(false);
+  const [stopping, setStopping] = useState(false);
+  const [stopError, setStopError] = useState<string | null>(null);
+  // Set once the stop request is accepted; cleared when the run actually ends.
+  const [stopRequested, setStopRequested] = useState(false);
+  useEffect(() => {
+    if (!view.running) setStopRequested(false);
+  }, [view.running]);
 
   const resume = async () => {
     setResuming(true);
@@ -29,6 +38,21 @@ export function CaseHeader({ view, onResumed }: Props) {
       setResumeError(errorMessage(e));
     } finally {
       setResuming(false);
+    }
+  };
+
+  const stop = async () => {
+    setStopping(true);
+    setStopError(null);
+    try {
+      await api.cancelCase(view.case_id);
+      setConfirmStop(false);
+      setStopRequested(true);
+      (onStopped ?? onResumed)();
+    } catch (e) {
+      setStopError(errorMessage(e));
+    } finally {
+      setStopping(false);
     }
   };
 
@@ -63,6 +87,17 @@ export function CaseHeader({ view, onResumed }: Props) {
       </Disclosure>
 
       <div className="btn-row" style={{ marginTop: 14 }}>
+        {view.running && stopRequested ? (
+          <span className="muted" role="status">
+            Stopping after the current step...
+          </span>
+        ) : null}
+        {view.running && !confirmStop && !stopRequested ? (
+          <button type="button" className="btn" onClick={() => setConfirmStop(true)}>
+            <Icon name="x" size={14} />
+            Stop investigation
+          </button>
+        ) : null}
         {view.can_resume ? (
           <button type="button" className="btn primary" onClick={resume} disabled={resuming}>
             <Icon name="play" size={14} />
@@ -82,6 +117,24 @@ export function CaseHeader({ view, onResumed }: Props) {
           </>
         ) : null}
       </div>
+      {view.running && confirmStop ? (
+        <div className="confirm-box" role="group" aria-label="Confirm stopping the investigation">
+          <p>Stop after the current step? Collected evidence is kept and a partial memo is written.</p>
+          <div className="btn-row">
+            <button type="button" className="btn primary" onClick={stop} disabled={stopping}>
+              {stopping ? "Stopping..." : "Yes, stop"}
+            </button>
+            <button type="button" className="btn" onClick={() => setConfirmStop(false)} disabled={stopping}>
+              Keep going
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {stopError ? (
+        <p className="error-text" role="alert">
+          {stopError}
+        </p>
+      ) : null}
       {resumeError ? (
         <p className="error-text" role="alert">
           {resumeError}

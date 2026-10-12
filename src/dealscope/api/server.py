@@ -22,12 +22,14 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 
 from dealscope.agent.orchestrator import ConfigError, build_orchestrator
+from dealscope.api import evidence as evidence_mod
 from dealscope.api import views
 from dealscope.budget.governor import CreditGovernor
 from dealscope.config import Settings, get_settings
 from dealscope.domain.enums import RunMode
 from dealscope.domain.models import CaseInput, normalize_domain
 from dealscope.observability import tracing
+from dealscope.persistence import featured
 from dealscope.persistence.repository import Repository
 
 log = logging.getLogger(__name__)
@@ -79,6 +81,15 @@ async def lifespan(_: FastAPI):
     tracing.init_tracing(
         s.neatlogs_api_key.get_secret_value() if s.neatlogs_api_key else None, workflow_name="dealscope"
     )
+    repo = _repo()
+    try:
+        imported = featured.import_all(repo)
+        if imported:
+            log.info("imported featured cases: %s", imported)
+    except Exception:  # a bad fixture must not stop the server
+        log.exception("featured case import failed")
+    finally:
+        repo.close()
     yield
     tracing.shutdown()
 
@@ -92,6 +103,7 @@ app.add_middleware(
 )
 
 _runs: dict[str, threading.Thread] = {}
+_cancels: dict[str, threading.Event] = {}
 _runs_lock = threading.Lock()
 
 
@@ -110,10 +122,13 @@ def _running(case_id: str) -> bool:
 
 
 def _start_thread(case_id: str, mode: RunMode, scenario: Path | None, faults: dict | None, resume: bool) -> None:
+    cancel = threading.Event()
+
     def work() -> None:
         repo = _repo()
         try:
             orch = build_orchestrator(_settings(), mode, repo=repo, fixture_path=scenario, faults=faults)
+            orch.cancel_event = cancel
             orch.run(case_id, resume=resume)
         except Exception:  # state is persisted as failed by the orchestrator; log for the operator
             log.exception("run failed for %s", case_id)
@@ -123,6 +138,7 @@ def _start_thread(case_id: str, mode: RunMode, scenario: Path | None, faults: di
     t = threading.Thread(target=work, name=f"run-{case_id}", daemon=True)
     with _runs_lock:
         _runs[case_id] = t
+        _cancels[case_id] = cancel
     t.start()
 
 
@@ -221,6 +237,30 @@ def scenarios() -> list[dict]:
             }
         )
     return out
+
+
+@app.get("/api/evidence-summary")
+def evidence_summary() -> dict:
+    s = _settings()
+    repo = _repo()
+    try:
+        g = CreditGovernor(repo, s, pool="live").global_summary()
+    finally:
+        repo.close()
+    return evidence_mod.evidence_summary(g, s)
+
+
+@app.get("/api/featured")
+def featured_cases() -> list[dict]:
+    return [
+        {
+            "case_id": d["state"]["case_id"],
+            "label": d["label"],
+            "description": d["description"],
+            "recorded_at": d["recorded_at"],
+        }
+        for d in featured.featured_docs()
+    ]
 
 
 @app.get("/api/faults")
@@ -327,6 +367,16 @@ def resume_case(case_id: str) -> dict:
         sid = next((e["payload"].get("scenario_id") for e in events if e["type"] == "scenario"), "scenario_a")
         scenario = FIXTURES / f"{sid if sid in SCENARIOS else 'scenario_a'}.json"
     _start_thread(case_id, state.mode, scenario, None, resume=True)
+    return {"case_id": case_id}
+
+
+@app.post("/api/cases/{case_id}/cancel")
+def cancel_case(case_id: str) -> dict:
+    with _runs_lock:
+        t, ev = _runs.get(case_id), _cancels.get(case_id)
+    if not (t and t.is_alive() and ev):
+        raise HTTPException(409, "This case is not running")
+    ev.set()
     return {"case_id": case_id}
 
 

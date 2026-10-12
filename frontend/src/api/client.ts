@@ -3,7 +3,9 @@ import type {
   CaseView,
   CreateCaseRequest,
   CreateCaseResponse,
+  EvidenceSummary,
   FaultOption,
+  FeaturedCase,
   IdentityResult,
   Scenario,
   StatusResponse,
@@ -100,6 +102,16 @@ export const api = {
     USE_MOCKS
       ? (await loadMocks()).getCase(id)
       : request<CaseView>(`/api/cases/${encodeURIComponent(id)}`),
+  cancelCase: async (id: string): Promise<CreateCaseResponse> =>
+    USE_MOCKS
+      ? (await loadMocks()).cancelCase(id)
+      : post<CreateCaseResponse>(`/api/cases/${encodeURIComponent(id)}/cancel`),
+  featured: async (): Promise<FeaturedCase[]> =>
+    USE_MOCKS ? (await loadMocks()).featured() : request<FeaturedCase[]>("/api/featured"),
+  evidenceSummary: async (): Promise<EvidenceSummary> =>
+    USE_MOCKS
+      ? (await loadMocks()).evidenceSummary()
+      : request<EvidenceSummary>("/api/evidence-summary"),
   reportUrl: (id: string): string => `/api/cases/${encodeURIComponent(id)}/report.md`,
   bundleUrl: (id: string): string => `/api/cases/${encodeURIComponent(id)}/bundle.json`,
 };

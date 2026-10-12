@@ -417,11 +417,17 @@ class Repository:
 
     # -- events ------------------------------------------------------------
 
-    def add_event(self, case_id: str, type: str, payload: dict[str, Any]) -> int:  # noqa: A002
+    def add_event(
+        self,
+        case_id: str,
+        type: str,
+        payload: dict[str, Any],
+        created_at: str | None = None,  # noqa: A002
+    ) -> int:
         with self.transaction() as conn:
             cur = conn.execute(
                 "INSERT INTO events (case_id, type, payload_json, created_at) VALUES (?,?,?,?)",
-                (case_id, type, json.dumps(payload, default=str), _now()),
+                (case_id, type, json.dumps(payload, default=str), created_at or _now()),
             )
             return int(cur.lastrowid or 0)
 

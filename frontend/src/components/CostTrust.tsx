@@ -2,7 +2,7 @@ import type { CreditsView, VerificationView } from "../api/types";
 import { formatCredits, formatInt, formatRate } from "../lib/format";
 import { CopyButton, SectionHead, StatusPill } from "./ui";
 
-function Stat({ k, v, hint }: { k: string; v: string; hint?: string }) {
+export function Stat({ k, v, hint }: { k: string; v: string; hint?: string }) {
   return (
     <div className="stat">
       <div className="stat-v">{v}</div>

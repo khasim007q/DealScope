@@ -283,6 +283,14 @@ def status_of(state: CaseState, running: bool) -> tuple[str, str, str, bool]:
                 "without repeating completed calls.",
                 True,
             )
+        if reason == "cancelled_by_user":
+            return (
+                "Stopped by you",
+                "caution",
+                "You stopped this investigation. Evidence collected so far is kept and a partial memo was written. "
+                "Resume to continue without repeating completed requests.",
+                True,
+            )
         if reason.startswith("fatal:"):
             code = reason.split(":", 1)[1]
             return (

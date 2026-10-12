@@ -118,3 +118,54 @@ def test_evidence_route_blocks_traversal(client):
     assert r.status_code == 404 and "CRUSTDATA" not in r.text
     assert client.get("/api/does-not-exist").status_code == 404
     assert client.get("/api/evidence/cfo-ai/assumptions.md").status_code == 404  # only images/pdf served
+
+
+def test_cancel_requires_running_case(client):
+    assert client.post("/api/cases/case-unknown/cancel").status_code == 409
+
+
+def test_evidence_summary_reads_committed_evidence(client):
+    body = client.get("/api/evidence-summary").json()
+    assert {"neatlogs", "entire", "cfo", "crustdata"} <= set(body)
+    assert any(r["trace_ids"] for r in body["neatlogs"]["runs"])
+    assert {row["variant"] for row in body["neatlogs"]["eval_rows"]} == {"baseline", "improved"}
+    assert len(body["cfo"]["scenarios"]) == 3 and body["crustdata"]["reserve"] >= 0
+    assert all(s["path"].startswith("evidence/") for s in body["neatlogs"]["screenshots"])
+
+
+def test_featured_round_trip(tmp_path):
+    from dealscope.persistence import featured
+    from dealscope.persistence.repository import Repository
+
+    src = Repository(tmp_path / "src.sqlite3")
+    orch = build_orchestrator_for(src)
+    a = orch.create_case(scenario_input())
+    orch.run(a.case_id)
+    doc = featured.export_case(src, a.case_id, "label", "desc")
+    dst = Repository(tmp_path / "dst.sqlite3")
+    assert featured.import_case(dst, doc) == a.case_id
+    assert featured.import_case(dst, doc) is None  # idempotent
+    assert dst.latest_report(a.case_id) is not None
+    assert len(dst.get_evidence(a.case_id)) == len(src.get_evidence(a.case_id))
+    assert [e["created_at"] for e in dst.list_events(a.case_id)] == [
+        e["created_at"] for e in src.list_events(a.case_id)
+    ]
+
+
+def build_orchestrator_for(repo):
+    from dealscope.agent.orchestrator import build_orchestrator
+    from dealscope.domain.enums import RunMode
+
+    return build_orchestrator(Settings(_env_file=None), RunMode.SYNTHETIC, repo=repo, llm=None, sleep=lambda s: None)
+
+
+def scenario_input():
+    import json
+    from pathlib import Path
+
+    from dealscope.domain.models import CaseInput
+
+    c = json.loads((Path(server.FIXTURES) / "scenario_a.json").read_text(encoding="utf-8"))["case"]
+    return CaseInput(
+        target_domain=c["target_domain"], competitor_domains=c["competitor_domains"], deal_thesis=c["deal_thesis"]
+    )

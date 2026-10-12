@@ -295,3 +295,24 @@ def test_llm_retry_delay_policy():
     assert _retry_delay(Exception("429 RESOURCE_EXHAUSTED ... Please retry in 9h36m16s."), 0) is None
     assert _retry_delay(Exception("503 UNAVAILABLE high demand"), 0) == 2.0
     assert _retry_delay(Exception("400 INVALID_ARGUMENT"), 0) is None
+
+
+def test_cancel_stops_at_next_step_and_writes_partial_memo(tmp_path):
+    import threading
+
+    orch, repo = make(tmp_path)
+    orch.cancel_event = threading.Event()
+    original = orch.executor.execute
+
+    def execute_then_cancel(state, action):
+        out = original(state, action)
+        orch.cancel_event.set()  # user presses Stop during the first tool call
+        return out
+
+    orch.executor.execute = execute_then_cancel
+    state = orch.create_case(case_input())
+    orch.run(state.case_id)
+    final = repo.load_case(state.case_id)
+    assert final.stage == CaseStage.PARTIAL and final.finish_reason == "cancelled_by_user"
+    assert len(repo.list_tool_runs(state.case_id)) == 1
+    assert repo.latest_report(state.case_id) is not None

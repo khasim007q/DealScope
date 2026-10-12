@@ -232,3 +232,81 @@ export interface CaseView {
   updated_at: string;
   report_available: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// v0.3 additions: featured (recorded) cases, cancel, partner evidence summary
+// ---------------------------------------------------------------------------
+
+// GET /api/featured -> FeaturedCase[]  (finished live cases bundled with the repo; open without spending credits)
+export interface FeaturedCase {
+  case_id: string;
+  label: string; // e.g. "notion.com vs coda.io, airtable.com, clickup.com"
+  description: string;
+  recorded_at: string; // ISO date of the live run
+}
+
+// POST /api/cases/{id}/cancel -> CreateCaseResponse  (409 when the case is not running)
+// After cancelling, the case ends with status_label "Stopped by you" and can be resumed.
+
+export interface NeatlogsRun {
+  label: string; // "Live investigation - airtable.com"
+  kind: "live" | "failure" | "eval";
+  case_id: string | null;
+  trace_ids: string[];
+  summary: string; // plain sentence with the outcome
+}
+
+export interface EvalRow {
+  scenario: string; // "A" | "B"
+  variant: "baseline" | "improved";
+  trace_id: string | null;
+  draft_claims: number;
+  draft_rejected: number;
+  draft_verified: number;
+  draft_with_caveats: number;
+  published: number;
+  tool_calls: number;
+}
+
+export interface EvidenceFile {
+  label: string;
+  path: string; // repo-relative "evidence/..."; images and PDFs load from /api/evidence/<path after "evidence/">
+}
+
+export interface EvidenceSummary {
+  neatlogs: {
+    runs: NeatlogsRun[];
+    eval_rows: EvalRow[];
+    eval_reading: string; // honest one-paragraph interpretation
+    screenshots: EvidenceFile[];
+  };
+  entire: {
+    checkpoints: { commit: string; subject: string; checkpoint: string }[];
+    transcript_path: string | null;
+    notes: string[];
+  };
+  cfo: {
+    scenarios: {
+      name: string;
+      revenue: string;
+      audits: string;
+      gross_margin: string;
+      contribution_margin: string;
+      peak_funding_need: string;
+    }[];
+    unit_cost: string; // e.g. "$94.65 per audit (QA $90, tooling $2, Crustdata $2.60, LLM $0.05)"
+    pricing: string[];
+    notes: string[];
+    files: EvidenceFile[];
+  };
+  crustdata: {
+    total: number;
+    reserve: number;
+    spendable: number;
+    actual_used: number;
+    estimated_used: number;
+    remaining: number;
+    prices: { endpoint: string; credits: string }[];
+    notes: string[];
+  };
+}

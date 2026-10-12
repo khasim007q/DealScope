@@ -41,7 +41,9 @@ class LLMProvider(Protocol):
 class GeminiProvider:
     name = "gemini"
 
-    def __init__(self, api_key: str, model: str, escalation_model: str | None = None) -> None:
+    def __init__(
+        self, api_key: str, model: str, escalation_model: str | None = None, fallback_models: list[str] | None = None
+    ) -> None:
         from google import genai
         from google.genai import types
 
@@ -51,6 +53,8 @@ class GeminiProvider:
         self._client = tracing.wrap_llm_client(genai.Client(api_key=api_key, http_options=http))
         self.model = model
         self.escalation_model = escalation_model
+        self.fallback_models = list(fallback_models or [])
+        self.last_model: str | None = None  # model that produced the most recent successful response
         self.sleep = time.sleep
 
     def generate_json(self, system: str, prompt: str, schema: type[BaseModel], *, escalate: bool = False) -> str:
@@ -64,6 +68,20 @@ class GeminiProvider:
             response_json_schema=gemini_schema(schema),
             max_output_tokens=8192,
         )
+        chain = [model, *[m for m in self.fallback_models if m != model]]
+        failures: list[str] = []
+        for candidate in chain:
+            try:
+                text = self._call_model(candidate, prompt, config)
+            except LLMError as exc:
+                failures.append(f"{candidate}: {str(exc)[:120]}")
+                log.warning("LLM model %s failed, trying next in chain: %s", candidate, str(exc)[:120])
+                continue
+            self.last_model = candidate
+            return text
+        raise LLMError("all models failed: " + " | ".join(failures))
+
+    def _call_model(self, model: str, prompt: str, config: object) -> str:
         last: Exception | None = None
         for attempt in range(TRANSIENT_RETRIES + 1):
             try:
@@ -154,7 +172,10 @@ def build_provider(settings: Settings) -> LLMProvider | None:
         return None
     if settings.llm_provider.lower() in {"gemini", "google"}:
         return GeminiProvider(
-            settings.llm_api_key.get_secret_value(), settings.llm_model, settings.llm_escalation_model
+            settings.llm_api_key.get_secret_value(),
+            settings.llm_model,
+            settings.llm_escalation_model,
+            settings.llm_fallback_list,
         )
     raise LLMError(f"unsupported LLM_PROVIDER={settings.llm_provider!r}")
 

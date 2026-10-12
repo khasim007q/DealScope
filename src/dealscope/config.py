@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     llm_model: str = "gemini-3.8-flash"
     # Optional stronger model used only for report synthesis escalation.
     llm_escalation_model: str | None = None
+    # Comma-separated models tried in order when the primary is out of quota or overloaded (free-tier resilience).
+    llm_fallback_models: str = ""
+
+    @property
+    def llm_fallback_list(self) -> list[str]:
+        return [m.strip() for m in self.llm_fallback_models.split(",") if m.strip() and m.strip() != self.llm_model]
 
     neatlogs_api_key: SecretStr | None = None
 

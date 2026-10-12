@@ -16,3 +16,5 @@ evidence/private/
 build/
 dist/
 .ruff_cache/
+# Recorded live cases contain real professional records: local demo use only, never committed
+fixtures/featured/

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, errorMessage } from "../api/client";
 import type { CreateCaseRequest, IdentityResult, RunMode, Scenario } from "../api/types";
+import { FeaturedCases } from "../components/FeaturedCases";
 import { IdentityTable } from "../components/IdentityTable";
 import { ModeCards } from "../components/ModeCards";
 import { ScenarioPicker } from "../components/ScenarioPicker";
@@ -496,6 +497,8 @@ export function NewInvestigation() {
           ) : null}
         </div>
       </form>
+
+      <FeaturedCases />
     </>
   );
 }

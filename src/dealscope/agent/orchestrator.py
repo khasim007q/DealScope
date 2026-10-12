@@ -7,6 +7,7 @@ interrupted run resumes from the last checkpoint without replaying completed met
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
@@ -77,6 +78,8 @@ class Orchestrator:
         self.llm = llm
         self.synthesis_variant = synthesis_variant
         self.as_of = as_of
+        # Set by the API to stop at the next step boundary (never interrupts an in-flight provider request).
+        self.cancel_event: threading.Event | None = None
 
     # ------------------------------------------------------------------
     def create_case(self, case_input: CaseInput, run_label: str | None = None) -> CaseState:
@@ -94,6 +97,8 @@ class Orchestrator:
         return state
 
     def _limits_hit(self, state: CaseState, started: float) -> str | None:
+        if self.cancel_event is not None and self.cancel_event.is_set():
+            return "cancelled_by_user"
         if state.tool_call_count >= self.settings.dealscope_max_tool_calls:
             return "max_tool_calls"
         if state.runtime_seconds_used + (time.monotonic() - started) >= self.settings.dealscope_max_runtime_seconds:
@@ -429,7 +434,7 @@ class Orchestrator:
             "iterations": state.iteration_count,
             "finish_reason": state.finish_reason,
             "runtime_seconds": round(state.runtime_seconds_used + time.monotonic() - started, 2),
-            "llm_model": getattr(self.llm, "model", None),
+            "llm_model": getattr(self.llm, "last_model", None) or getattr(self.llm, "model", None),
             "narrative_available": narrative,
         }
         self.repo.save_report(state.case_id, memo, bundle, verification.accepted)

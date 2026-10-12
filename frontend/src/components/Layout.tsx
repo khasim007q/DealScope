@@ -37,6 +37,7 @@ export function Layout() {
               New investigation
             </NavLink>
             <NavLink to="/cases">Cases</NavLink>
+            <NavLink to="/evidence">Evidence</NavLink>
             <NavLink to="/how-it-works">How it works</NavLink>
           </nav>
           <SystemsIndicator />
