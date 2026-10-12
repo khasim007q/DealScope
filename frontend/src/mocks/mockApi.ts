@@ -7,10 +7,12 @@ import type {
   FaultOption,
   FeaturedCase,
   IdentityResult,
+  RecordedTrace,
   Scenario,
   StatusResponse,
 } from "../api/types";
 import { sampleCase } from "./sampleCase";
+import { sampleCaseTraces, sampleEntireFlow, sampleEntireSession, sampleEvidenceTraces } from "./sampleTrace";
 
 const delay = <T>(v: T, ms = 250): Promise<T> => new Promise((r) => window.setTimeout(() => r(v), ms));
 
@@ -114,13 +116,16 @@ export function evidenceSummary(): Promise<EvidenceSummary> {
         { label: "Trace list in neatlogs", path: "evidence/neatlogs/trace-list.png" },
         { label: "Single run trace detail", path: "evidence/neatlogs/trace-detail.png" },
       ],
+      traces: sampleEvidenceTraces,
     },
     entire: {
       checkpoints: [
         { commit: "be4bb90c1d2e3f405a6b7c8d9e0f1a2b3c4d5e6f", subject: "Replace Streamlit with a React + TypeScript frontend and plain-language API", checkpoint: "chk_7f3a91c2d4" },
         { commit: "75783c2a1b2c3d4e5f60718293a4b5c6d7e8f901", subject: "Live browser test fixes: free identity pre-check, provider data-quality guard", checkpoint: "chk_2b8e40a6f1" },
       ],
-      screenshots: [],
+      screenshots: [{ label: "Entire session timeline", path: "evidence/entire/session-timeline.png" }],
+      flow: sampleEntireFlow,
+      session: sampleEntireSession,
       transcript_path: "evidence/entire/session-transcript.md",
       notes: ["Checkpoints were captured automatically at each commit.", "The transcript is the full coding-session log."],
     },
@@ -154,6 +159,10 @@ export function evidenceSummary(): Promise<EvidenceSummary> {
       notes: ["The reserve is never spent by the product.", "Actual use is confirmed from provider response headers."],
     },
   });
+}
+
+export function getCaseTraces(): Promise<RecordedTrace[]> {
+  return delay(sampleCaseTraces);
 }
 
 let startedAt = 0;

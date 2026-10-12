@@ -1,0 +1,366 @@
+{
+ "label": "Failure drill, run 2: resume recovers",
+ "description": "After a restart, recover_run retries only the failed lookup, which succeeds; no completed request is repeated and the case completes.",
+ "order": 2,
+ "case_id": "case-99f3c9bd9f4b",
+ "trace": {
+  "trace_id": "6f0f05df2b14ccf8a25e0780cce78f84",
+  "started_at": "2026-10-12T13:43:53.212272+00:00",
+  "duration_ms": 43759.17,
+  "span_count": 13,
+  "error_count": 3,
+  "spans": [
+   {
+    "span_id": "dc8d5940d77b92bb",
+    "parent_id": null,
+    "name": "investigation_workflow",
+    "kind": "WORKFLOW",
+    "start_ms": 0.0,
+    "duration_ms": 43759.17,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.mode": "synthetic",
+     "dealscope.run_label": "improved",
+     "dealscope.target": "northstar-platform.example",
+     "dealscope.resume": true,
+     "input.value": "synthetic case case-99f3c9bd9f4b: target northstar-platform.example; peers apex-cloud.example, cedar-stack.example, orbit-data.example; resume=True",
+     "dealscope.finish_reason": "no_candidates",
+     "output.value": "complete (no_candidates); risk 54; coverage 88%; tool calls 8; verified claims 15",
+     "dealscope.final_stage": "complete",
+     "dealscope.tool_calls": 8,
+     "dealscope.iterations": 5
+    },
+    "events": [
+     {
+      "name": "state_transition",
+      "at_ms": 5.01,
+      "attributes": {
+       "from": "investigating",
+       "to": "baseline"
+      }
+     },
+     {
+      "name": "state_transition",
+      "at_ms": 10.01,
+      "attributes": {
+       "from": "baseline",
+       "to": "investigating"
+      }
+     },
+     {
+      "name": "state_transition",
+      "at_ms": 15.02,
+      "attributes": {
+       "from": "investigating",
+       "to": "verifying"
+      }
+     },
+     {
+      "name": "state_transition",
+      "at_ms": 43755.13,
+      "attributes": {
+       "from": "verifying",
+       "to": "reporting"
+      }
+     },
+     {
+      "name": "state_transition",
+      "at_ms": 43759.17,
+      "attributes": {
+       "from": "reporting",
+       "to": "complete"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "8db591699093eb83",
+    "parent_id": "dc8d5940d77b92bb",
+    "name": "recover_run",
+    "kind": "CHAIN",
+    "start_ms": 0.0,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.from_stage": "partial",
+     "dealscope.failed_actions_retried": 1,
+     "dealscope.unresolved_runs": 0,
+     "dealscope.evidence_restored": 11
+    },
+    "events": []
+   },
+   {
+    "span_id": "5eab22c8151d484f",
+    "parent_id": "dc8d5940d77b92bb",
+    "name": "tool.enrich_company",
+    "kind": "TOOL",
+    "start_ms": 5.01,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.tool": "enrich_company",
+     "dealscope.mode": "synthetic",
+     "dealscope.operation": "company_enrich",
+     "dealscope.quantity": 1,
+     "dealscope.credit_estimate": 2.0,
+     "dealscope.result_count": 1,
+     "dealscope.attempts": 1,
+     "dealscope.new_evidence": 1
+    },
+    "events": []
+   },
+   {
+    "span_id": "d33d190434795d0e",
+    "parent_id": "dc8d5940d77b92bb",
+    "name": "score_signals",
+    "kind": "CHAIN",
+    "start_ms": 5.01,
+    "duration_ms": 5.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.evidence_count": 12,
+     "dealscope.coverage_pct": 87.5,
+     "dealscope.risk_score": 54.5,
+     "dealscope.evidence_confidence": 91.7,
+     "dealscope.score_version": "signals-v1.0"
+    },
+    "events": [
+     {
+      "name": "score_change",
+      "at_ms": 10.01,
+      "attributes": {
+       "signal": "S1",
+       "from": "not_scored:None",
+       "to": "scorable:81.0"
+      }
+     },
+     {
+      "name": "score_change",
+      "at_ms": 10.01,
+      "attributes": {
+       "signal": "S4",
+       "from": "scorable:50.0",
+       "to": "scorable:65.0"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "ec961d1f8788bc71",
+    "parent_id": "dc8d5940d77b92bb",
+    "name": "plan_next_action",
+    "kind": "AGENT",
+    "start_ms": 10.01,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.iteration": 5,
+     "dealscope.candidates": 0,
+     "dealscope.action": "stop",
+     "dealscope.decided_by": "deterministic_fallback",
+     "dealscope.llm_attempts": 0,
+     "dealscope.why": "Every useful data source for this case has already been checked."
+    },
+    "events": []
+   },
+   {
+    "span_id": "ea1087557a9a9000",
+    "parent_id": "dc8d5940d77b92bb",
+    "name": "score_signals",
+    "kind": "CHAIN",
+    "start_ms": 15.02,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.evidence_count": 12,
+     "dealscope.coverage_pct": 87.5,
+     "dealscope.risk_score": 54.5,
+     "dealscope.evidence_confidence": 91.7,
+     "dealscope.score_version": "signals-v1.0"
+    },
+    "events": []
+   },
+   {
+    "span_id": "15ddaf188e559b36",
+    "parent_id": "dc8d5940d77b92bb",
+    "name": "synthesize_findings",
+    "kind": "CHAIN",
+    "start_ms": 15.02,
+    "duration_ms": 43734.79,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.variant": "improved"
+    },
+    "events": []
+   },
+   {
+    "span_id": "22017c018992cc7f",
+    "parent_id": "15ddaf188e559b36",
+    "name": "Gemini call (gemini-3.8-flash)",
+    "kind": "LLM",
+    "start_ms": 15.02,
+    "duration_ms": 365.06,
+    "status": "error",
+    "error": "429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. ",
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.model_name": "gemini-3.8-flash",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192
+    },
+    "events": [
+     {
+      "name": "exception",
+      "at_ms": 380.08,
+      "attributes": {
+       "exception.type": "google.genai.errors.ClientError",
+       "exception.message": "429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
+       "exception.escaped": "False"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "ea15f889d7366772",
+    "parent_id": "15ddaf188e559b36",
+    "name": "Gemini call (gemini-3.6-flash)",
+    "kind": "LLM",
+    "start_ms": 383.57,
+    "duration_ms": 12629.26,
+    "status": "error",
+    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.model_name": "gemini-3.6-flash",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192
+    },
+    "events": [
+     {
+      "name": "exception",
+      "at_ms": 13012.83,
+      "attributes": {
+       "exception.type": "google.genai.errors.ServerError",
+       "exception.message": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand ",
+       "exception.escaped": "False"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "d5ba3cb3604e2d1b",
+    "parent_id": "15ddaf188e559b36",
+    "name": "Gemini call (gemini-3.6-flash)",
+    "kind": "LLM",
+    "start_ms": 15015.51,
+    "duration_ms": 4662.17,
+    "status": "error",
+    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.model_name": "gemini-3.6-flash",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192
+    },
+    "events": [
+     {
+      "name": "exception",
+      "at_ms": 19677.67,
+      "attributes": {
+       "exception.type": "google.genai.errors.ServerError",
+       "exception.message": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand ",
+       "exception.escaped": "False"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "5a69444927449391",
+    "parent_id": "15ddaf188e559b36",
+    "name": "Gemini call (gemini-3.1-flash-lite)",
+    "kind": "LLM",
+    "start_ms": 19677.67,
+    "duration_ms": 24072.14,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192,
+     "neatlogs.llm.choices.0.finish_reason": "STOP",
+     "neatlogs.llm.finish_reason": "STOP",
+     "neatlogs.llm.model_name": "gemini-3.1-flash-lite",
+     "neatlogs.llm.response_id": "MuTMaq_5KtGyjuMPvcPv0A8",
+     "neatlogs.llm.usage": "{\"prompt_tokens\":4615,\"completion_tokens\":892,\"total_tokens\":5507,\"prompt_tokens_details\":{\"cached_tokens\":null},\"completion_tokens_details\":{\"reasoning_tokens\":null}}",
+     "neatlogs.llm.token_count.total": 5507,
+     "neatlogs.llm.metrics.duration_ms": 24072.901
+    },
+    "events": []
+   },
+   {
+    "span_id": "369cc4bae40cd98d",
+    "parent_id": "dc8d5940d77b92bb",
+    "name": "verify_claims",
+    "kind": "GUARDRAIL",
+    "start_ms": 43749.81,
+    "duration_ms": 5.32,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.verify.total": 15,
+     "dealscope.verify.verified": 14,
+     "dealscope.verify.qualified": 1,
+     "dealscope.verify.rejected": 0,
+     "dealscope.verify.material_total": 10,
+     "dealscope.verify.grounded_claim_rate": 1.0,
+     "dealscope.verify.unsupported_material_claims": 0,
+     "dealscope.draft.total": 6,
+     "dealscope.draft.verified": 5,
+     "dealscope.draft.qualified": 1,
+     "dealscope.draft.rejected": 0,
+     "dealscope.draft.material_total": 3,
+     "dealscope.draft.grounded_claim_rate": 1.0,
+     "dealscope.draft.unsupported_material_claims": 0
+    },
+    "events": []
+   },
+   {
+    "span_id": "28475b795edfd1a9",
+    "parent_id": "dc8d5940d77b92bb",
+    "name": "render_memo",
+    "kind": "CHAIN",
+    "start_ms": 43755.13,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b"
+    },
+    "events": []
+   }
+  ]
+ }
+}

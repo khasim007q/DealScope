@@ -445,6 +445,19 @@ class Repository:
             for r in rows
         ]
 
+    # -- recorded traces -------------------------------------------------
+
+    def save_trace(self, trace_id: str, case_id: str, started_at: str, trace_json: str) -> None:
+        with self.transaction() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO traces (trace_id, case_id, started_at, trace_json) VALUES (?,?,?,?)",
+                (trace_id, case_id, started_at, trace_json),
+            )
+
+    def list_traces(self, case_id: str) -> list[dict[str, Any]]:
+        rows = self._all("SELECT trace_json FROM traces WHERE case_id=? ORDER BY started_at", (case_id,))
+        return [json.loads(r["trace_json"]) for r in rows]
+
     # -- credit ledger primitives (used by CreditGovernor) -----------------
 
     def ledger_insert(

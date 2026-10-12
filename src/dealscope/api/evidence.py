@@ -147,11 +147,25 @@ def _neatlogs() -> dict[str, Any]:
                 "summary": "Same investigation, two drafting prompts (loose baseline vs strict improved + verifier).",
             }
         )
+    traces = []
+    for f in sorted((NEATLOGS / "traces").glob("*.json")):
+        d = _load(f)
+        if d and d.get("trace", {}).get("spans"):
+            traces.append(
+                {
+                    "label": d.get("label", f.stem),
+                    "description": d.get("description", ""),
+                    "trace": d["trace"],
+                    "_order": d.get("order", 99),
+                }
+            )
+    traces.sort(key=lambda t: t.pop("_order"))
     shots = sorted((NEATLOGS / "screenshots").glob("*.png"))
     order = list(SCREENSHOT_CAPTIONS)
     shots.sort(key=lambda p: next((i for i, k in enumerate(order) if k in p.name), len(order)))
     return {
         "runs": runs,
+        "traces": traces,
         "eval_rows": eval_rows,
         "eval_reading": (
             "Neither prompt produced unsupported claims on these fixtures (0 rejected in all four drafts), because the "
@@ -164,6 +178,57 @@ def _neatlogs() -> dict[str, Any]:
             for p in shots
         ],
     }
+
+
+def _entire_flow() -> list[dict[str, Any]]:
+    """Commit checkpoints with their file changes, read from git (Entire-Checkpoint trailers + numstat)."""
+    rec, unit = "\x1e", "\x1f"
+    fmt = "%x1e%h%x1f%cI%x1f%s%x1f%(trailers:key=Entire-Checkpoint,valueonly,separator=%x2c)"
+    try:
+        out = subprocess.run(
+            ["git", "log", f"--format={fmt}", "--numstat"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=15,
+            check=True,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    flow = []
+    for block in out.split(rec):
+        if not block.strip():
+            continue
+        head, _, rest = block.partition("\n")
+        parts = head.split(unit)
+        if len(parts) != 4 or not parts[3].strip():
+            continue
+        files = []
+        for line in rest.splitlines():
+            cols = line.split("\t")
+            if len(cols) == 3:
+                ins = int(cols[0]) if cols[0].isdigit() else 0
+                dels = int(cols[1]) if cols[1].isdigit() else 0
+                files.append({"path": cols[2], "insertions": ins, "deletions": dels})
+        files.sort(key=lambda f: f["insertions"] + f["deletions"], reverse=True)
+        flow.append(
+            {
+                "checkpoint": parts[3].strip(),
+                "commit": parts[0],
+                "date": parts[1],
+                "subject": parts[2],
+                "files_changed": len(files),
+                "insertions": sum(f["insertions"] for f in files),
+                "deletions": sum(f["deletions"] for f in files),
+                "files": files[:12],
+            }
+        )
+    return flow
+
+
+def _entire_session() -> dict[str, Any] | None:
+    return _load(EVIDENCE / "entire" / "session.json")
 
 
 def _entire() -> dict[str, Any]:
@@ -187,6 +252,8 @@ def _entire() -> dict[str, Any]:
     shots = sorted((EVIDENCE / "entire" / "screenshots").glob("*.png"))
     return {
         "checkpoints": checkpoints,
+        "flow": _entire_flow(),
+        "session": _entire_session(),
         "screenshots": [
             {
                 "label": "Entire session timeline: 10 checkpoints, 145 file changes, each commit linked to "

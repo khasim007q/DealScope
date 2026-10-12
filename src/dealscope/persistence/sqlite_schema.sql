@@ -106,3 +106,12 @@ CREATE TABLE IF NOT EXISTS events (
     created_at   TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_events_case ON events(case_id, id);
+
+-- Local copy of each run's trace (same spans exported to neatlogs), for the UI waterfall.
+CREATE TABLE IF NOT EXISTS traces (
+    trace_id    TEXT PRIMARY KEY,
+    case_id     TEXT NOT NULL,
+    started_at  TEXT NOT NULL,
+    trace_json  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_traces_case ON traces(case_id, started_at);

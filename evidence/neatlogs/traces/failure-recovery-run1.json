@@ -1,0 +1,842 @@
+{
+ "label": "Failure drill, run 1: outage and AI fallback",
+ "description": "Injected HTTP 503 x3 on the target lookup: bounded retries, then the case ends partial. Gemini 3.8 and 3.6 fail (503/429) and the fallback chain reaches Flash-Lite.",
+ "order": 1,
+ "case_id": "case-99f3c9bd9f4b",
+ "trace": {
+  "trace_id": "b2abc80854c6e046976e4314f90c63e3",
+  "started_at": "2026-10-12T13:41:53.014996+00:00",
+  "duration_ms": 119232.23,
+  "span_count": 29,
+  "error_count": 6,
+  "spans": [
+   {
+    "span_id": "ef74cc37b4df5a22",
+    "parent_id": null,
+    "name": "investigation_workflow",
+    "kind": "WORKFLOW",
+    "start_ms": 0.0,
+    "duration_ms": 119232.23,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.mode": "synthetic",
+     "dealscope.run_label": "improved",
+     "dealscope.target": "northstar-platform.example",
+     "dealscope.resume": false,
+     "input.value": "synthetic case case-99f3c9bd9f4b: target northstar-platform.example; peers apex-cloud.example, cedar-stack.example, orbit-data.example; resume=False",
+     "dealscope.finish_reason": "no_candidates_with_1_failed_actions",
+     "output.value": "partial (no_candidates_with_1_failed_actions); risk insufficient evidence; coverage 58%; tool calls 7; verified claims 10",
+     "dealscope.final_stage": "partial",
+     "dealscope.tool_calls": 7,
+     "dealscope.iterations": 4
+    },
+    "events": [
+     {
+      "name": "state_transition",
+      "at_ms": 0.0,
+      "attributes": {
+       "from": "created",
+       "to": "baseline"
+      }
+     },
+     {
+      "name": "state_transition",
+      "at_ms": 797.64,
+      "attributes": {
+       "from": "baseline",
+       "to": "investigating"
+      }
+     },
+     {
+      "name": "state_transition",
+      "at_ms": 111142.28,
+      "attributes": {
+       "from": "investigating",
+       "to": "verifying"
+      }
+     },
+     {
+      "name": "state_transition",
+      "at_ms": 119232.23,
+      "attributes": {
+       "from": "verifying",
+       "to": "reporting"
+      }
+     },
+     {
+      "name": "state_transition",
+      "at_ms": 119232.23,
+      "attributes": {
+       "from": "reporting",
+       "to": "partial"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "30c9df71cc57cdf3",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "tool.enrich_company",
+    "kind": "TOOL",
+    "start_ms": 0.0,
+    "duration_ms": 792.56,
+    "status": "error",
+    "error": "gave up after 3 attempt(s): HTTP 503: injected_fault: injected fault 503",
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.tool": "enrich_company",
+     "dealscope.mode": "synthetic",
+     "dealscope.operation": "company_enrich",
+     "dealscope.quantity": 1,
+     "dealscope.credit_estimate": 2.0,
+     "dealscope.error_code": "RETRY_EXHAUSTED"
+    },
+    "events": [
+     {
+      "name": "retry",
+      "at_ms": 0.0,
+      "attributes": {
+       "attempt": 1,
+       "reason": "http_503",
+       "delay_s": 0.48,
+       "tool": "enrich_company"
+      }
+     },
+     {
+      "name": "retry",
+      "at_ms": 483.69,
+      "attributes": {
+       "attempt": 2,
+       "reason": "http_503",
+       "delay_s": 0.31,
+       "tool": "enrich_company"
+      }
+     },
+     {
+      "name": "exception",
+      "at_ms": 792.56,
+      "attributes": {
+       "exception.type": "dealscope.providers.base.RetryExhaustedError",
+       "exception.message": "gave up after 3 attempt(s): HTTP 503: injected_fault: injected fault 503",
+       "exception.escaped": "False"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "16e0a7fc8085bebf",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "tool.enrich_company",
+    "kind": "TOOL",
+    "start_ms": 797.64,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.tool": "enrich_company",
+     "dealscope.mode": "synthetic",
+     "dealscope.operation": "company_enrich",
+     "dealscope.quantity": 1,
+     "dealscope.credit_estimate": 2.0,
+     "dealscope.result_count": 1,
+     "dealscope.attempts": 1,
+     "dealscope.new_evidence": 1
+    },
+    "events": []
+   },
+   {
+    "span_id": "fc264670435f72a8",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "tool.enrich_company",
+    "kind": "TOOL",
+    "start_ms": 797.64,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.tool": "enrich_company",
+     "dealscope.mode": "synthetic",
+     "dealscope.operation": "company_enrich",
+     "dealscope.quantity": 1,
+     "dealscope.credit_estimate": 2.0,
+     "dealscope.result_count": 1,
+     "dealscope.attempts": 1,
+     "dealscope.new_evidence": 1
+    },
+    "events": []
+   },
+   {
+    "span_id": "a85bfd4f5c4a518b",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "tool.enrich_company",
+    "kind": "TOOL",
+    "start_ms": 797.64,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.tool": "enrich_company",
+     "dealscope.mode": "synthetic",
+     "dealscope.operation": "company_enrich",
+     "dealscope.quantity": 1,
+     "dealscope.credit_estimate": 2.0,
+     "dealscope.result_count": 1,
+     "dealscope.attempts": 1,
+     "dealscope.new_evidence": 1
+    },
+    "events": []
+   },
+   {
+    "span_id": "bfb9959d7aac0dbf",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "score_signals",
+    "kind": "CHAIN",
+    "start_ms": 797.64,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.evidence_count": 3,
+     "dealscope.coverage_pct": 0.0,
+     "dealscope.risk_score": -1,
+     "dealscope.evidence_confidence": 0.0,
+     "dealscope.score_version": "signals-v1.0"
+    },
+    "events": [
+     {
+      "name": "score_change",
+      "at_ms": 797.64,
+      "attributes": {
+       "signal": "S1",
+       "from": "none",
+       "to": "not_scored:None"
+      }
+     },
+     {
+      "name": "score_change",
+      "at_ms": 797.64,
+      "attributes": {
+       "signal": "S2",
+       "from": "none",
+       "to": "not_scored:None"
+      }
+     },
+     {
+      "name": "score_change",
+      "at_ms": 797.64,
+      "attributes": {
+       "signal": "S3",
+       "from": "none",
+       "to": "not_scored:None"
+      }
+     },
+     {
+      "name": "score_change",
+      "at_ms": 797.64,
+      "attributes": {
+       "signal": "S4",
+       "from": "none",
+       "to": "not_scored:None"
+      }
+     },
+     {
+      "name": "score_change",
+      "at_ms": 797.64,
+      "attributes": {
+       "signal": "S5",
+       "from": "none",
+       "to": "not_scored:None"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "4d650972e3917b4c",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "plan_next_action",
+    "kind": "AGENT",
+    "start_ms": 797.64,
+    "duration_ms": 74953.8,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.iteration": 1,
+     "dealscope.candidates": 2,
+     "dealscope.action": "search_jobs",
+     "dealscope.decided_by": "llm",
+     "dealscope.llm_attempts": 1,
+     "dealscope.why": "Since the initial company enrichment failed, I need to use alternative methods to assess the target's technical health. Searching for job postings is a direct way to evaluate hiring pressure (S4) and identify potential capability gaps (S3) related to the deal thesis (platform, security, reliability)"
+    },
+    "events": []
+   },
+   {
+    "span_id": "6b246f243562fa19",
+    "parent_id": "4d650972e3917b4c",
+    "name": "Gemini call (gemini-3.8-flash)",
+    "kind": "LLM",
+    "start_ms": 816.77,
+    "duration_ms": 963.72,
+    "status": "error",
+    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.model_name": "gemini-3.8-flash",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192
+    },
+    "events": [
+     {
+      "name": "exception",
+      "at_ms": 1780.49,
+      "attributes": {
+       "exception.type": "google.genai.errors.ServerError",
+       "exception.message": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand ",
+       "exception.escaped": "False"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "edc3831f82c08fde",
+    "parent_id": "4d650972e3917b4c",
+    "name": "Gemini call (gemini-3.8-flash)",
+    "kind": "LLM",
+    "start_ms": 3783.13,
+    "duration_ms": 322.62,
+    "status": "error",
+    "error": "429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. ",
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.model_name": "gemini-3.8-flash",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192
+    },
+    "events": [
+     {
+      "name": "exception",
+      "at_ms": 4105.75,
+      "attributes": {
+       "exception.type": "google.genai.errors.ClientError",
+       "exception.message": "429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
+       "exception.escaped": "False"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "83fef16f79932d25",
+    "parent_id": "4d650972e3917b4c",
+    "name": "Gemini call (gemini-3.6-flash)",
+    "kind": "LLM",
+    "start_ms": 4111.16,
+    "duration_ms": 19495.28,
+    "status": "error",
+    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.model_name": "gemini-3.6-flash",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192
+    },
+    "events": [
+     {
+      "name": "exception",
+      "at_ms": 23606.44,
+      "attributes": {
+       "exception.type": "google.genai.errors.ServerError",
+       "exception.message": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand ",
+       "exception.escaped": "False"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "043b8b24f7f98d17",
+    "parent_id": "4d650972e3917b4c",
+    "name": "Gemini call (gemini-3.6-flash)",
+    "kind": "LLM",
+    "start_ms": 25607.78,
+    "duration_ms": 2208.82,
+    "status": "error",
+    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.model_name": "gemini-3.6-flash",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192
+    },
+    "events": [
+     {
+      "name": "exception",
+      "at_ms": 27816.59,
+      "attributes": {
+       "exception.type": "google.genai.errors.ServerError",
+       "exception.message": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand ",
+       "exception.escaped": "False"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "e4e85ecd8b165924",
+    "parent_id": "4d650972e3917b4c",
+    "name": "Gemini call (gemini-3.1-flash-lite)",
+    "kind": "LLM",
+    "start_ms": 27816.59,
+    "duration_ms": 4926.42,
+    "status": "error",
+    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.model_name": "gemini-3.1-flash-lite",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192
+    },
+    "events": [
+     {
+      "name": "exception",
+      "at_ms": 32743.01,
+      "attributes": {
+       "exception.type": "google.genai.errors.ServerError",
+       "exception.message": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand ",
+       "exception.escaped": "False"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "32aa524dcda79eba",
+    "parent_id": "4d650972e3917b4c",
+    "name": "Gemini call (gemini-3.1-flash-lite)",
+    "kind": "LLM",
+    "start_ms": 34750.05,
+    "duration_ms": 41001.39,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192,
+     "neatlogs.llm.choices.0.finish_reason": "STOP",
+     "neatlogs.llm.finish_reason": "STOP",
+     "neatlogs.llm.model_name": "gemini-3.1-flash-lite",
+     "neatlogs.llm.response_id": "yePMatC3JOf4juMPvoS_OQ",
+     "neatlogs.llm.usage": "{\"prompt_tokens\":1522,\"completion_tokens\":149,\"total_tokens\":1671,\"prompt_tokens_details\":{\"cached_tokens\":null},\"completion_tokens_details\":{\"reasoning_tokens\":null}}",
+     "neatlogs.llm.token_count.total": 1671,
+     "neatlogs.llm.metrics.duration_ms": 41001.742
+    },
+    "events": []
+   },
+   {
+    "span_id": "16cf583a976cad80",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "tool.search_jobs",
+    "kind": "TOOL",
+    "start_ms": 75751.44,
+    "duration_ms": 6.62,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.tool": "search_jobs",
+     "dealscope.mode": "synthetic",
+     "dealscope.operation": "job_search",
+     "dealscope.quantity": 25,
+     "dealscope.credit_estimate": 0.75,
+     "dealscope.result_count": 5,
+     "dealscope.attempts": 1,
+     "dealscope.new_evidence": 5
+    },
+    "events": []
+   },
+   {
+    "span_id": "9960abbb3e542755",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "score_signals",
+    "kind": "CHAIN",
+    "start_ms": 75758.07,
+    "duration_ms": 2.3,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.evidence_count": 8,
+     "dealscope.coverage_pct": 27.5,
+     "dealscope.risk_score": -1,
+     "dealscope.evidence_confidence": 20.6,
+     "dealscope.score_version": "signals-v1.0"
+    },
+    "events": [
+     {
+      "name": "score_change",
+      "at_ms": 75760.37,
+      "attributes": {
+       "signal": "S3",
+       "from": "not_scored:None",
+       "to": "low_coverage:30.0"
+      }
+     },
+     {
+      "name": "score_change",
+      "at_ms": 75760.37,
+      "attributes": {
+       "signal": "S4",
+       "from": "not_scored:None",
+       "to": "scorable:50.0"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "381559a9921f7a9e",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "plan_next_action",
+    "kind": "AGENT",
+    "start_ms": 75762.53,
+    "duration_ms": 26739.14,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.iteration": 2,
+     "dealscope.candidates": 1,
+     "dealscope.action": "search_people",
+     "dealscope.decided_by": "llm",
+     "dealscope.llm_attempts": 1,
+     "dealscope.why": "The current signals for critical-role continuity (S2) and competitor talent movement (S5) are unscored due to a lack of person data. Identifying past technical leadership is essential to assess if the company is losing key talent to competitors, which directly impacts the deal thesis regarding relia"
+    },
+    "events": []
+   },
+   {
+    "span_id": "3f8abec06a7704b9",
+    "parent_id": "381559a9921f7a9e",
+    "name": "Gemini call (gemini-3.1-flash-lite)",
+    "kind": "LLM",
+    "start_ms": 75762.53,
+    "duration_ms": 26739.14,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192,
+     "neatlogs.llm.choices.0.finish_reason": "STOP",
+     "neatlogs.llm.finish_reason": "STOP",
+     "neatlogs.llm.model_name": "gemini-3.1-flash-lite",
+     "neatlogs.llm.response_id": "8uPMarKRFujQjuMPv4KouA4",
+     "neatlogs.llm.usage": "{\"prompt_tokens\":1515,\"completion_tokens\":173,\"total_tokens\":1688,\"prompt_tokens_details\":{\"cached_tokens\":null},\"completion_tokens_details\":{\"reasoning_tokens\":null}}",
+     "neatlogs.llm.token_count.total": 1688,
+     "neatlogs.llm.metrics.duration_ms": 26739.586
+    },
+    "events": []
+   },
+   {
+    "span_id": "6f7a560478a20412",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "tool.search_people",
+    "kind": "TOOL",
+    "start_ms": 102501.67,
+    "duration_ms": 4.89,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.tool": "search_people",
+     "dealscope.mode": "synthetic",
+     "dealscope.operation": "person_search",
+     "dealscope.quantity": 25,
+     "dealscope.credit_estimate": 5.75,
+     "dealscope.result_count": 2,
+     "dealscope.attempts": 1,
+     "dealscope.new_evidence": 2
+    },
+    "events": []
+   },
+   {
+    "span_id": "8c356edc336e5a45",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "score_signals",
+    "kind": "CHAIN",
+    "start_ms": 102506.56,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.evidence_count": 10,
+     "dealscope.coverage_pct": 45.0,
+     "dealscope.risk_score": -1,
+     "dealscope.evidence_confidence": 47.2,
+     "dealscope.score_version": "signals-v1.0"
+    },
+    "events": [
+     {
+      "name": "score_change",
+      "at_ms": 102506.56,
+      "attributes": {
+       "signal": "S2",
+       "from": "not_scored:None",
+       "to": "low_coverage:25.0"
+      }
+     },
+     {
+      "name": "score_change",
+      "at_ms": 102506.56,
+      "attributes": {
+       "signal": "S5",
+       "from": "not_scored:None",
+       "to": "low_coverage:30.0"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "ed4bcde835f13b73",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "plan_next_action",
+    "kind": "AGENT",
+    "start_ms": 102506.56,
+    "duration_ms": 8625.81,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.iteration": 3,
+     "dealscope.candidates": 1,
+     "dealscope.action": "search_people",
+     "dealscope.decided_by": "llm",
+     "dealscope.llm_attempts": 1,
+     "dealscope.why": "The current coverage of critical capabilities (S3) is low (30%) and confidence is poor (48%). By identifying current technical leadership, I can map them to the thesis-critical capabilities (platform, security, data/ML, reliability) to determine if the organization has the necessary bench strength t"
+    },
+    "events": []
+   },
+   {
+    "span_id": "11646e904e9cf9a9",
+    "parent_id": "ed4bcde835f13b73",
+    "name": "Gemini call (gemini-3.1-flash-lite)",
+    "kind": "LLM",
+    "start_ms": 102511.58,
+    "duration_ms": 8620.8,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192,
+     "neatlogs.llm.choices.0.finish_reason": "STOP",
+     "neatlogs.llm.finish_reason": "STOP",
+     "neatlogs.llm.model_name": "gemini-3.1-flash-lite",
+     "neatlogs.llm.response_id": "DeTMavLeBY26juMPvqaO0A8",
+     "neatlogs.llm.usage": "{\"prompt_tokens\":1644,\"completion_tokens\":173,\"total_tokens\":1817,\"prompt_tokens_details\":{\"cached_tokens\":null},\"completion_tokens_details\":{\"reasoning_tokens\":null}}",
+     "neatlogs.llm.token_count.total": 1817,
+     "neatlogs.llm.metrics.duration_ms": 8623.979
+    },
+    "events": []
+   },
+   {
+    "span_id": "ba3b0baf65cb476f",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "tool.search_people",
+    "kind": "TOOL",
+    "start_ms": 111137.28,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.tool": "search_people",
+     "dealscope.mode": "synthetic",
+     "dealscope.operation": "person_search",
+     "dealscope.quantity": 25,
+     "dealscope.credit_estimate": 5.75,
+     "dealscope.result_count": 1,
+     "dealscope.attempts": 1,
+     "dealscope.new_evidence": 1
+    },
+    "events": []
+   },
+   {
+    "span_id": "f20cf1fdaaefc9c9",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "score_signals",
+    "kind": "CHAIN",
+    "start_ms": 111137.28,
+    "duration_ms": 5.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.evidence_count": 11,
+     "dealscope.coverage_pct": 57.5,
+     "dealscope.risk_score": -1,
+     "dealscope.evidence_confidence": 57.0,
+     "dealscope.score_version": "signals-v1.0"
+    },
+    "events": [
+     {
+      "name": "score_change",
+      "at_ms": 111137.28,
+      "attributes": {
+       "signal": "S2",
+       "from": "low_coverage:25.0",
+       "to": "scorable:25.0"
+      }
+     },
+     {
+      "name": "score_change",
+      "at_ms": 111137.28,
+      "attributes": {
+       "signal": "S3",
+       "from": "low_coverage:30.0",
+       "to": "low_coverage:35.0"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "001e874a18ce9184",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "plan_next_action",
+    "kind": "AGENT",
+    "start_ms": 111142.28,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.iteration": 4,
+     "dealscope.candidates": 0,
+     "dealscope.action": "stop",
+     "dealscope.decided_by": "deterministic_fallback",
+     "dealscope.llm_attempts": 0,
+     "dealscope.why": "Every useful data source for this case has already been checked."
+    },
+    "events": []
+   },
+   {
+    "span_id": "bc463a0e06a4fa7f",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "score_signals",
+    "kind": "CHAIN",
+    "start_ms": 111142.28,
+    "duration_ms": 5.01,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.evidence_count": 11,
+     "dealscope.coverage_pct": 57.5,
+     "dealscope.risk_score": -1,
+     "dealscope.evidence_confidence": 57.0,
+     "dealscope.score_version": "signals-v1.0"
+    },
+    "events": []
+   },
+   {
+    "span_id": "fa96e1b1fe1ee57d",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "synthesize_findings",
+    "kind": "CHAIN",
+    "start_ms": 111147.29,
+    "duration_ms": 8080.12,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.variant": "improved"
+    },
+    "events": []
+   },
+   {
+    "span_id": "65e219aa6aaf8df6",
+    "parent_id": "fa96e1b1fe1ee57d",
+    "name": "Gemini call (gemini-3.1-flash-lite)",
+    "kind": "LLM",
+    "start_ms": 111147.29,
+    "duration_ms": 8080.12,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192,
+     "neatlogs.llm.choices.0.finish_reason": "STOP",
+     "neatlogs.llm.finish_reason": "STOP",
+     "neatlogs.llm.model_name": "gemini-3.1-flash-lite",
+     "neatlogs.llm.response_id": "FeTMasbvO-2_juMP5pCb0Aw",
+     "neatlogs.llm.usage": "{\"prompt_tokens\":4151,\"completion_tokens\":850,\"total_tokens\":5001,\"prompt_tokens_details\":{\"cached_tokens\":null},\"completion_tokens_details\":{\"reasoning_tokens\":null}}",
+     "neatlogs.llm.token_count.total": 5001,
+     "neatlogs.llm.metrics.duration_ms": 8080.176
+    },
+    "events": []
+   },
+   {
+    "span_id": "52ff4d481bab3f05",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "verify_claims",
+    "kind": "GUARDRAIL",
+    "start_ms": 119230.23,
+    "duration_ms": 2.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b",
+     "dealscope.verify.total": 10,
+     "dealscope.verify.verified": 8,
+     "dealscope.verify.qualified": 2,
+     "dealscope.verify.rejected": 0,
+     "dealscope.verify.material_total": 6,
+     "dealscope.verify.grounded_claim_rate": 1.0,
+     "dealscope.verify.unsupported_material_claims": 0,
+     "dealscope.draft.total": 6,
+     "dealscope.draft.verified": 4,
+     "dealscope.draft.qualified": 2,
+     "dealscope.draft.rejected": 0,
+     "dealscope.draft.material_total": 3,
+     "dealscope.draft.grounded_claim_rate": 1.0,
+     "dealscope.draft.unsupported_material_claims": 0
+    },
+    "events": []
+   },
+   {
+    "span_id": "1345434b8501e9c2",
+    "parent_id": "ef74cc37b4df5a22",
+    "name": "render_memo",
+    "kind": "CHAIN",
+    "start_ms": 119232.23,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-99f3c9bd9f4b"
+    },
+    "events": []
+   }
+  ]
+ }
+}

@@ -269,6 +269,9 @@ class Orchestrator:
     def _prepare_resume(self, state: CaseState) -> None:
         with tracing.span("recover_run", kind="CHAIN", case_id=state.case_id, from_stage=state.stage.value) as s:
             failed = [c for c in state.completed_actions if c.outcome.startswith("failed:")]
+            # The runtime limit is per run: a resume gets a fresh time budget (tool-call and credit caps stay
+            # cumulative). Without this, a case that hit the time limit could never recover on resume.
+            state.runtime_seconds_used = 0.0
             # Failed (non-fatal, retryable) attempts get exactly one more try after an explicit resume.
             state.completed_actions = [c for c in state.completed_actions if not c.outcome.startswith("failed:")]
             for c in failed:

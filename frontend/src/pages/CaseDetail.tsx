@@ -1,5 +1,6 @@
 import { Link, useParams } from "react-router-dom";
 import { CaseHeader } from "../components/CaseHeader";
+import { CaseTraces } from "../components/CaseTraces";
 import { CostTrust } from "../components/CostTrust";
 import { EvidenceTabs } from "../components/EvidenceTabs";
 import { FindingsSection } from "../components/FindingsSection";
@@ -68,6 +69,8 @@ export function CaseDetail() {
           )}
         </div>
       </section>
+
+      <CaseTraces caseId={v.case_id} traceIds={v.trace_ids} running={v.running} />
 
       <EvidenceTabs companies={v.companies} people={v.people} jobs={v.jobs} />
       <CostTrust

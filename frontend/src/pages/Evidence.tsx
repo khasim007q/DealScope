@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import type { EvalRow, EvidenceFile, EvidenceSummary, NeatlogsRun, Tone } from "../api/types";
+import type { EntireCommitCheckpoint, EvalRow, EvidenceFile, EvidenceSummary, EvidenceTrace, NeatlogsRun, Tone } from "../api/types";
 import { Stat } from "../components/CostTrust";
-import { CopyButton, EmptyBox, ErrorBox, Icon, Loading, Meter, SectionHead } from "../components/ui";
-import { evidenceUrl, formatCredits, formatInt } from "../lib/format";
+import { TraceWaterfall } from "../components/TraceWaterfall";
+import { CopyButton, Disclosure, EmptyBox, ErrorBox, Icon, Loading, Meter, SectionHead } from "../components/ui";
+import { evidenceUrl, formatCredits, formatDateTime, formatInt, plural } from "../lib/format";
 import { useAsync, useDocumentTitle } from "../lib/hooks";
 
 const KIND: Record<NeatlogsRun["kind"], { label: string; tone: Tone }> = {
@@ -197,6 +199,44 @@ function NoteList({ notes }: { notes: string[] }) {
   );
 }
 
+function RecordedFlows({ traces }: { traces: EvidenceTrace[] }) {
+  const [selected, setSelected] = useState(0);
+  if (traces.length === 0) {
+    return (
+      <EmptyBox>
+        No recorded agent flows are available yet. The neatlogs dashboard screenshots below show the same runs.
+      </EmptyBox>
+    );
+  }
+  const idx = Math.min(selected, traces.length - 1);
+  const current = traces[idx];
+  return (
+    <div className="card">
+      <div className="tabs" role="tablist" aria-label="Recorded agent flows">
+        {traces.map((t, i) => (
+          <button
+            key={`${t.trace.trace_id}-${i}`}
+            type="button"
+            role="tab"
+            id={`flow-tab-${i}`}
+            className="tab"
+            aria-selected={i === idx}
+            aria-controls="flow-tabpanel"
+            tabIndex={i === idx ? 0 : -1}
+            onClick={() => setSelected(i)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div id="flow-tabpanel" role="tabpanel" aria-labelledby={`flow-tab-${idx}`}>
+        {current.description ? <p className="tw-desc">{current.description}</p> : null}
+        <TraceWaterfall key={`${current.trace.trace_id}-${idx}`} trace={current.trace} />
+      </div>
+    </div>
+  );
+}
+
 function Neatlogs({ d }: { d: EvidenceSummary["neatlogs"] }) {
   return (
     <section className="section" aria-labelledby="neat-h">
@@ -205,17 +245,103 @@ function Neatlogs({ d }: { d: EvidenceSummary["neatlogs"] }) {
         title="neatlogs (run tracing)"
         subtitle="Every agent run is traced. These are the runs behind the claims in this project."
       />
+      <h3>Recorded agent flows</h3>
+      <p className="muted small">
+        Real traces of the agent, recorded locally from the same spans that are exported to neatlogs. The trace ids match
+        the neatlogs dashboard.
+      </p>
+      <RecordedFlows traces={d.traces ?? []} />
+      <h3 style={{ marginTop: 22 }}>Traced runs</h3>
       <RunsTable runs={d.runs} />
       <h3 style={{ marginTop: 22 }}>Improvement experiment</h3>
       <p className="muted small">The same scenarios run with the original and the improved drafting step.</p>
       <EvalTable rows={d.eval_rows} reading={d.eval_reading} />
-      <h3 style={{ marginTop: 22 }}>Screenshots</h3>
-      <Screenshots items={d.screenshots} />
+      <Disclosure summary="neatlogs dashboard screenshots (independent proof from neatlogs)">
+        <Screenshots items={d.screenshots} />
+      </Disclosure>
     </section>
   );
 }
 
+function DiffBar({ ins, del, max }: { ins: number; del: number; max: number }) {
+  const total = ins + del;
+  const widthPct = max > 0 ? Math.max(6, (total / max) * 100) : 0;
+  const insPct = total > 0 ? (ins / total) * 100 : 0;
+  return (
+    <span className="diff-bar" aria-hidden="true">
+      <span className="diff-bar-inner" style={{ width: `${widthPct}%` }}>
+        <span className="diff-ins" style={{ width: `${insPct}%` }} />
+        <span className="diff-del" style={{ width: `${100 - insPct}%` }} />
+      </span>
+    </span>
+  );
+}
+
+function FlowNode({ c }: { c: EntireCommitCheckpoint }) {
+  const maxChange = c.files.reduce((m, f) => Math.max(m, f.insertions + f.deletions), 0);
+  return (
+    <li>
+      <span className="flow-dot" aria-hidden="true" />
+      <div className="flow-top">
+        <time className="flow-date" dateTime={c.date}>
+          {formatDateTime(c.date)}
+        </time>
+        <span className="trace-id" title={c.commit}>
+          {c.commit.slice(0, 7)}
+        </span>
+      </div>
+      <p className="flow-subject">{c.subject}</p>
+      <div className="flow-meta">
+        <span className="muted small">Checkpoint</span>
+        <span className="trace-id">{c.checkpoint}</span>
+        <CopyButton text={c.checkpoint} label="Copy" />
+      </div>
+      <p className="flow-diff small">
+        {formatInt(c.files_changed)} {plural(c.files_changed, "file")},{" "}
+        <span className="pos">+{formatInt(c.insertions)}</span> / <span className="neg">-{formatInt(c.deletions)}</span>
+      </p>
+      {c.files.length > 0 ? (
+        <Disclosure summary={`Show ${c.files.length} largest ${plural(c.files.length, "change")}`}>
+          <ul className="flow-files">
+            {c.files.map((f) => (
+              <li key={f.path}>
+                <span className="mono flow-path">{f.path}</span>
+                <span className="flow-counts small">
+                  <span className="pos">+{formatInt(f.insertions)}</span> <span className="neg">-{formatInt(f.deletions)}</span>
+                </span>
+                <DiffBar ins={f.insertions} del={f.deletions} max={maxChange} />
+              </li>
+            ))}
+          </ul>
+        </Disclosure>
+      ) : null}
+    </li>
+  );
+}
+
+function SessionCard({ s }: { s: NonNullable<EvidenceSummary["entire"]["session"]> }) {
+  return (
+    <div className="card" style={{ marginBottom: 16 }}>
+      <div className="stat-grid">
+        <Stat k="Agent" v={s.agent} />
+        <Stat k="Checkpoints" v={formatInt(s.checkpoints_total)} />
+        <Stat k="First checkpoint" v={formatDateTime(s.first)} />
+        <Stat k="Latest checkpoint" v={formatDateTime(s.last)} />
+      </div>
+      <div className="trace-row" style={{ marginTop: 12 }}>
+        <span className="muted small">Session id</span>
+        <span className="trace-id">{s.session_id}</span>
+        <CopyButton text={s.session_id} label="Copy" />
+      </div>
+      <p className="muted small" style={{ margin: 0 }}>
+        Every commit below is linked to the Claude Code session that produced it.
+      </p>
+    </div>
+  );
+}
+
 function Entire({ d }: { d: EvidenceSummary["entire"] }) {
+  const flow = d.flow ?? [];
   return (
     <section className="section" aria-labelledby="entire-h">
       <SectionHead
@@ -223,7 +349,15 @@ function Entire({ d }: { d: EvidenceSummary["entire"] }) {
         title="Entire (coding-session checkpoints)"
         subtitle="Each commit is paired with a checkpoint of the coding session that produced it."
       />
-      {d.checkpoints.length === 0 ? (
+      {d.session ? <SessionCard s={d.session} /> : null}
+      <h3>Entire commit flow</h3>
+      {flow.length > 0 ? (
+        <ol className="flow">
+          {flow.map((c) => (
+            <FlowNode key={`${c.commit}-${c.checkpoint}`} c={c} />
+          ))}
+        </ol>
+      ) : d.checkpoints.length === 0 ? (
         <EmptyBox>No checkpoints are recorded yet.</EmptyBox>
       ) : (
         <div className="table-wrap">
@@ -255,10 +389,9 @@ function Entire({ d }: { d: EvidenceSummary["entire"] }) {
         </div>
       )}
       {d.screenshots.length > 0 ? (
-        <div style={{ marginTop: 14 }}>
-          <h3>Session timeline</h3>
+        <Disclosure summary="Entire session timeline screenshot (backup)">
           <Screenshots items={d.screenshots} />
-        </div>
+        </Disclosure>
       ) : null}
       {d.transcript_path ? (
         <div style={{ marginTop: 14 }}>

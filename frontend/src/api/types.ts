@@ -280,10 +280,13 @@ export interface EvidenceSummary {
     eval_rows: EvalRow[];
     eval_reading: string; // honest one-paragraph interpretation
     screenshots: EvidenceFile[];
+    traces?: EvidenceTrace[];
   };
   entire: {
     checkpoints: { commit: string; subject: string; checkpoint: string }[];
     screenshots: EvidenceFile[];
+    flow?: EntireCommitCheckpoint[];
+    session?: { session_id: string; agent: string; checkpoints_total: number; first: string; last: string } | null;
     transcript_path: string | null;
     notes: string[];
   };
@@ -336,3 +339,60 @@ export interface PlanComparison {
   summary: string;
   notes: string[];
 }
+
+// ---------------------------------------------------------------------------
+// v0.4: real trace flows (same spans exported to neatlogs, recorded locally) and the Entire commit flow
+// ---------------------------------------------------------------------------
+
+export interface TraceSpanEvent {
+  name: string; // e.g. "retry", "score_change", "state_transition", "exception"
+  at_ms: number; // offset from trace start
+  attributes: Record<string, string | number | boolean>;
+}
+
+export interface TraceSpan {
+  span_id: string;
+  parent_id: string | null;
+  name: string; // e.g. "investigation_workflow", "tool.enrich_company", "plan_next_action", "gemini-3.8-flash"
+  kind: string; // "WORKFLOW" | "AGENT" | "TOOL" | "CHAIN" | "GUARDRAIL" | "LLM" | other
+  start_ms: number; // offset from trace start
+  duration_ms: number;
+  status: "ok" | "error";
+  error: string | null;
+  attributes: Record<string, string | number | boolean>; // filtered: dealscope.*, model/token/cost fields; no prompt text
+  events: TraceSpanEvent[];
+}
+
+export interface RecordedTrace {
+  trace_id: string; // same id as in the neatlogs dashboard
+  started_at: string; // ISO
+  duration_ms: number;
+  span_count: number;
+  error_count: number;
+  spans: TraceSpan[];
+}
+
+// GET /api/cases/{id}/traces -> RecordedTrace[]  (one per run of the case, oldest first; empty for runs recorded
+// before local trace capture existed)
+
+export interface EvidenceTrace {
+  label: string; // "Failure recovery: first run (partial)"
+  description: string; // what to look for in this flow
+  trace: RecordedTrace;
+}
+
+export interface EntireCommitCheckpoint {
+  checkpoint: string; // Entire checkpoint id (Entire-Checkpoint trailer)
+  commit: string; // short sha
+  date: string; // ISO
+  subject: string;
+  files_changed: number;
+  insertions: number;
+  deletions: number;
+  files: { path: string; insertions: number; deletions: number }[]; // up to 12 largest changes
+}
+
+// Added fields (backend fills them; older servers may omit -> treat as empty):
+// EvidenceSummary.neatlogs.traces?: EvidenceTrace[]
+// EvidenceSummary.entire.flow?: EntireCommitCheckpoint[]   (commit checkpoints only, newest first; no prompt text)
+// EvidenceSummary.entire.session?: { session_id: string; agent: string; checkpoints_total: number; first: string; last: string } | null

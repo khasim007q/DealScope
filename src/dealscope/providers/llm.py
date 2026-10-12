@@ -56,6 +56,7 @@ class GeminiProvider:
         self.fallback_models = list(fallback_models or [])
         self.last_model: str | None = None  # model that produced the most recent successful response
         self.tokens_used = 0  # total tokens reported by the provider across successful calls
+        self.unhealthy: set[str] = set()  # models that failed with overload/timeout/quota during this run
         self.calls_made = 0
         self.sleep = time.sleep
 
@@ -71,14 +72,20 @@ class GeminiProvider:
             max_output_tokens=8192,
         )
         chain = [model, *[m for m in self.fallback_models if m != model]]
+        # Circuit breaker: skip models that already failed with overload/timeout/quota in this run, unless every
+        # model has failed (then try them all again). Avoids waiting ~60 s on the same dead model at each step.
+        healthy = [m for m in chain if m not in self.unhealthy]
         failures: list[str] = []
-        for candidate in chain:
+        for candidate in healthy or chain:
             try:
                 text = self._call_model(candidate, prompt, config)
             except LLMError as exc:
                 failures.append(f"{candidate}: {str(exc)[:120]}")
+                if any(code in str(exc) for code in _BREAKER_CODES):
+                    self.unhealthy.add(candidate)
                 log.warning("LLM model %s failed, trying next in chain: %s", candidate, str(exc)[:120])
                 continue
+            self.unhealthy.discard(candidate)
             self.last_model = candidate
             return text
         raise LLMError("all models failed: " + " | ".join(failures))
@@ -106,6 +113,7 @@ class GeminiProvider:
 
 
 TRANSIENT_RETRIES = 1
+_BREAKER_CODES = ("503", "504", "UNAVAILABLE", "DEADLINE_EXCEEDED", "429", "RESOURCE_EXHAUSTED")
 
 
 MAX_RATE_LIMIT_WAIT_S = 40.0

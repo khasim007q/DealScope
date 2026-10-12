@@ -37,7 +37,7 @@ DETERMINISTIC_PLANNER = False  # set by --deterministic-planner: LLM used only f
 
 def init(settings: Settings) -> bool:
     key = settings.neatlogs_api_key.get_secret_value() if settings.neatlogs_api_key else None
-    enabled = tracing.init_tracing(key, workflow_name="dealscope")
+    enabled = tracing.init_tracing(key, workflow_name="dealscope", record_to=settings.dealscope_db_path)
     print(f"neatlogs tracing: {'ENABLED' if enabled else 'DISABLED (no NEATLOGS_API_KEY)'}")
     return enabled
 

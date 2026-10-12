@@ -11,29 +11,53 @@ import contextlib
 import logging
 import re
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 log = logging.getLogger(__name__)
 
-_state: dict[str, Any] = {"enabled": False, "initialized": False}
+_state: dict[str, Any] = {"enabled": False, "initialized": False, "local": False, "provider": None}
 
 _SECRET_KEY = re.compile(r"(api[_-]?key|token|secret|password|authorization|email|phone)", re.I)
 _MAX_STR = 300
 
 
-def init_tracing(api_key: str | None, workflow_name: str = "dealscope", tags: list[str] | None = None) -> bool:
-    """Initialize neatlogs once. Must run before constructing wrapped LLM clients."""
+def init_tracing(
+    api_key: str | None,
+    workflow_name: str = "dealscope",
+    tags: list[str] | None = None,
+    record_to: Path | str | None = None,
+) -> bool:
+    """Initialize tracing once. Must run before constructing wrapped LLM clients.
+
+    One OpenTelemetry provider is shared: neatlogs attaches its exporters to it (when a key is set) and, when
+    `record_to` is given, a local recorder stores the same spans per case for the UI waterfall."""
     if _state["initialized"]:
         return _state["enabled"]
     _state["initialized"] = True
-    if not api_key:
-        log.info("neatlogs not configured; tracing disabled")
-        return False
-    import neatlogs
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 
-    neatlogs.init(api_key=api_key, workflow_name=workflow_name, tags=tags or ["dealscope", "neatHack"])
-    _state["enabled"] = True
-    return True
+    provider = TracerProvider()
+    _state["provider"] = provider
+    if api_key:
+        import neatlogs
+
+        neatlogs.init(
+            api_key=api_key,
+            workflow_name=workflow_name,
+            tags=tags or ["dealscope", "neatHack"],
+            tracer_provider=provider,
+        )
+        _state["enabled"] = True
+    else:
+        log.info("neatlogs not configured; neatlogs export disabled")
+    if record_to is not None:
+        from dealscope.observability.recorder import TraceRecorder
+
+        provider.add_span_processor(SimpleSpanProcessor(TraceRecorder(record_to)))
+        _state["local"] = True
+    return bool(_state["enabled"])
 
 
 def tracing_enabled() -> bool:
@@ -102,16 +126,24 @@ class _SpanHandle:
 @contextlib.contextmanager
 def span(name: str, kind: str = "CHAIN", **attrs: Any) -> Iterator[_SpanHandle | _NullSpan]:
     """Open a named span (kinds: WORKFLOW, AGENT, CHAIN, TOOL, GUARDRAIL)."""
-    if not _state["enabled"]:
-        yield _NullSpan()
-        return
-    import neatlogs
+    if _state["enabled"]:
+        import neatlogs
 
-    with neatlogs.trace(name, kind=kind) as raw:
-        handle = _SpanHandle(raw)
-        for k, v in safe_attrs(attrs).items():
-            raw.set_attribute(f"dealscope.{k}", v)
-        yield handle
+        with neatlogs.trace(name, kind=kind) as raw:
+            handle = _SpanHandle(raw)
+            for k, v in safe_attrs(attrs).items():
+                raw.set_attribute(f"dealscope.{k}", v)
+            yield handle
+        return
+    if _state.get("local") and _state.get("provider") is not None:
+        tracer = _state["provider"].get_tracer("dealscope")
+        with tracer.start_as_current_span(name, attributes={"openinference.span.kind": kind}) as raw:
+            handle = _SpanHandle(raw)
+            for k, v in safe_attrs(attrs).items():
+                raw.set_attribute(f"dealscope.{k}", v)
+            yield handle
+        return
+    yield _NullSpan()
 
 
 def wrap_llm_client(client: Any) -> Any:
@@ -135,5 +167,10 @@ def shutdown() -> None:
 
         neatlogs.flush()
         neatlogs.shutdown()
-        _state["enabled"] = False
-        _state["initialized"] = False
+    provider = _state.get("provider")
+    if provider is not None:
+        try:
+            provider.shutdown()
+        except Exception:  # pragma: no cover - best effort
+            pass
+    _state.update(enabled=False, initialized=False, local=False, provider=None)

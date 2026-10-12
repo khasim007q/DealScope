@@ -79,7 +79,9 @@ FAULTS = {
 async def lifespan(_: FastAPI):
     s = _settings()
     tracing.init_tracing(
-        s.neatlogs_api_key.get_secret_value() if s.neatlogs_api_key else None, workflow_name="dealscope"
+        s.neatlogs_api_key.get_secret_value() if s.neatlogs_api_key else None,
+        workflow_name="dealscope",
+        record_to=s.dealscope_db_path,
     )
     repo = _repo()
     try:
@@ -413,6 +415,17 @@ def get_case(case_id: str) -> dict:
             _running(case_id),
             s,
         )
+    finally:
+        repo.close()
+
+
+@app.get("/api/cases/{case_id}/traces")
+def case_traces(case_id: str) -> list[dict]:
+    repo = _repo()
+    try:
+        if repo.load_case(case_id) is None:
+            raise HTTPException(404, "Case not found")
+        return repo.list_traces(case_id)
     finally:
         repo.close()
 

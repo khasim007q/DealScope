@@ -3,6 +3,7 @@
 Expected format is intentionally simple. Extend with application-level entity/date checks.
 Exits non-zero when a material claim lacks citations or references a missing evidence ID.
 """
+
 import json
 import sys
 from pathlib import Path

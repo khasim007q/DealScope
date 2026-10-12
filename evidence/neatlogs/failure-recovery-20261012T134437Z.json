@@ -1,0 +1,159 @@
+{
+  "injected": "enrich_company: 503, 503, 503 (2 retries then RETRY_EXHAUSTED)",
+  "first_run": {
+    "case_id": "case-99f3c9bd9f4b",
+    "mode": "synthetic",
+    "run_label": "improved",
+    "stage": "partial",
+    "finish_reason": "no_candidates_with_1_failed_actions",
+    "trace_ids": [
+      "b2abc80854c6e046976e4314f90c63e3"
+    ],
+    "tool_calls": 7,
+    "planner_turns": 4,
+    "plan_sequence": [
+      "search_jobs (llm)",
+      "search_people (llm)",
+      "search_people (llm)",
+      "stop (deterministic_fallback)"
+    ],
+    "elapsed_seconds": 119.8,
+    "credits": {
+      "budget": "40",
+      "reserved": "0",
+      "estimated_used": "20.250",
+      "actual_used": "0",
+      "unknown_count": "0",
+      "unknown_estimate": "0",
+      "remaining": "19.750"
+    },
+    "scorecard": {
+      "risk_score": null,
+      "coverage_pct": 57.5,
+      "evidence_confidence": 57.0,
+      "signals": {
+        "S1": [
+          "not_scored",
+          null
+        ],
+        "S2": [
+          "scorable",
+          25.0
+        ],
+        "S3": [
+          "low_coverage",
+          35.0
+        ],
+        "S4": [
+          "scorable",
+          50.0
+        ],
+        "S5": [
+          "low_coverage",
+          30.0
+        ]
+      }
+    },
+    "verification_published": {
+      "total": 10,
+      "verified": 8,
+      "qualified": 2,
+      "rejected": 0,
+      "material_total": 6,
+      "grounded_claim_rate": 1.0,
+      "unsupported_material_claims": 0,
+      "rejection_reasons": {}
+    },
+    "verification_draft_llm": {
+      "total": 6,
+      "verified": 4,
+      "qualified": 2,
+      "rejected": 0,
+      "material_total": 3,
+      "grounded_claim_rate": 1.0,
+      "unsupported_material_claims": 0,
+      "rejection_reasons": {}
+    },
+    "llm_model": "gemini-3.1-flash-lite",
+    "narrative_available": true
+  },
+  "after_restart_resume": {
+    "case_id": "case-99f3c9bd9f4b",
+    "mode": "synthetic",
+    "run_label": "improved",
+    "stage": "complete",
+    "finish_reason": "no_candidates",
+    "trace_ids": [
+      "b2abc80854c6e046976e4314f90c63e3",
+      "6f0f05df2b14ccf8a25e0780cce78f84"
+    ],
+    "tool_calls": 8,
+    "planner_turns": 5,
+    "plan_sequence": [
+      "search_jobs (llm)",
+      "search_people (llm)",
+      "search_people (llm)",
+      "stop (deterministic_fallback)",
+      "stop (deterministic_fallback)"
+    ],
+    "elapsed_seconds": 44.31,
+    "credits": {
+      "budget": "40",
+      "reserved": "0",
+      "estimated_used": "22.250",
+      "actual_used": "0",
+      "unknown_count": "0",
+      "unknown_estimate": "0",
+      "remaining": "17.750"
+    },
+    "scorecard": {
+      "risk_score": 54.5,
+      "coverage_pct": 87.5,
+      "evidence_confidence": 91.7,
+      "signals": {
+        "S1": [
+          "scorable",
+          81.0
+        ],
+        "S2": [
+          "scorable",
+          25.0
+        ],
+        "S3": [
+          "low_coverage",
+          35.0
+        ],
+        "S4": [
+          "scorable",
+          65.0
+        ],
+        "S5": [
+          "low_coverage",
+          30.0
+        ]
+      }
+    },
+    "verification_published": {
+      "total": 15,
+      "verified": 14,
+      "qualified": 1,
+      "rejected": 0,
+      "material_total": 10,
+      "grounded_claim_rate": 1.0,
+      "unsupported_material_claims": 0,
+      "rejection_reasons": {}
+    },
+    "verification_draft_llm": {
+      "total": 6,
+      "verified": 5,
+      "qualified": 1,
+      "rejected": 0,
+      "material_total": 3,
+      "grounded_claim_rate": 1.0,
+      "unsupported_material_claims": 0,
+      "rejection_reasons": {}
+    },
+    "llm_model": "gemini-3.1-flash-lite",
+    "narrative_available": true
+  }
+}

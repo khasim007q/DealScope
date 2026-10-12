@@ -78,6 +78,16 @@ export function formatRelative(iso: string | null | undefined, now: number = Dat
   return formatDate(iso);
 }
 
+/** Milliseconds as "850 ms", "1.5 s" or "2 min 5 s". */
+export function formatDuration(ms: number | null | undefined): string {
+  if (ms === null || ms === undefined || Number.isNaN(ms)) return "n/a";
+  if (ms < 1000) return `${Math.round(ms)} ms`;
+  const s = ms / 1000;
+  if (s < 60) return `${s.toFixed(s < 10 ? 2 : 1).replace(/\.?0+$/, "")} s`;
+  const m = Math.floor(s / 60);
+  return `${m} min ${Math.round(s - m * 60)} s`;
+}
+
 export function plural(n: number, one: string, many?: string): string {
   return n === 1 ? one : (many ?? `${one}s`);
 }

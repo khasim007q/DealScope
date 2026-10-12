@@ -172,3 +172,45 @@ def scenario_input():
     return CaseInput(
         target_domain=c["target_domain"], competitor_domains=c["competitor_domains"], deal_thesis=c["deal_thesis"]
     )
+
+
+def test_local_trace_recording(tmp_path):
+    """The spans of a run are recorded per case (same spans that would go to neatlogs)."""
+    from dealscope.observability import tracing
+    from dealscope.persistence.repository import Repository
+
+    db = tmp_path / "traced.sqlite3"
+    tracing.shutdown()
+    try:
+        tracing.init_tracing(None, record_to=db)
+        repo = Repository(db)
+        orch = build_orchestrator_for(repo)
+        state = orch.create_case(scenario_input())
+        orch.run(state.case_id)
+        traces = repo.list_traces(state.case_id)
+    finally:
+        tracing.shutdown()
+    assert len(traces) == 1
+    t = traces[0]
+    names = [s["name"] for s in t["spans"]]
+    assert names[0] == "investigation_workflow" and "verify_claims" in names and "render_memo" in names
+    assert any(n.startswith("tool.") for n in names)
+    root = t["spans"][0]
+    assert root["parent_id"] is None and root["attributes"]["dealscope.case_id"] == state.case_id
+    assert all(s["parent_id"] for s in t["spans"][1:])
+    assert t["span_count"] == len(t["spans"]) and t["duration_ms"] >= 0
+
+
+def test_recorder_drops_model_io_text():
+    from dealscope.observability.recorder import _clean
+
+    attrs = {
+        "neatlogs.llm.model_name": "gemini-3.8-flash",
+        "neatlogs.llm.input_messages.1.content": "SNAPSHOT: Head of Engineering ...",
+        "neatlogs.llm.output_messages.0.content": "{...}",
+        "dealscope.tool": "search_people",
+        "input.value": "prompt text",
+    }
+    out = _clean(attrs, is_root=False)
+    assert out == {"neatlogs.llm.model_name": "gemini-3.8-flash", "dealscope.tool": "search_people"}
+    assert _clean({"input.value": "live case x"}, is_root=True) == {"input.value": "live case x"}

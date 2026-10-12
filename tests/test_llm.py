@@ -40,7 +40,7 @@ def provider(script: dict[str, list], primary: str, fallbacks: list[str]) -> tup
     p._client = type("C", (), {"models": models})()
     p.model, p.escalation_model, p.fallback_models, p.last_model = primary, None, fallbacks, None
     p.sleep = lambda s: None
-    p.tokens_used, p.calls_made = 0, 0
+    p.tokens_used, p.calls_made, p.unhealthy = 0, 0, set()
     return p, models
 
 
@@ -74,3 +74,11 @@ def test_tokens_counted_for_successful_calls_only():
     p.generate_json("sys", "prompt", Out)
     p.generate_json("sys", "prompt", Out)
     assert p.tokens_used == 2400 and p.calls_made == 2
+
+
+def test_circuit_breaker_skips_failed_model_on_later_calls():
+    p, m = provider({"a": [OVERLOADED, OVERLOADED], "b": ['{"ok": true}', '{"ok": true}']}, "a", ["b"])
+    p.unhealthy = set()
+    p.generate_json("sys", "prompt", Out)
+    p.generate_json("sys", "prompt", Out)
+    assert m.calls == ["a", "a", "b", "b"]  # second call goes straight to "b"

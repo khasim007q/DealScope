@@ -7,6 +7,7 @@ import type {
   FaultOption,
   FeaturedCase,
   IdentityResult,
+  RecordedTrace,
   Scenario,
   StatusResponse,
 } from "./types";
@@ -102,6 +103,10 @@ export const api = {
     USE_MOCKS
       ? (await loadMocks()).getCase(id)
       : request<CaseView>(`/api/cases/${encodeURIComponent(id)}`),
+  getCaseTraces: async (id: string): Promise<RecordedTrace[]> =>
+    USE_MOCKS
+      ? (await loadMocks()).getCaseTraces()
+      : request<RecordedTrace[]>(`/api/cases/${encodeURIComponent(id)}/traces`),
   cancelCase: async (id: string): Promise<CreateCaseResponse> =>
     USE_MOCKS
       ? (await loadMocks()).cancelCase(id)
