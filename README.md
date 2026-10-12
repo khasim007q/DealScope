@@ -1,5 +1,7 @@
 # DealScope
 
+[![CI](https://github.com/khasim007q/DealScope/actions/workflows/ci.yml/badge.svg)](https://github.com/khasim007q/DealScope/actions/workflows/ci.yml)
+
 Evidence-led, outside-in organizational diligence agent for PE, growth-equity and corp-dev teams (neatHack MVP).
 It surfaces externally observable organizational signals that could undermine a deal thesis, shows the evidence
 behind each one, and turns them into a sourced list of questions to validate before signing.
@@ -58,7 +60,9 @@ Live mode never falls back to fixtures. Put secrets only in `.env` (never commit
 | `api/server.py` | FastAPI: case lifecycle, background runs, free identity check, downloads, serves the UI |
 | `api/views.py` | Translates internal state (reason codes, stages, outcomes) into plain-language view models |
 | `analysis/data_quality.py` | Drops implausible provider growth values before scoring and flags them |
-| `../../frontend/` | React + TypeScript UI (Vite): new investigation, case detail, cases, how it works |
+| `../../frontend/` | React + TypeScript UI (Vite): new investigation, case detail (with Stop/Resume), cases, compare, evidence, how it works |
+| `api/evidence.py` | Judge-facing partner evidence summary (neatlogs, Entire, cfo.ai, Crustdata) from committed files |
+| `persistence/featured.py` | Local-only featured (recorded) live cases for credit-free demos (gitignored) |
 | `agent/planner.py` | Enumerates legal candidate actions; LLM picks one or deterministic policy decides |
 | `agent/orchestrator.py` | Bounded investigate / recover / stop loop; checkpoints every stage and tool result |
 | `agent/tools.py` | Allowlisted tools; schema + domain checks, idempotency, cache, credit reservation, retry |

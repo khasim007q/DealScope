@@ -116,6 +116,15 @@ Note on provenance: the first scenario-B run was invalid because of a budget-poo
 
 ---
 
+### 2.5 Operating the app (added 2026-10-12)
+
+- **AI model fallback chain**: `LLM_MODEL=gemini-3.8-flash` with `LLM_FALLBACK_MODELS=gemini-3.6-flash,gemini-3.1-flash-lite`. A daily-quota 429 or repeated 503/504 moves to the next model instead of dropping straight to the rule-based planner; the model that actually answered is recorded in the run (`src/dealscope/providers/llm.py`, tests in `tests/test_llm.py`). Live check on figma.com (`case-879ba1a331fb`, trace `f739b2ac2e4ab00c2b8bb7d47f42cb8c`, 10.46 credits): 3.8-flash answered directly, so the fallback was not exercised live; it is covered by unit tests. That case also showed honest low coverage (57.5%, no overall score) because people searches for figma.com returned no profiles.
+- **Stop**: a running case can be stopped from the UI; it ends at the next step boundary (never mid-request), writes a partial memo and can be resumed (`Orchestrator.cancel_event`, `POST /api/cases/{id}/cancel`).
+- **Evidence page**: judge-facing summary of neatlogs runs and the experiment, Entire commit-checkpoint pairs read from git, cfo.ai scenarios and Crustdata credit governance (`GET /api/evidence-summary`, `src/dealscope/api/evidence.py`).
+- **Compare**: two cases side by side, signal by signal (`/compare?a=..&b=..`).
+- **Featured live example**: a recorded live case imported at server start for instant, credit-free demos. Because it contains real professional records, `fixtures/featured/` is gitignored and never published (spec: no real profiles in Git).
+- **CI**: GitHub Actions runs ruff, pytest and the frontend typecheck/build on every push (`.github/workflows/ci.yml`).
+
 ## 3. Key design decisions and tradeoffs
 
 | Decision | Why | Cost / tradeoff |

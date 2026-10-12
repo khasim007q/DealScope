@@ -116,3 +116,18 @@ No secrets are recorded here. Times are IST (hackathon window 10–12 Oct 2026).
   data source ... has already been checked"); step titles use "Next step: search ..."; unknown `/api/*` paths 404.
 - Crustdata spend to date: 36.21 + 10.82 = 47.03 credits actual. Tests: 272 passed; ruff clean; frontend typecheck
   and build pass.
+
+### 2026-10-12 — improvements round (fallback chain, evidence page, featured case, stop, compare, CI)
+- Gemini model fallback chain (`LLM_FALLBACK_MODELS`), `last_model` recorded in run bundles; 4 unit tests.
+- Evidence page + `GET /api/evidence-summary` (neatlogs runs/eval, Entire commit-checkpoint pairs via git trailers,
+  cfo.ai scenarios, Crustdata governance).
+- Featured live case (`case-0e61a0b82462`) exported to `fixtures/featured/` and imported at startup; owner decided
+  it stays local (gitignored) because it contains real professional records.
+- Stop: `cancel_event` checked at step boundaries; "Stopped by you" status; UI shows "Stopping after the current
+  step..." until the run ends. Verified in the browser on a demo case.
+- Compare page for two cases. CI workflow (ruff, pytest, frontend typecheck/build).
+- Live check with the fallback chain configured: figma.com vs canva.com, miro.com, sketch.com (`case-879ba1a331fb`):
+  identity check clean; gemini-3.8-flash answered directly (fallback not exercised live); 6 data requests,
+  10.46 credits actual; coverage 57.5% so no overall score (people search returned no profiles); 12 published claims,
+  0 rejected; trace `f739b2ac2e4ab00c2b8bb7d47f42cb8c`.
+- Crustdata spend to date: 47.03 + 10.46 = 57.49 credits actual (balance ~142.5).
