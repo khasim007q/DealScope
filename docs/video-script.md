@@ -91,7 +91,7 @@ diligence questions, not guesses."
 | Gemini Execution Failed spans, run still completes | `evidence/neatlogs/screenshots/Screenshot 2026-10-11 213609.png`, `213651.png` |
 | Resume bug: no lookup span after recover_run | `Screenshot 2026-10-11 213854.png` (bug) vs `213802.png` (fixed); traces `5366ba56...`/`f748214a...` vs `9e30eca6...`/`3665d832...` |
 | 400 INVALID_ARGUMENT from Gemini schema (`maxItems`) | IMPLEMENTATION_LOG 19:40 entry |
-| Lost trace during ingest outage | trace `af87b76d...`, `evidence/neatlogs/successful-run.md` |
+| Lost trace during ingest outage | trace `af87b76d...`, `evidence/neatlogs/live-run-20261011T143949Z.json` |
 | AI write-up cost $0.0015 - $0.02 | screenshots 213426 and 213710 |
 | 10 checkpoints, 145 file changes | `evidence/entire/screenshots/entire-session-timeline.png` |
 | $94.65 per audit, three scenarios, runway blank | `evidence/cfo-ai/DealScope-investor-summary.pdf` |

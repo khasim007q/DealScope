@@ -27,8 +27,9 @@ PERSON_ENRICH_CACHED = "person_enrich_cached"
 JOB_SEARCH = "job_search"
 
 # PRICES MUST BE RE-VERIFIED against Crustdata's current pricing table / account console before live use.
-# Credits per unit (profile or returned result), from docs/10-crustdata-api-reference.md (verified 2026-10-11
-# against docs.crustdata.com/general/pricing.md). Override via ``CreditGovernor(price_overrides=...)``.
+# Credits per unit (profile or returned result), from Crustdata's published pricing
+# (docs.crustdata.com/general/pricing.md, verified 2026-10-11 and against the account's /account/endpoints).
+# Override via ``CreditGovernor(price_overrides=...)``.
 # ``job_search`` is intentionally absent: its price comes from Settings and is unknown (fail closed) until set.
 PRICES: dict[str, Decimal] = {
     COMPANY_ENRICH: Decimal("2"),  # per profile

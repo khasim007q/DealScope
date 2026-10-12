@@ -1,4 +1,4 @@
-"""Deterministic signal scoring S1-S5 and the composite scorecard (docs/04-signal-catalog.md, normative).
+"""Deterministic signal scoring S1-S5 and the composite scorecard (thresholds below are the versioned, normative rules).
 
 No LLM, no I/O, no wall-clock reads when ``as_of`` can be derived from the evidence. A score is *risk signal
 strength* for prioritising diligence questions, never a probability of deal failure. Every numeric cutoff lives

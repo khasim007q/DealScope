@@ -32,7 +32,7 @@ SCREENSHOT_CAPTIONS = {
     "213929": "neatlogs delivery probe after the ingest outage",
 }
 
-# Targets and caveats for committed live-run files (see evidence/neatlogs/successful-run.md).
+# Targets and caveats for the committed live-run files in evidence/neatlogs/.
 LIVE_RUN_NOTES = {
     "case-8ddc70b2b4de": (
         "retool.com vs appsmith.com, tooljet.com, budibase.com",

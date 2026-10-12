@@ -1,6 +1,6 @@
 """Bounded retry for HTTP calls.
 
-Policy (docs/02-lld.md section 6, docs/10 section 0):
+Policy:
 * Retry only 429/500/502/503/504 and connect failures (request provably not sent).
 * 400/401/402/403 and other 4xx raise a mapped error immediately; no retry.
 * Read timeouts / dropped connections after the request was sent raise ``UnknownOutcomeError``

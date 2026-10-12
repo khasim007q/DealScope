@@ -3,23 +3,23 @@
 This file is a checklist/index. It does not itself prove that integrations were used.
 
 ## neatlogs
-Files: `evidence/neatlogs/successful-run.md`, `evidence/neatlogs/failure-recovery.md`, `evidence/neatlogs/baseline-vs-improved.md`, `evidence/neatlogs/screenshots/`
-- Successful live trace URL/ID: `d3a8f383b6cf980bfc51fcdc436478cd` (+ memo regeneration `81dd213dbdbc546acd906ecf44f66478`) — see `evidence/neatlogs/successful-run.md`
-- Failure-recovery trace URL/ID: `9e30eca63a3634b9a6f1b8ffe29770c9` -> resume `3665d83293f0eab47ddb542835ff4622` — see `evidence/neatlogs/failure-recovery.md`
+Files: `evidence/neatlogs/live-run-20261011T143949Z.json`, `evidence/neatlogs/failure-recovery-20261011T143846Z.json`, `evidence/neatlogs/baseline-vs-improved-*.json`, `evidence/neatlogs/screenshots/`
+- Successful live trace URL/ID: `d3a8f383b6cf980bfc51fcdc436478cd` (+ memo regeneration `81dd213dbdbc546acd906ecf44f66478`) — see `evidence/neatlogs/live-run-20261011T143949Z.json`
+- Failure-recovery trace URL/ID: `9e30eca63a3634b9a6f1b8ffe29770c9` -> resume `3665d83293f0eab47ddb542835ff4622` — see `evidence/neatlogs/failure-recovery-20261011T143846Z.json`
 - Baseline run trace URL/ID: A `28fe5ba00882582eb3d298795274dff9`, B `39ee81cc2045fe5f160e428bb24943cd`
 - Improved run trace URL/ID: A `4475d391852dad1707054011b73a3d11`, B `e63bac7e90a7d4de175c300f139a82a2`
-- Metrics compared and measured values: see `evidence/neatlogs/baseline-vs-improved.md` (unsupported 0 vs 0 on both scenarios; draft claims verified outright A 2 vs 5, B 1 vs 6)
+- Metrics compared and measured values: see `evidence/neatlogs/baseline-vs-improved-*.json` (unsupported 0 vs 0 on both scenarios; draft claims verified outright A 2 vs 5, B 1 vs 6)
 - Screenshot paths: `evidence/neatlogs/screenshots/` (13 captures; mapped in `docs/walkthrough.md`)
 
 ## Entire
-Files: `evidence/entire/README.md`, `evidence/entire/screenshots/`
+Files: `evidence/entire/`, `evidence/entire/screenshots/`
 - CLI version: `Entire CLI 0.11.4`
 - Commands used (exact): install `irm https://entire.io/install.ps1 | iex`; owner ran `entire login`, `entire enable --agent claude-code`, `entire doctor`; agent ran `entire agent-help`, `entire status`
 - Checkpoint/commit/session link or screenshot: commit `75783c2` carries `Entire-Checkpoint: 01M4NW7H2CWZJSACHHWFK2QWS9`; commit `70400f8` carries `Entire-Checkpoint: 01M4NTHZJBFDKJ80R5FCA3CDZS` (linked to this Claude Code session); 5 checkpoint refs on origin (`git ls-remote origin | grep checkpoints`). Screenshot: `evidence/entire/screenshots/entire-session-timeline.png`. Note: the hook asks an interactive "Link this commit to session context?" question, which is why agent-made commits blocked.
 - entire-graph output if available: `TODO`
 
 ## cfo.ai
-Files: `evidence/cfo-ai/README.md`, `evidence/cfo-ai/assumptions.md`, `evidence/cfo-ai/plan.png` or `exported-plan.pdf` (not yet created)
+Files: `evidence/cfo-ai/`, `evidence/cfo-ai/dealscope-assumptions.md`, `evidence/cfo-ai/plan.png` or `exported-plan.pdf` (not yet created)
 - Shared model link: https://cfo.ai/s/LuzFz_Xw5PkfkLJJ (page "DealScope — Model formulas", horizon Oct-26 -> Sep-27)
 - Date plan generated: 2026-10-11 (shared by owner)
 - Export/screenshot path: `evidence/cfo-ai/` (exported-plan.pdf.xlsx, investor-summary PDF, four workbooks)
@@ -47,14 +47,14 @@ Files: `evidence/cfo-ai/README.md`, `evidence/cfo-ai/assumptions.md`, `evidence/
 - Account usage before/after smoke test: 200.0 -> 198.0 (`X-Credits-Used: 2`)
 - Endpoints actually called: /account/credits, /account/endpoints (free), /company/enrich, /person/search, /job/search
 - Actual/estimated usage and unknowns: 23.39 credits actual (2 + 9.18 + 12.21), 0 unknown-outcome calls
-- Crustdata: API docs/pricing verified on 2026-10-11 (docs/10-crustdata-api-reference.md). Documentation review only, not a live call.
+- Crustdata: API docs/pricing verified on 2026-10-11 (original design spec). Documentation review only, not a live call.
 
 ## Build in public
-Files: `evidence/build-in-public/post-draft.md`, `evidence/build-in-public/post-url.txt`
+Files: `evidence/build-in-public/quote-tweet.txt`, `evidence/build-in-public/quote-tweet.txt`
 - `#neatHack` post URL: `TODO`
 
 ## Demo / submission
-Script: `docs/demo-script.md`
+Script: the original design spec
 - Demo video (≤3 min): `TODO`
 - Public repository URL: https://github.com/khasim007q/DealScope
 - Public quote-post submission URL: `TODO`

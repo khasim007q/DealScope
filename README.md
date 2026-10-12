@@ -112,16 +112,16 @@ Figures in the UI are estimates unless marked actual.
 
 ## Partner tools
 
-- **neatlogs** (runtime observability): traces plans, tool calls, retries, scores and verifier decisions. Proof pending:
-  [`evidence/neatlogs/`](evidence/neatlogs/successful-run.md) templates are not yet filled with real trace IDs.
-- **Entire** (dev workflow): checkpoints linking Claude Code sessions to commits. Proof pending:
-  [`evidence/entire/README.md`](evidence/entire/README.md).
-- **cfo.ai** (business plan): pricing, costs, revenue, runway. Proof pending:
-  [`evidence/cfo-ai/README.md`](evidence/cfo-ai/README.md), [`assumptions.md`](evidence/cfo-ai/assumptions.md).
+All proof is browsable in the app on the **Evidence** page and in [`evidence/`](evidence/).
 
-Index of all submission evidence: [`SUBMISSION_EVIDENCE.md`](SUBMISSION_EVIDENCE.md). Demo script: [`docs/demo-script.md`](docs/demo-script.md).
+- **neatlogs** (runtime tracing): every run traces planning, tool calls, retries, scoring, the verifier and the memo.
+  Traces exposed the Gemini failures behind the rule-based fallback, confirmed the resume fix, and measured real AI
+  cost. Raw results: [`evidence/neatlogs/`](evidence/neatlogs/) (run JSON + 13 dashboard screenshots).
+- **Entire** (coding-session checkpoints): each commit made with Claude Code carries an `Entire-Checkpoint` trailer
+  linking it to the session that produced it. Session timeline and transcript: [`evidence/entire/`](evidence/entire/).
+- **cfo.ai** (business plan): pricing, unit economics ($94.65 per audit), three scenarios; runway left blank because
+  cash is unknown. Each case page compares its real cost with the plan. Exports: [`evidence/cfo-ai/`](evidence/cfo-ai/).
 
-## Specification pack
-
-Product scope, HLD/LLD, signal catalog, credit budget, partner requirements and the Crustdata API reference live in
-[`docs/`](docs/); the build brief is [`CLAUDE_CODE_MASTER_PROMPT.md`](CLAUDE_CODE_MASTER_PROMPT.md).
+Walkthrough: [`docs/walkthrough.md`](docs/walkthrough.md). Submission video script:
+[`docs/video-script.md`](docs/video-script.md). Evidence index: [`SUBMISSION_EVIDENCE.md`](SUBMISSION_EVIDENCE.md).
+Build history: [`IMPLEMENTATION_LOG.md`](IMPLEMENTATION_LOG.md).

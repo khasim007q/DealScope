@@ -9,7 +9,7 @@ No secrets are recorded here. Times are IST (hackathon window 10–12 Oct 2026).
 ### 2026-10-11 Phase A — discovery
 - Environment: Windows 11, Python 3.12 (via `py`/uv venv), git 2.53, uv 0.12. No `gh`. Entire CLI not present → installed 0.11.4 via official `irm https://entire.io/install.ps1 | iex` (user approved). `entire agent-help` says `login`/`enable` are user-run commands → owner to run `entire login` and `entire enable --agent claude-code`.
 - No `.env` / keys present at start → fixture path built and tested first; live path pending owner keys.
-- Crustdata docs researched → `docs/10-crustdata-api-reference.md`. Key corrections to the spec pack:
+- Crustdata docs researched → the original design spec. Key corrections to the spec pack:
   - Person search is **~0.23 credits/result** (0.03 base + 0.1 experience filter + 0.1 experience returned), not 0.03. Governor updated.
   - Jobs search is documented at **0.03 credits/result**, zero-result requests free. Still kept **disabled in live mode** until confirmed against our account via the free `GET /account/endpoints?path=/job/search`, then set via `CRUSTDATA_JOB_COST_PER_RESULT`.
   - Company enrich has no engineering-growth scalar; we derive engineering growth from `headcount.by_function_timeseries.CURRENT_FUNCTION.<Engineering>` (documented as derived in evidence notes).
@@ -70,7 +70,7 @@ No secrets are recorded here. Times are IST (hackathon window 10–12 Oct 2026).
   `3665d83293f0eab47ddb542835ff4622` (resumed, complete, no duplicate calls).
 - Baseline vs improved (deterministic planner, gemini-3.1-flash-lite drafting): no difference in unsupported claims
   (0 vs 0 on both fixtures); improved produced more outright-verified claims (5 vs 2) and explicit questions.
-  Recorded as-is in `evidence/neatlogs/baseline-vs-improved.md`.
+  Recorded as-is in `evidence/neatlogs/baseline-vs-improved-*.json`.
 - Crustdata spend to date: 2 (smoke) + 9.18 (Retool) + 12.21 (Airtable) = 23.39 credits actual of 200.
 - Tests: 260 passed; ruff clean.
 - Entire: enabled by owner; 4 checkpoint refs pushed on 19:14 push. `prepare-commit-msg` hook blocks indefinitely when

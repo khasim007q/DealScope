@@ -1,4 +1,4 @@
-"""Peer benchmarking helpers (docs/02-lld.md section 7).
+"""Peer benchmarking helpers (median/IQR over user-confirmed peers; fewer than 3 peers is a weak benchmark).
 
 Pure functions, no I/O. Rules implemented here:
 

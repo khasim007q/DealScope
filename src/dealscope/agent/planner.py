@@ -189,7 +189,7 @@ def candidate_actions(
 def deterministic_choice(
     state: CaseState, evidence: list[EvidenceRecord], scorecard: Scorecard | None, candidates: list[Candidate]
 ) -> PlannerAction:
-    """Rule-based policy (docs/02-lld.md §3 mandatory adaptive behaviour)."""
+    """Rule-based policy implementing the mandatory adaptive branches (evidence gaps change the next action)."""
     view = EvidenceView.build(state, evidence)
     concern = view.trajectory_concern()
     by_tool = {

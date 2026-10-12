@@ -1,6 +1,6 @@
 """Live Crustdata client (API version 2025-11-01) with normalization into DealScope payloads.
 
-Endpoint behaviour follows docs/10-crustdata-api-reference.md exactly. Raw provider JSON is hashed
+Endpoint behaviour follows the official Crustdata API docs (docs.crustdata.com). Raw provider JSON is hashed
 (``raw_hash``) and discarded; only allowlisted payload fields are kept. No contact data is ever requested.
 """
 
