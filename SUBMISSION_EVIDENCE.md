@@ -15,7 +15,7 @@ Files: `evidence/neatlogs/successful-run.md`, `evidence/neatlogs/failure-recover
 Files: `evidence/entire/README.md`, `evidence/entire/screenshots/`
 - CLI version: `Entire CLI 0.11.4`
 - Commands used (exact): install `irm https://entire.io/install.ps1 | iex`; owner ran `entire login`, `entire enable --agent claude-code`, `entire doctor`; agent ran `entire agent-help`, `entire status`
-- Checkpoint/commit/session link or screenshot: commit `75783c2` carries `Entire-Checkpoint: 01M4NW7H2CWZJSACHHWFK2QWS9`; commit `70400f8` carries `Entire-Checkpoint: 01M4NTHZJBFDKJ80R5FCA3CDZS` (linked to this Claude Code session); 5 checkpoint refs on origin (`git ls-remote origin | grep checkpoints`). Screenshot TODO. Note: the hook asks an interactive "Link this commit to session context?" question, which is why agent-made commits blocked.
+- Checkpoint/commit/session link or screenshot: commit `75783c2` carries `Entire-Checkpoint: 01M4NW7H2CWZJSACHHWFK2QWS9`; commit `70400f8` carries `Entire-Checkpoint: 01M4NTHZJBFDKJ80R5FCA3CDZS` (linked to this Claude Code session); 5 checkpoint refs on origin (`git ls-remote origin | grep checkpoints`). Screenshot: `evidence/entire/screenshots/entire-session-timeline.png`. Note: the hook asks an interactive "Link this commit to session context?" question, which is why agent-made commits blocked.
 - entire-graph output if available: `TODO`
 
 ## cfo.ai

@@ -184,8 +184,17 @@ def _entire() -> dict[str, Any]:
     except (OSError, subprocess.SubprocessError):
         pass
     transcript = next(iter(sorted((EVIDENCE / "entire").glob("transcript-*.md"))), None)
+    shots = sorted((EVIDENCE / "entire" / "screenshots").glob("*.png"))
     return {
         "checkpoints": checkpoints,
+        "screenshots": [
+            {
+                "label": "Entire session timeline: 10 checkpoints, 145 file changes, each commit linked to "
+                "the Claude Code turns that produced it",
+                "path": _rel(p),
+            }
+            for p in shots
+        ],
         "transcript_path": _rel(transcript) if transcript else None,
         "notes": [
             "Each commit made after Entire was enabled carries an Entire-Checkpoint trailer that links it to the "

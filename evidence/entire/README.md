@@ -1,6 +1,6 @@
 # Entire evidence
 
-Status: captured 2026-10-11 (commit-linked checkpoints, pushed refs, session transcript). Screenshot pending.
+Status: captured (commit-linked checkpoints, pushed refs, session transcript, session timeline screenshot).
 
 - CLI version installed: 0.11.4 (installed via `irm https://entire.io/install.ps1 | iex`).
 - Integration enabled / checkpoints created: yes (`entire status`: Enabled, agent Claude Code; see below).
@@ -26,7 +26,7 @@ Confirm flags against `entire --help` / `entire agent-help` for the installed ve
 | Session link | Claude Code session `9d2490e9-f406-446d-8f45-6979c161ecee`; transcript export `evidence/entire/transcript-khasim007q-DealScope-9d2490e9-f40.md` |
 | `entire status` output | Enabled on branch main; agents: Claude Code; checkpoints sync to origin |
 | `entire checkpoint explain` output | run `entire checkpoint explain 01M4NW7H2CWZJSACHHWFK2QWS9` (owner) |
-| Screenshot paths | pending (`evidence/entire/screenshots/`) |
+| Screenshot paths | `evidence/entire/screenshots/entire-session-timeline.png` (Entire session view: Claude Code, Opus 5.5, 10 checkpoints, 145 file changes, +16,719 / -628, 1.7M tokens; commits 70400f8, b1e6cf4, 75783c2, be4bb90, 268b3ee, 70b7e4c each linked to the session turns that produced them) |
 | entire-graph output (optional) | not produced |
 
 ## Captured 2026-10-11

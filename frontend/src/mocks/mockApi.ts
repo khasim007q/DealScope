@@ -120,6 +120,7 @@ export function evidenceSummary(): Promise<EvidenceSummary> {
         { commit: "be4bb90c1d2e3f405a6b7c8d9e0f1a2b3c4d5e6f", subject: "Replace Streamlit with a React + TypeScript frontend and plain-language API", checkpoint: "chk_7f3a91c2d4" },
         { commit: "75783c2a1b2c3d4e5f60718293a4b5c6d7e8f901", subject: "Live browser test fixes: free identity pre-check, provider data-quality guard", checkpoint: "chk_2b8e40a6f1" },
       ],
+      screenshots: [],
       transcript_path: "evidence/entire/session-transcript.md",
       notes: ["Checkpoints were captured automatically at each commit.", "The transcript is the full coding-session log."],
     },

@@ -254,6 +254,12 @@ function Entire({ d }: { d: EvidenceSummary["entire"] }) {
           </table>
         </div>
       )}
+      {d.screenshots.length > 0 ? (
+        <div style={{ marginTop: 14 }}>
+          <h3>Session timeline</h3>
+          <Screenshots items={d.screenshots} />
+        </div>
+      ) : null}
       {d.transcript_path ? (
         <div style={{ marginTop: 14 }}>
           <h3>Session transcript</h3>

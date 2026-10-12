@@ -282,6 +282,7 @@ export interface EvidenceSummary {
   };
   entire: {
     checkpoints: { commit: string; subject: string; checkpoint: string }[];
+    screenshots: EvidenceFile[];
     transcript_path: string | null;
     notes: string[];
   };
