@@ -1,0 +1,36 @@
+{
+  "tool_use_id": "toolu_01SyU2DJQd1KdJDLkHRgXbC4",
+  "agent_id": "a1d92c775319740f4",
+  "task_description": "Build React TypeScript frontend",
+  "files": [
+    "frontend/src/components/CaseHeader.tsx",
+    "frontend/src/components/CostTrust.tsx",
+    "frontend/src/components/EvidenceTabs.tsx",
+    "frontend/src/components/FindingsSection.tsx",
+    "frontend/src/components/IdentityTable.tsx",
+    "frontend/src/components/ModeCards.tsx",
+    "frontend/src/components/ProgressPanel.tsx",
+    "frontend/src/components/QuestionsSection.tsx",
+    "frontend/src/components/ScenarioPicker.tsx",
+    "frontend/src/components/SignalsSection.tsx",
+    "frontend/src/components/StepTimeline.tsx",
+    "frontend/src/components/SummaryCard.tsx",
+    "frontend/src/components/ui.tsx",
+    "frontend/src/mocks/mockApi.ts",
+    "frontend/src/mocks/sampleCase.ts",
+    "frontend/src/pages/CaseDetail.tsx",
+    "frontend/src/pages/Cases.tsx",
+    "frontend/src/pages/HowItWorks.tsx",
+    "frontend/src/pages/NewInvestigation.tsx",
+    "frontend/src/styles/global.css"
+  ],
+  "token_usage": {
+    "input_tokens": 54,
+    "cache_creation_tokens": 135815,
+    "cache_read_tokens": 2361864,
+    "output_tokens": 49896,
+    "api_call_count": 27
+  },
+  "started_at": "2026-10-12T15:49:30.6889671+05:30",
+  "completed_at": "2026-10-12T15:57:28.9023649+05:30"
+}
