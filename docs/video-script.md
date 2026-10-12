@@ -43,13 +43,16 @@ valuation advice."
 
 Incident one: AI model failures. Here, several Gemini calls show Execution Failed - free-tier quota and overload
 errors. The trace showed the run still finished on our rule-based fallback, but we were losing the AI's decisions.
-Fix: honor the provider's retry delay and add a model fallback chain - 3.8 Flash, then 3.6, then Flash-Lite.
-[show trace with red LLM spans - screenshot 213609 or 213651]
+Fix: honor the provider's retry delay and add a model fallback chain - 3.8 Flash, then 3.6, then Flash-Lite - and a
+circuit breaker so a dead model is skipped for the rest of the run. You can see it in our own Evidence page: the same
+spans we send to neatlogs are recorded per run - 3.8 fails with 503 and 429, 3.6 fails, Flash-Lite answers.
+[show neatlogs incidents view, then the Evidence page "Recorded agent flows", run 1]
 
-Incident two: a resume bug. We inject outages to test recovery. In this trace, the resumed run goes straight to
-scoring - there is no company lookup span, so the failed step was never retried and the case finished without its
-key data. [show screenshot 213854] We fixed it, and the new trace shows recover_run followed by the retried lookup,
-and no completed request repeated. [show screenshot 213802]
+Incident two: resume bugs. We inject outages to test recovery. In this trace, the resumed run goes straight to
+scoring - there is no company lookup span, so the failed step was never retried. [show screenshot 213854] Later a
+trace showed a second one: a run that hit the time limit could never recover, because resume reused the spent time
+budget. Both are fixed - the recorded run 2 shows recover_run, the retried lookup succeeding, and the case completing.
+[show Evidence page "Recorded agent flows", run 2]
 
 Incident three: a schema error. The trace showed the AI drafting step failing with 400 Invalid Argument. Gemini
 rejected one field in our output schema; we simplified the schema and drafting came back.
@@ -59,7 +62,7 @@ added a delivery probe and re-ran.
 
 Traces also gave us real cost: about a fifth of a cent to two cents per AI write-up, far below what we had assumed."
 
-## 2:10 - 2:30 | Entire  (screen: Entire session timeline)
+## 2:10 - 2:30 | Entire  (screen: Evidence page "Entire commit flow", or the Entire session view)
 
 "The whole build was done with Claude Code, Opus as the lead and Sonnet sub-agents writing modules, and Entire
 recorded it. Every commit is linked to the session that produced it - ten checkpoints, 145 file changes - so any line

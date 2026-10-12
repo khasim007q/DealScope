@@ -141,3 +141,17 @@ No secrets are recorded here. Times are IST (hackathon window 10–12 Oct 2026).
 - Demo verification: synthetic case recorded 12,251 tokens over 4 calls answered by gemini-3.1-flash-lite while the
   configured primary was gemini-3.8-flash, i.e. the fallback chain engaged on real calls. Figma live case: $1.05 data vs
   $2.60 plan.
+
+### 2026-10-12 ~20:45 IST — real flows in the app (recorded neatlogs traces, Entire commit flow)
+- neatlogs SDK has no read API, so DealScope records the same OpenTelemetry spans it exports (one shared provider;
+  neatlogs attaches its exporters, export verified with 0 failures) into a `traces` table; model prompt/response text is
+  dropped. Case pages and the Evidence page render them as a waterfall under the neatlogs trace id.
+- Entire: commit checkpoints + file stats from git trailers; session summary from `entire checkpoint list --json`
+  (18 checkpoints, one Claude Code session; no prompt text by owner decision). Screenshots kept as collapsed backup.
+- Recorded traces exposed two more incidents, both fixed: (1) a case that hit the 240 s limit could never recover on
+  resume (time budget was cumulative) -> per-run time budget; (2) Gemini 503/504 timeouts (~59 s each) repeated at
+  every step -> circuit breaker skips models that failed in the run.
+- Evidence traces: failure drill `case-99f3c9bd9f4b` (run 1 `b2abc808...`: injected 503 x3, Gemini 3.8 503/429 -> 3.6
+  503 -> Flash-Lite answers; run 2 `6f0f05df...`: resume recovers), live figma.com `case-dfb9e191fd01`
+  (`544ec1cb...`, 23 spans, fallback 3.8 -> 3.6 live, 0 credits via same-day cache).
+- Tests: 284 passed; ruff clean; frontend typecheck/build pass.

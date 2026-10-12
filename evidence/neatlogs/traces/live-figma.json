@@ -1,0 +1,616 @@
+{
+ "label": "Live run: figma.com vs canva.com, miro.com, sketch.com",
+ "description": "Real Crustdata case in live mode: free identity check, baseline enrichments, AI-chosen follow-ups, scoring, verifier and memo. Data calls were served from the same-day response cache, so this run cost 0 credits.",
+ "order": 10,
+ "case_id": "case-dfb9e191fd01",
+ "trace": {
+  "trace_id": "544ec1cb90d6b1bac9107bdad650d02c",
+  "started_at": "2026-10-12T15:12:18.861390+00:00",
+  "duration_ms": 78333.01,
+  "span_count": 23,
+  "error_count": 3,
+  "spans": [
+   {
+    "span_id": "ec92e297ccc4d7d4",
+    "parent_id": null,
+    "name": "investigation_workflow",
+    "kind": "WORKFLOW",
+    "start_ms": 0.0,
+    "duration_ms": 78333.01,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-dfb9e191fd01",
+     "dealscope.mode": "live",
+     "dealscope.run_label": "improved",
+     "dealscope.target": "figma.com",
+     "dealscope.resume": false,
+     "input.value": "live case case-dfb9e191fd01: target figma.com; peers canva.com, miro.com, sketch.com; resume=False",
+     "dealscope.finish_reason": "no_candidates",
+     "output.value": "complete (no_candidates); risk insufficient evidence; coverage 58%; tool calls 0; verified claims 6",
+     "dealscope.final_stage": "complete",
+     "dealscope.tool_calls": 0,
+     "dealscope.iterations": 3
+    },
+    "events": [
+     {
+      "name": "state_transition",
+      "at_ms": 0.0,
+      "attributes": {
+       "from": "created",
+       "to": "baseline"
+      }
+     },
+     {
+      "name": "state_transition",
+      "at_ms": 22.3,
+      "attributes": {
+       "from": "baseline",
+       "to": "investigating"
+      }
+     },
+     {
+      "name": "state_transition",
+      "at_ms": 18445.23,
+      "attributes": {
+       "from": "investigating",
+       "to": "verifying"
+      }
+     },
+     {
+      "name": "state_transition",
+      "at_ms": 78333.01,
+      "attributes": {
+       "from": "verifying",
+       "to": "reporting"
+      }
+     },
+     {
+      "name": "state_transition",
+      "at_ms": 78333.01,
+      "attributes": {
+       "from": "reporting",
+       "to": "complete"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "66f1dfedde0985fd",
+    "parent_id": "ec92e297ccc4d7d4",
+    "name": "tool.enrich_company",
+    "kind": "TOOL",
+    "start_ms": 0.0,
+    "duration_ms": 6.3,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-dfb9e191fd01",
+     "dealscope.tool": "enrich_company",
+     "dealscope.mode": "live",
+     "dealscope.operation": "company_enrich",
+     "dealscope.quantity": 1,
+     "dealscope.cache_hit": true
+    },
+    "events": []
+   },
+   {
+    "span_id": "120494aa0a9f3f71",
+    "parent_id": "ec92e297ccc4d7d4",
+    "name": "tool.enrich_company",
+    "kind": "TOOL",
+    "start_ms": 13.4,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-dfb9e191fd01",
+     "dealscope.tool": "enrich_company",
+     "dealscope.mode": "live",
+     "dealscope.operation": "company_enrich",
+     "dealscope.quantity": 1,
+     "dealscope.cache_hit": true
+    },
+    "events": []
+   },
+   {
+    "span_id": "6d044861c2a20e9c",
+    "parent_id": "ec92e297ccc4d7d4",
+    "name": "tool.enrich_company",
+    "kind": "TOOL",
+    "start_ms": 13.4,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-dfb9e191fd01",
+     "dealscope.tool": "enrich_company",
+     "dealscope.mode": "live",
+     "dealscope.operation": "company_enrich",
+     "dealscope.quantity": 1,
+     "dealscope.cache_hit": true
+    },
+    "events": []
+   },
+   {
+    "span_id": "262b076a2cb36532",
+    "parent_id": "ec92e297ccc4d7d4",
+    "name": "tool.enrich_company",
+    "kind": "TOOL",
+    "start_ms": 22.3,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-dfb9e191fd01",
+     "dealscope.tool": "enrich_company",
+     "dealscope.mode": "live",
+     "dealscope.operation": "company_enrich",
+     "dealscope.quantity": 1,
+     "dealscope.cache_hit": true
+    },
+    "events": []
+   },
+   {
+    "span_id": "2e5da561ce8c39fb",
+    "parent_id": "ec92e297ccc4d7d4",
+    "name": "score_signals",
+    "kind": "CHAIN",
+    "start_ms": 22.3,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-dfb9e191fd01",
+     "dealscope.evidence_count": 4,
+     "dealscope.coverage_pct": 30.0,
+     "dealscope.risk_score": -1,
+     "dealscope.evidence_confidence": 27.9,
+     "dealscope.score_version": "signals-v1.0"
+    },
+    "events": [
+     {
+      "name": "score_change",
+      "at_ms": 22.3,
+      "attributes": {
+       "signal": "S1",
+       "from": "none",
+       "to": "scorable:30.0"
+      }
+     },
+     {
+      "name": "score_change",
+      "at_ms": 22.3,
+      "attributes": {
+       "signal": "S2",
+       "from": "none",
+       "to": "not_scored:None"
+      }
+     },
+     {
+      "name": "score_change",
+      "at_ms": 22.3,
+      "attributes": {
+       "signal": "S3",
+       "from": "none",
+       "to": "not_scored:None"
+      }
+     },
+     {
+      "name": "score_change",
+      "at_ms": 22.3,
+      "attributes": {
+       "signal": "S4",
+       "from": "none",
+       "to": "not_scored:None"
+      }
+     },
+     {
+      "name": "score_change",
+      "at_ms": 22.3,
+      "attributes": {
+       "signal": "S5",
+       "from": "none",
+       "to": "not_scored:None"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "7ce1a1e824de4438",
+    "parent_id": "ec92e297ccc4d7d4",
+    "name": "plan_next_action",
+    "kind": "AGENT",
+    "start_ms": 22.3,
+    "duration_ms": 9075.35,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-dfb9e191fd01",
+     "dealscope.iteration": 1,
+     "dealscope.candidates": 2,
+     "dealscope.action": "search_people",
+     "dealscope.decided_by": "llm",
+     "dealscope.llm_attempts": 1,
+     "dealscope.why": "Signals S2 (Critical-role continuity risk) and S5 (Competitor talent movement) are currently unscored due to NO_PERSON_DATA. Searching for past technical leadership profiles will yield direct evidence on departures and talent drain to competitors."
+    },
+    "events": []
+   },
+   {
+    "span_id": "bc444dfdeca0a72b",
+    "parent_id": "7ce1a1e824de4438",
+    "name": "Gemini call (gemini-3.8-flash)",
+    "kind": "LLM",
+    "start_ms": 36.01,
+    "duration_ms": 9059.64,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192,
+     "neatlogs.llm.choices.0.finish_reason": "STOP",
+     "neatlogs.llm.finish_reason": "STOP",
+     "neatlogs.llm.model_name": "gemini-3.8-flash",
+     "neatlogs.llm.response_id": "2fjMaubdBsOJg8UPj5e1iQY",
+     "neatlogs.llm.usage": "{\"prompt_tokens\":1522,\"completion_tokens\":139,\"total_tokens\":2451,\"prompt_tokens_details\":{\"cached_tokens\":null},\"completion_tokens_details\":{\"reasoning_tokens\":790}}",
+     "neatlogs.llm.token_count.total": 2451,
+     "neatlogs.llm.token_count.reasoning": 790,
+     "neatlogs.llm.metrics.duration_ms": 9060.686
+    },
+    "events": []
+   },
+   {
+    "span_id": "0e6db91d833bae01",
+    "parent_id": "ec92e297ccc4d7d4",
+    "name": "tool.search_people",
+    "kind": "TOOL",
+    "start_ms": 9097.65,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-dfb9e191fd01",
+     "dealscope.tool": "search_people",
+     "dealscope.mode": "live",
+     "dealscope.operation": "person_search",
+     "dealscope.quantity": 25,
+     "dealscope.cache_hit": true
+    },
+    "events": []
+   },
+   {
+    "span_id": "43854d82afd18c3e",
+    "parent_id": "ec92e297ccc4d7d4",
+    "name": "score_signals",
+    "kind": "CHAIN",
+    "start_ms": 9101.54,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-dfb9e191fd01",
+     "dealscope.evidence_count": 4,
+     "dealscope.coverage_pct": 30.0,
+     "dealscope.risk_score": -1,
+     "dealscope.evidence_confidence": 27.9,
+     "dealscope.score_version": "signals-v1.0"
+    },
+    "events": []
+   },
+   {
+    "span_id": "d136779b252b4fa8",
+    "parent_id": "ec92e297ccc4d7d4",
+    "name": "plan_next_action",
+    "kind": "AGENT",
+    "start_ms": 9101.54,
+    "duration_ms": 9341.68,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-dfb9e191fd01",
+     "dealscope.iteration": 2,
+     "dealscope.candidates": 1,
+     "dealscope.action": "search_jobs",
+     "dealscope.decided_by": "llm",
+     "dealscope.llm_attempts": 1,
+     "dealscope.why": "Target job postings are needed to assess Critical-role hiring pressure (S4) and identify capability coverage gaps (S3) relevant to platform reliability, security, and AI feature velocity."
+    },
+    "events": []
+   },
+   {
+    "span_id": "fc0447f4865e3d6a",
+    "parent_id": "d136779b252b4fa8",
+    "name": "Gemini call (gemini-3.8-flash)",
+    "kind": "LLM",
+    "start_ms": 9101.54,
+    "duration_ms": 400.77,
+    "status": "error",
+    "error": "429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. ",
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.model_name": "gemini-3.8-flash",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192
+    },
+    "events": [
+     {
+      "name": "exception",
+      "at_ms": 9502.31,
+      "attributes": {
+       "exception.type": "google.genai.errors.ClientError",
+       "exception.message": "429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and ",
+       "exception.escaped": "False"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "74c347a5dd89f05b",
+    "parent_id": "d136779b252b4fa8",
+    "name": "Gemini call (gemini-3.6-flash)",
+    "kind": "LLM",
+    "start_ms": 9502.31,
+    "duration_ms": 8940.91,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192,
+     "neatlogs.llm.choices.0.finish_reason": "STOP",
+     "neatlogs.llm.finish_reason": "STOP",
+     "neatlogs.llm.model_name": "gemini-3.6-flash",
+     "neatlogs.llm.response_id": "4vjMasmWHu2_juMP5pCb0Aw",
+     "neatlogs.llm.usage": "{\"prompt_tokens\":1450,\"completion_tokens\":102,\"total_tokens\":2015,\"prompt_tokens_details\":{\"cached_tokens\":null},\"completion_tokens_details\":{\"reasoning_tokens\":463}}",
+     "neatlogs.llm.token_count.total": 2015,
+     "neatlogs.llm.token_count.reasoning": 463,
+     "neatlogs.llm.metrics.duration_ms": 8937.379
+    },
+    "events": []
+   },
+   {
+    "span_id": "0c059f2df930cf27",
+    "parent_id": "ec92e297ccc4d7d4",
+    "name": "tool.search_jobs",
+    "kind": "TOOL",
+    "start_ms": 18445.23,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-dfb9e191fd01",
+     "dealscope.tool": "search_jobs",
+     "dealscope.mode": "live",
+     "dealscope.operation": "job_search",
+     "dealscope.quantity": 25,
+     "dealscope.cache_hit": true
+    },
+    "events": []
+   },
+   {
+    "span_id": "865c79ece44b426b",
+    "parent_id": "ec92e297ccc4d7d4",
+    "name": "score_signals",
+    "kind": "CHAIN",
+    "start_ms": 18445.23,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-dfb9e191fd01",
+     "dealscope.evidence_count": 17,
+     "dealscope.coverage_pct": 57.5,
+     "dealscope.risk_score": -1,
+     "dealscope.evidence_confidence": 50.6,
+     "dealscope.score_version": "signals-v1.0"
+    },
+    "events": [
+     {
+      "name": "score_change",
+      "at_ms": 18445.23,
+      "attributes": {
+       "signal": "S3",
+       "from": "not_scored:None",
+       "to": "low_coverage:30.0"
+      }
+     },
+     {
+      "name": "score_change",
+      "at_ms": 18445.23,
+      "attributes": {
+       "signal": "S4",
+       "from": "not_scored:None",
+       "to": "scorable:50.0"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "21f396021ebb2679",
+    "parent_id": "ec92e297ccc4d7d4",
+    "name": "plan_next_action",
+    "kind": "AGENT",
+    "start_ms": 18445.23,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-dfb9e191fd01",
+     "dealscope.iteration": 3,
+     "dealscope.candidates": 0,
+     "dealscope.action": "stop",
+     "dealscope.decided_by": "deterministic_fallback",
+     "dealscope.llm_attempts": 0,
+     "dealscope.why": "Every useful data source for this case has already been checked."
+    },
+    "events": []
+   },
+   {
+    "span_id": "a13e6efa6f70a34f",
+    "parent_id": "ec92e297ccc4d7d4",
+    "name": "score_signals",
+    "kind": "CHAIN",
+    "start_ms": 18445.23,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-dfb9e191fd01",
+     "dealscope.evidence_count": 17,
+     "dealscope.coverage_pct": 57.5,
+     "dealscope.risk_score": -1,
+     "dealscope.evidence_confidence": 50.6,
+     "dealscope.score_version": "signals-v1.0"
+    },
+    "events": []
+   },
+   {
+    "span_id": "e36adcdfc3792815",
+    "parent_id": "ec92e297ccc4d7d4",
+    "name": "synthesize_findings",
+    "kind": "CHAIN",
+    "start_ms": 18458.86,
+    "duration_ms": 59864.11,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-dfb9e191fd01",
+     "dealscope.variant": "improved"
+    },
+    "events": []
+   },
+   {
+    "span_id": "283cb823b910a7a6",
+    "parent_id": "e36adcdfc3792815",
+    "name": "Gemini call (gemini-3.6-flash)",
+    "kind": "LLM",
+    "start_ms": 18458.86,
+    "duration_ms": 30151.24,
+    "status": "error",
+    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.model_name": "gemini-3.6-flash",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192
+    },
+    "events": [
+     {
+      "name": "exception",
+      "at_ms": 48610.1,
+      "attributes": {
+       "exception.type": "google.genai.errors.ServerError",
+       "exception.message": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand ",
+       "exception.escaped": "False"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "56ff580537eb8a16",
+    "parent_id": "e36adcdfc3792815",
+    "name": "Gemini call (gemini-3.6-flash)",
+    "kind": "LLM",
+    "start_ms": 50621.32,
+    "duration_ms": 12320.88,
+    "status": "error",
+    "error": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.model_name": "gemini-3.6-flash",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192
+    },
+    "events": [
+     {
+      "name": "exception",
+      "at_ms": 62942.2,
+      "attributes": {
+       "exception.type": "google.genai.errors.ServerError",
+       "exception.message": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand ",
+       "exception.escaped": "False"
+      }
+     }
+    ]
+   },
+   {
+    "span_id": "a1e90d6d0bb603f1",
+    "parent_id": "e36adcdfc3792815",
+    "name": "Gemini call (gemini-3.1-flash-lite)",
+    "kind": "LLM",
+    "start_ms": 62942.2,
+    "duration_ms": 15380.77,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "neatlogs.llm.provider": "google_genai",
+     "neatlogs.llm.system": "google_genai",
+     "neatlogs.llm.is_streaming": false,
+     "neatlogs.llm.temperature": 0.1,
+     "neatlogs.llm.max_tokens": 8192,
+     "neatlogs.llm.choices.0.finish_reason": "STOP",
+     "neatlogs.llm.finish_reason": "STOP",
+     "neatlogs.llm.model_name": "gemini-3.1-flash-lite",
+     "neatlogs.llm.response_id": "GPnMauC3HNGyjuMPvcPv0A8",
+     "neatlogs.llm.usage": "{\"prompt_tokens\":5707,\"completion_tokens\":1084,\"total_tokens\":6791,\"prompt_tokens_details\":{\"cached_tokens\":null},\"completion_tokens_details\":{\"reasoning_tokens\":null}}",
+     "neatlogs.llm.token_count.total": 6791,
+     "neatlogs.llm.metrics.duration_ms": 15378.57
+    },
+    "events": []
+   },
+   {
+    "span_id": "084e17be95d65944",
+    "parent_id": "ec92e297ccc4d7d4",
+    "name": "verify_claims",
+    "kind": "GUARDRAIL",
+    "start_ms": 78328.0,
+    "duration_ms": 2.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-dfb9e191fd01",
+     "dealscope.verify.total": 12,
+     "dealscope.verify.verified": 6,
+     "dealscope.verify.qualified": 0,
+     "dealscope.verify.rejected": 6,
+     "dealscope.verify.material_total": 9,
+     "dealscope.verify.grounded_claim_rate": 0.5555555555555556,
+     "dealscope.verify.unsupported_material_claims": 4,
+     "dealscope.draft.total": 6,
+     "dealscope.draft.verified": 0,
+     "dealscope.draft.qualified": 0,
+     "dealscope.draft.rejected": 6,
+     "dealscope.draft.material_total": 4,
+     "dealscope.draft.grounded_claim_rate": 0.0,
+     "dealscope.draft.unsupported_material_claims": 4
+    },
+    "events": []
+   },
+   {
+    "span_id": "5faa6451cfc742da",
+    "parent_id": "ec92e297ccc4d7d4",
+    "name": "render_memo",
+    "kind": "CHAIN",
+    "start_ms": 78333.01,
+    "duration_ms": 0.0,
+    "status": "ok",
+    "error": null,
+    "attributes": {
+     "dealscope.case_id": "case-dfb9e191fd01"
+    },
+    "events": []
+   }
+  ]
+ }
+}

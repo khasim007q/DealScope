@@ -38,6 +38,10 @@ LIVE_RUN_NOTES = {
         "retool.com vs appsmith.com, tooljet.com, budibase.com",
         " Trace likely incomplete: neatlogs ingest returned 503 during this run.",
     ),
+    "case-dfb9e191fd01": (
+        "figma.com vs canva.com, miro.com, sketch.com",
+        " Recorded trace shown above; data calls served from the same-day cache (0 credits).",
+    ),
     "case-289f654e60f5": (
         "airtable.com vs smartsheet.com, monday.com, clickup.com",
         " Memo regenerated with Gemini drafting in trace 81dd213dbdbc546acd906ecf44f66478.",
