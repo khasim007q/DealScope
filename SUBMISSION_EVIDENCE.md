@@ -58,4 +58,9 @@ Script: `docs/demo-script.md`
 - Demo video (≤3 min): `TODO`
 - Public repository URL: https://github.com/khasim007q/DealScope
 - Public quote-post submission URL: `TODO`
-- Final deadline confirmed in Discord: `TODO`
+- Final deadline confirmed (organizer announcement relayed by owner, 12 Oct): submission window **7:00-11:55 PM IST,
+  12 Oct 2026**. Both steps mandatory: (1) quote-tweet the official @neatlogs launch post (link shared at 7 PM) tagging
+  @neatlogs, @EntireHQ and @arithecfo; (2) submission form (link shared at 7 PM). The form alone does not count.
+- Video requirement (organizers): one video covering the problem, how cfo.ai and Entire were used, and how neatlogs
+  (critical-incidents view) identified and resolved the agent's incidents. Script: `docs/video-script.md`.
+- Quote-tweet draft (257 chars incl. links): `evidence/build-in-public/quote-tweet.txt`

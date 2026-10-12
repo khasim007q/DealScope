@@ -1,0 +1,6 @@
+DealScope (#neatHack): an agent that investigates a company before an acquisition and writes a diligence memo where every claim cites evidence.
+
+Traced with @neatlogs, built with @EntireHQ, plan by @arithecfo
+
+https://github.com/khasim007q/DealScope
+[VIDEO_LINK]

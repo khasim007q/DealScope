@@ -1,5 +1,7 @@
 # Demo script (3 minutes max)
 
+> Spoken voiceover for the submission video (organizer requirements of 12 Oct, incl. neatlogs incidents): see [video-script.md](video-script.md).
+
 Follows docs/09 section 3. Keep neatlogs, Entire and cfo.ai visibly on screen. Do a dry run first, and narrate only results you actually have (do not describe a live Crustdata run unless one was done).
 
 Prep: app running (`.venv/Scripts/uvicorn dealscope.api.server:app --port 8000`, open http://localhost:8000; the featured notion.com case is imported locally from `fixtures/featured/`, which is gitignored), neatlogs dashboard with the run traces open in a tab, Entire checkpoint view (`entire checkpoint list` or screenshot) and the cfo.ai plan open in tabs.
