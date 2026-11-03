@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { api } from "../api/client";
 import { useAsync } from "../lib/hooks";
-import { CopyButton, EmptyBox, ErrorBox, Loading, SectionHead } from "./ui";
+import { CopyButton, EmptyBox, ErrorBox, Loading } from "./ui";
+import { ReportHead } from "./ReportHead";
 import { TraceWaterfall } from "./TraceWaterfall";
 
 export function CaseTraces({ caseId, traceIds, running }: { caseId: string; traceIds: string[]; running: boolean }) {
@@ -20,8 +21,8 @@ export function CaseTraces({ caseId, traceIds, running }: { caseId: string; trac
 
   return (
     <section className="section" aria-labelledby="trace-h">
-      <SectionHead
-        id="trace-h"
+      <ReportHead
+        num={6}
         title="Trace of this run"
         subtitle="The real sequence of steps the agent executed, with timing."
       />
@@ -46,7 +47,7 @@ export function CaseTraces({ caseId, traceIds, running }: { caseId: string; trac
           ) : null}
         </EmptyBox>
       ) : (
-        <div className="card">
+        <div>
           {traces.length > 1 ? (
             <div className="tabs" role="tablist" aria-label="Runs of this case">
               {traces.map((t, i) => (

@@ -1,43 +1,87 @@
 import { useEffect, useState } from "react";
 import { HOW_IT_WORKS } from "../content";
 import type { HowItWorksContent, HowItWorksSection } from "../content/types";
+import { Kicker, PageHeader } from "../components/ui";
 import { useDocumentTitle } from "../lib/hooks";
 
 const CONTENT: HowItWorksContent = HOW_IT_WORKS;
+const STEP = /^(\d+)\.\s+/;
+const NUMERIC_HEADER = /^(weight|%|credits|cost)/i;
 
-function Section({ section }: { section: HowItWorksSection }) {
+/** Paragraphs that all start "1. ", "2. " ... are rendered as a numbered list. */
+function Body({ paragraphs }: { paragraphs: string[] }) {
+  if (paragraphs.length > 1 && paragraphs.every((p) => STEP.test(p))) {
+    return (
+      <ol className="hiw-steps">
+        {paragraphs.map((p, i) => {
+          const text = p.replace(STEP, "");
+          const dot = text.indexOf(". ");
+          const head = dot > 0 && dot < 40 ? text.slice(0, dot) : null;
+          return (
+            <li key={i}>
+              {head ? (
+                <>
+                  <strong>{head}.</strong> {text.slice(dot + 2)}
+                </>
+              ) : (
+                text
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    );
+  }
   return (
-    <section className="hiw-section card" id={section.id} aria-labelledby={`${section.id}-h`}>
-      <h2 id={`${section.id}-h`}>{section.title}</h2>
-      <p className="summary-line">{section.summary}</p>
-      {section.paragraphs.map((p, i) => (
+    <>
+      {paragraphs.map((p, i) => (
         <p key={i}>{p}</p>
       ))}
+    </>
+  );
+}
+
+function Section({ section, n }: { section: HowItWorksSection; n: number }) {
+  const table = section.table;
+  return (
+    <section className="hiw-section" id={section.id} aria-labelledby={`${section.id}-h`}>
+      <Kicker accent>Section {n}</Kicker>
+      <h2 id={`${section.id}-h`}>{section.title}</h2>
+      <p className="summary-line">{section.summary}</p>
+      <Body paragraphs={section.paragraphs} />
       {section.bullets && section.bullets.length > 0 ? (
-        <ul>
+        <ul className="hiw-bullets">
           {section.bullets.map((b, i) => (
             <li key={i}>{b}</li>
           ))}
         </ul>
       ) : null}
-      {section.table ? (
-        <div className="table-wrap" style={{ margin: "12px 0" }}>
+      {table ? (
+        <div className="table-wrap hiw-table">
           <table>
             <thead>
               <tr>
-                {section.table.headers.map((h, i) => (
-                  <th key={i} scope="col">
+                {table.headers.map((h, i) => (
+                  <th key={i} scope="col" className={NUMERIC_HEADER.test(h) ? "num" : undefined}>
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {section.table.rows.map((row, r) => (
+              {table.rows.map((row, r) => (
                 <tr key={r}>
-                  {row.map((cell, c) => (
-                    <td key={c}>{cell}</td>
-                  ))}
+                  {row.map((cell, c) =>
+                    c === 0 ? (
+                      <th key={c} scope="row">
+                        {cell}
+                      </th>
+                    ) : (
+                      <td key={c} className={NUMERIC_HEADER.test(table.headers[c] ?? "") ? "num" : undefined}>
+                        {cell}
+                      </td>
+                    ),
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -69,33 +113,39 @@ export function HowItWorks() {
 
   return (
     <>
-      <div className="page-head">
-        <h1>How it works</h1>
-        <p className="hiw-intro">{CONTENT.intro}</p>
-      </div>
+      <PageHeader kicker="Explainer" title="How it works" dek={CONTENT.intro} />
       <div className="hiw">
         <nav className="toc" aria-label="On this page">
-          <h2>On this page</h2>
-          <ol>
-            {sections.map((s) => (
-              <li key={s.id} style={{ margin: 0 }}>
-                <a
-                  href={`#${s.id}`}
-                  className={active === s.id ? "active" : undefined}
-                  aria-current={active === s.id ? "location" : undefined}
-                  onClick={() => setActive(s.id)}
-                >
-                  {s.title}
-                </a>
-              </li>
-            ))}
-          </ol>
+          <details className="toc-details" open>
+            <summary
+              onClick={(e) => {
+                if (window.matchMedia("(min-width: 901px)").matches) e.preventDefault();
+              }}
+            >
+              On this page
+            </summary>
+            <ol>
+              {sections.map((s, i) => (
+                <li key={s.id}>
+                  <a
+                    href={`#${s.id}`}
+                    className={active === s.id ? "active" : undefined}
+                    aria-current={active === s.id ? "location" : undefined}
+                    onClick={() => setActive(s.id)}
+                  >
+                    <span className="toc-n">{i + 1}</span>
+                    {s.title}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </details>
         </nav>
-        <div>
-          {sections.map((s) => (
-            <Section key={s.id} section={s} />
+        <article className="hiw-article">
+          {sections.map((s, i) => (
+            <Section key={s.id} section={s} n={i + 1} />
           ))}
-        </div>
+        </article>
       </div>
     </>
   );

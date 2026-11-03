@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api, errorMessage } from "../api/client";
 import type { CaseView } from "../api/types";
 import { formatDateTime } from "../lib/format";
-import { Banner, Disclosure, Icon, ModeBadge, StatusPill } from "./ui";
+import { Banner, Dateline, Disclosure, Icon, Kicker, ModeBadge, StatusPill } from "./ui";
 
 interface Props {
   view: CaseView;
@@ -57,28 +57,28 @@ export function CaseHeader({ view, onResumed, onStopped }: Props) {
   };
 
   return (
-    <header className="card case-head">
+    <header className="case-head">
       {view.synthetic ? (
         <Banner tone="caution" className="banner-demo" title="Demo data - not a real company assessment">
           The companies, people and job postings below are fictional. Do not use these results to judge a real business.
         </Banner>
       ) : null}
 
-      <div className="case-meta">
-        <ModeBadge mode={view.mode} />
-        <StatusPill tone={view.status_tone}>{view.status_label}</StatusPill>
-        <span className="muted small">
-          Updated <time dateTime={view.updated_at}>{formatDateTime(view.updated_at)}</time>
-        </span>
-      </div>
-
+      <Kicker accent>Organizational diligence · {view.mode === "synthetic" ? "Synthetic demo" : "Live data"}</Kicker>
       <h1>{view.target}</h1>
-      <p className="peer-list">
-        <strong>Compared with:</strong> {view.peers.length > 0 ? view.peers.join(", ") : "no peers listed"}
-        <span className="muted"> - last {view.lookback_months} months</span>
-      </p>
+      <Dateline
+        items={[
+          <>Compared with {view.peers.length > 0 ? view.peers.join(", ") : "no peers listed"}</>,
+          <>Last {view.lookback_months} months</>,
+          <>
+            Updated <time dateTime={view.updated_at}>{formatDateTime(view.updated_at)}</time>
+          </>,
+          <ModeBadge mode={view.mode} />,
+          <StatusPill tone={view.status_tone}>{view.status_label}</StatusPill>,
+        ]}
+      />
 
-      {view.status_detail ? <p className="muted" style={{ marginBottom: 8 }}>{view.status_detail}</p> : null}
+      {view.status_detail ? <p className="muted small case-status-detail">{view.status_detail}</p> : null}
 
       <Disclosure summary="Deal thesis">
         <blockquote className="thesis" style={{ margin: 0 }}>
@@ -86,7 +86,7 @@ export function CaseHeader({ view, onResumed, onStopped }: Props) {
         </blockquote>
       </Disclosure>
 
-      <div className="btn-row" style={{ marginTop: 14 }}>
+      <div className="btn-row case-actions">
         {view.running && stopRequested ? (
           <span className="muted" role="status">
             Stopping after the current step...

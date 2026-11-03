@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { FeaturedCases } from "../components/FeaturedCases";
-import { EmptyBox, ErrorBox, Loading, ModeBadge, StatusPill } from "../components/ui";
+import { ErrorBox, Loading, ModeBadge, PageHeader, StatusPill } from "../components/ui";
 import { formatDateTime, formatRelative } from "../lib/format";
 import { useAsync, useDocumentTitle, useNow } from "../lib/hooks";
 
@@ -26,22 +26,26 @@ export function Cases() {
 
   return (
     <>
-      <div className="page-head">
-        <h1>Cases</h1>
-        <p>Every investigation that has been run, newest first. Open one to see its summary, evidence and memo.</p>
-      </div>
+      <PageHeader
+        kicker="Report index"
+        title="Cases"
+        dek="Every investigation that has been run, newest first. Open one to see its summary, evidence and memo."
+      />
 
       {loading ? (
         <Loading label="Loading cases..." />
       ) : error ? (
         <ErrorBox title="Could not load cases" message={error} onRetry={reload} />
       ) : items.length === 0 ? (
-        <EmptyBox>
-          No investigations yet. <Link to="/">Start your first investigation</Link>.
-        </EmptyBox>
+        <div className="index-empty">
+          <p className="index-empty-title">The index is empty.</p>
+          <p>
+            No investigations have been filed yet. <Link to="/">Brief the analyst</Link> to open the first one.
+          </p>
+        </div>
       ) : (
         <>
-          <div className="btn-row" style={{ marginBottom: 10 }}>
+          <div className="btn-row index-tools">
             <button type="button" className="btn" onClick={compare} disabled={selected.length !== 2}>
               Compare selected
             </button>
@@ -54,7 +58,7 @@ export function Cases() {
             </span>
           </div>
           <div className="table-wrap">
-            <table>
+            <table className="index-table">
               <caption className="sr-only">Investigations</caption>
               <thead>
                 <tr>
@@ -62,9 +66,9 @@ export function Cases() {
                     <span className="sr-only">Select to compare</span>
                   </th>
                   <th scope="col">Target</th>
+                  <th scope="col">Data</th>
                   <th scope="col">Status</th>
                   <th scope="col">Risk result</th>
-                  <th scope="col">Data</th>
                   <th scope="col">Last updated</th>
                 </tr>
               </thead>
@@ -89,13 +93,13 @@ export function Cases() {
                         </Link>
                       </td>
                       <td>
-                        <StatusPill tone={c.tone}>{c.status_label}</StatusPill>
-                      </td>
-                      <td>{c.risk_label}</td>
-                      <td>
                         <ModeBadge mode={c.mode} />
                       </td>
                       <td>
+                        <StatusPill tone={c.tone}>{c.status_label}</StatusPill>
+                      </td>
+                      <td className="index-risk">{c.risk_label}</td>
+                      <td className="index-date">
                         <time dateTime={c.updated_at} title={formatDateTime(c.updated_at)}>
                           {formatRelative(c.updated_at, now)}
                         </time>

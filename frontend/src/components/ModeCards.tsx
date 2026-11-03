@@ -8,15 +8,16 @@ interface Props {
   statusError: string | null;
 }
 
+/** Two quiet selectable panels (radio group) for choosing live vs demo data. */
 export function ModeCards({ mode, onChange, status, statusError }: Props) {
   const liveAvailable = status?.live_available ?? false;
   const budget = status?.live_budget;
 
   return (
     <fieldset>
-      <legend className="label">Data source</legend>
-      <div className="choice-grid">
-        <label className={`choice${mode === "live" ? " selected" : ""}${liveAvailable ? "" : " disabled"}`}>
+      <legend className="sr-only">Data source</legend>
+      <div className="mode-panels">
+        <label className={`mode-panel${mode === "live" ? " selected" : ""}${liveAvailable ? "" : " disabled"}`}>
           <input
             type="radio"
             name="mode"
@@ -26,22 +27,22 @@ export function ModeCards({ mode, onChange, status, statusError }: Props) {
             onChange={() => onChange("live")}
             aria-describedby="mode-live-desc"
           />
-          <span className="choice-title">
-            <span>Live data (Crustdata)</span>
-            <span className="choice-check" aria-hidden="true" />
+          <span className="mode-head">
+            <span className="mode-mark" aria-hidden="true" />
+            <span className="mode-title">Live data (Crustdata)</span>
           </span>
-          <span className="choice-body" id="mode-live-desc" style={{ display: "block" }}>
+          <span className="mode-body" id="mode-live-desc">
             Investigates the real companies you enter using public company, people-history and job-posting data.
-            <strong> This spends real Crustdata credits.</strong>
+            <strong className="mode-spend"> This spends real Crustdata credits.</strong>
             {budget ? (
-              <span style={{ display: "block", marginTop: 6 }}>
+              <span className="mode-budget">
                 Live budget remaining: <strong>{formatCredits(budget.remaining)}</strong> of{" "}
                 {formatCredits(budget.spendable)} credits. A reserve of {formatCredits(budget.reserve)} credits is
                 always held back and never spent.
               </span>
             ) : null}
             {!liveAvailable ? (
-              <span style={{ display: "block", marginTop: 6, fontWeight: 600 }}>
+              <span className="mode-budget mode-unavailable">
                 {statusError
                   ? "Unavailable: the server status could not be loaded."
                   : "Unavailable: Crustdata is not connected on this server. Live runs are never simulated."}
@@ -50,7 +51,7 @@ export function ModeCards({ mode, onChange, status, statusError }: Props) {
           </span>
         </label>
 
-        <label className={`choice${mode === "synthetic" ? " selected" : ""}`}>
+        <label className={`mode-panel${mode === "synthetic" ? " selected" : ""}`}>
           <input
             type="radio"
             name="mode"
@@ -59,13 +60,13 @@ export function ModeCards({ mode, onChange, status, statusError }: Props) {
             onChange={() => onChange("synthetic")}
             aria-describedby="mode-demo-desc"
           />
-          <span className="choice-title">
-            <span>Demo data (synthetic)</span>
-            <span className="choice-check" aria-hidden="true" />
+          <span className="mode-head">
+            <span className="mode-mark" aria-hidden="true" />
+            <span className="mode-title">Demo data (synthetic)</span>
           </span>
-          <span className="choice-body" id="mode-demo-desc" style={{ display: "block" }}>
-            Runs the full agent on fictional companies. <strong>No credits are used</strong> and the results are not
-            a real assessment of any company. Good for trying the product.
+          <span className="mode-body" id="mode-demo-desc">
+            Runs the full agent on fictional companies. <strong>No credits are used</strong> and the results are not a
+            real assessment of any company. Good for trying the product.
           </span>
         </label>
       </div>

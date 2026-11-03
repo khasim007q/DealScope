@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import type { RunMode, Tone } from "../api/types";
 
+/** Inline stroke icon (info, warn, check, x, download, copy, external, play); inherits currentColor. */
 export function Icon({ name, size = 18 }: { name: "info" | "warn" | "check" | "x" | "download" | "copy" | "external" | "play"; size?: number }) {
   const common = {
     width: size,
@@ -69,10 +70,12 @@ export function Icon({ name, size = 18 }: { name: "info" | "warn" | "check" | "x
   }
 }
 
+/** Tone-colored label with a small square marker (replaces filled pills). Use for statuses and risk levels. */
 export function StatusPill({ tone, children }: { tone: Tone; children: ReactNode }) {
   return <span className={`pill tone-${tone}`}>{children}</span>;
 }
 
+/** Outlined small-caps badge saying whether a case uses synthetic demo data or live data. */
 export function ModeBadge({ mode, large = false }: { mode: RunMode; large?: boolean }) {
   if (mode === "synthetic") {
     return (
@@ -82,6 +85,7 @@ export function ModeBadge({ mode, large = false }: { mode: RunMode; large?: bool
   return <span className="badge mode-live">Live data</span>;
 }
 
+/** Tone-colored note with a thin left rule and icon; use for warnings, demo notices, errors in flow. */
 export function Banner({ tone, title, children, className = "" }: { tone: Tone; title?: string; children?: ReactNode; className?: string }) {
   return (
     <div className={`banner tone-${tone} ${className}`} role={tone === "bad" ? "alert" : "note"}>
@@ -94,6 +98,7 @@ export function Banner({ tone, title, children, className = "" }: { tone: Tone; 
   );
 }
 
+/** Centered spinner + label for async loading states. */
 export function Loading({ label = "Loading..." }: { label?: string }) {
   return (
     <div className="state" role="status" aria-live="polite">
@@ -103,6 +108,7 @@ export function Loading({ label = "Loading..." }: { label?: string }) {
   );
 }
 
+/** Inline error with left rule and optional retry button. */
 export function ErrorBox({ title = "Something went wrong", message, onRetry }: { title?: string; message: string; onRetry?: () => void }) {
   return (
     <div className="error-box" role="alert">
@@ -119,10 +125,12 @@ export function ErrorBox({ title = "Something went wrong", message, onRetry }: {
   );
 }
 
+/** Hairline-bounded empty state message. */
 export function EmptyBox({ children }: { children: ReactNode }) {
   return <div className="empty-box">{children}</div>;
 }
 
+/** Hairline-ruled expandable details section (native details/summary). */
 export function Disclosure({ summary, children, defaultOpen = false }: { summary: ReactNode; children: ReactNode; defaultOpen?: boolean }) {
   return (
     <details className="disclosure" open={defaultOpen}>
@@ -132,6 +140,7 @@ export function Disclosure({ summary, children, defaultOpen = false }: { summary
   );
 }
 
+/** Small button that copies text to the clipboard and confirms inline. */
 export function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
   const [state, setState] = useState<"idle" | "done" | "failed">("idle");
   const onClick = async () => {
@@ -151,6 +160,7 @@ export function CopyButton({ text, label = "Copy" }: { text: string; label?: str
   );
 }
 
+/** Thin 4px bar with name and serif value; tone drives the color. role=meter. */
 export function Meter({
   name,
   valueText,
@@ -187,11 +197,64 @@ export function Meter({
   );
 }
 
+/** Section title with a heavy 2px ink rule above and optional dek; use above every major section. */
 export function SectionHead({ id, title, subtitle }: { id?: string; title: string; subtitle?: string }) {
   return (
     <div className="section-head">
       <h2 id={id}>{title}</h2>
       {subtitle ? <p>{subtitle}</p> : null}
     </div>
+  );
+}
+
+/** Small-caps letter-spaced eyebrow label above a title or number. Pass accent for the teal variant. */
+export function Kicker({ children, accent = false, as: Tag = "p" }: { children: ReactNode; accent?: boolean; as?: "p" | "span" | "div" }) {
+  return <Tag className={`kicker${accent ? " accent" : ""}`}>{children}</Tag>;
+}
+
+/** Hairline horizontal rule; heavy gives the 2px ink rule used under mastheads and above sections. */
+export function Rule({ heavy = false }: { heavy?: boolean }) {
+  return <hr className={`rule${heavy ? " heavy" : ""}`} />;
+}
+
+/** Serif numeral over a small-caps label, with optional tone, unit and note. size="lg" gives display-size numbers. */
+export function Stat({ value, label, unit, note, tone, size = "md" }: { value: ReactNode; label: ReactNode; unit?: ReactNode; note?: ReactNode; tone?: Tone; size?: "md" | "lg" }) {
+  return (
+    <div className={`stat${size === "lg" ? " lg" : ""}${tone ? ` tone-${tone}` : ""}`}>
+      <div className="stat-v">
+        {value}
+        {unit ? <small>{unit}</small> : null}
+      </div>
+      <div className="stat-k">{label}</div>
+      {note ? <div className="stat-note">{note}</div> : null}
+    </div>
+  );
+}
+
+/** Row of Stat items laid out in an auto-fit grid. */
+export function StatGrid({ children }: { children: ReactNode }) {
+  return <div className="stat-grid">{children}</div>;
+}
+
+/** Byline-style row of meta items (date, mode, source) separated by small squares. */
+export function Dateline({ items }: { items: ReactNode[] }) {
+  return (
+    <p className="dateline">
+      {items.filter(Boolean).map((it, i) => (
+        <span key={i}>{it}</span>
+      ))}
+    </p>
+  );
+}
+
+/** Page title block: optional kicker, serif h1, optional dek (standfirst), optional extra children. */
+export function PageHeader({ kicker, title, dek, children }: { kicker?: ReactNode; title: ReactNode; dek?: ReactNode; children?: ReactNode }) {
+  return (
+    <header className="page-header">
+      {kicker ? <Kicker accent>{kicker}</Kicker> : null}
+      <h1>{title}</h1>
+      {dek ? <p className="dek">{dek}</p> : null}
+      {children}
+    </header>
   );
 }

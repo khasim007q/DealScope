@@ -1,7 +1,8 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 import type { CompanyRow, JobRow, PersonRow } from "../api/types";
 import { formatDate, formatInt, formatSignedPct } from "../lib/format";
-import { EmptyBox, Icon, SectionHead, StatusPill } from "./ui";
+import { EmptyBox, Icon, StatusPill } from "./ui";
+import { ReportHead } from "./ReportHead";
 
 type TabKey = "companies" | "people" | "jobs";
 
@@ -210,8 +211,8 @@ export function EvidenceTabs({ companies, people, jobs }: Props) {
 
   return (
     <section className="section" aria-labelledby="evidence-h">
-      <SectionHead
-        id="evidence-h"
+      <ReportHead
+        num={4}
         title="Evidence"
         subtitle="The underlying public data the signals and findings are built from."
       />

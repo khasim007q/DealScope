@@ -1,0 +1,96 @@
+/* DealScope design tokens - "Editorial research memo".
+   All colors, type, spacing live here. Dark mode redefines the same names.
+   Accent: deep teal. Use sparingly (links, focus, active nav, key emphasis). */
+:root {
+  color-scheme: light dark;
+
+  /* Surfaces & ink (warm paper) */
+  --bg: #faf8f4;
+  --surface: #ffffff;          /* rare: inputs, floating panels */
+  --surface-2: #f3f0e9;        /* faint wash for code, quotes, hover */
+  --ink: #1a1a1a;
+  --ink-2: #3a3833;            /* body-secondary */
+  --muted: #5e5a52;            /* captions, meta (AA on --bg) */
+  --line: #dcd6ca;             /* hairline */
+  --line-strong: #b9b1a1;      /* input borders, stronger rules */
+  --rule: #1a1a1a;             /* heavy ink rule */
+
+  /* Accent: deep teal */
+  --accent: #0b5c63;
+  --accent-ink: #ffffff;       /* text on accent fills */
+  --accent-soft: #e6eeee;
+  --focus: #0b5c63;
+
+  /* Tones: fg = text, bar = marker/rule/fill, bg = very faint wash (use rarely) */
+  --good-fg: #1f5f3a;    --good-bar: #2f7d52;    --good-bg: #eef3ec;
+  --neutral-fg: #4a463f; --neutral-bar: #8a8478; --neutral-bg: #efece6;
+  --caution-fg: #7a4a00; --caution-bar: #b7791f; --caution-bg: #f7efdc;
+  --bad-fg: #9b1c1c;     --bad-bar: #b3261e;     --bad-bg: #f6e6e2;
+  --info-fg: #1f4f8f;    --info-bar: #3f6fae;    --info-bg: #e9eef4;
+
+  /* Fonts */
+  --font-serif: "Source Serif 4 Variable", "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font: var(--font-sans);    /* legacy alias */
+  --mono: var(--font-mono);    /* legacy alias */
+
+  /* Type scale */
+  --fs-2xs: 0.6875rem;  /* 11 kicker */
+  --fs-xs: 0.78125rem;  /* 12.5 meta */
+  --fs-sm: 0.875rem;    /* 14 */
+  --fs-base: 0.9688rem; /* 15.5 body */
+  --fs-md: 1.0625rem;   /* 17 lede */
+  --fs-lg: 1.25rem;     /* 20 h3 */
+  --fs-xl: 1.625rem;    /* 26 h2 */
+  --fs-2xl: 2.125rem;   /* 34 h1 */
+  --fs-display: 3.5rem; /* 56 big numbers */
+  --lh-tight: 1.15;
+  --lh-snug: 1.3;
+  --lh-body: 1.6;
+  --track-kicker: 0.12em;
+
+  /* Spacing (4px base) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2.25rem;
+  --space-7: 3.5rem;
+  --space-8: 5rem;
+
+  /* Layout */
+  --max-w: 1120px;
+  --measure: 68ch;
+  --gutter: 1rem;
+  --radius: 3px;
+  --radius-sm: 2px;
+  --hair: 1px;
+  --heavy: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1916;
+    --surface: #23211d;
+    --surface-2: #272521;
+    --ink: #ece8e0;
+    --ink-2: #cfcabf;
+    --muted: #a39d90;
+    --line: #36332d;
+    --line-strong: #5a564d;
+    --rule: #ece8e0;
+
+    --accent: #6cc0c8;
+    --accent-ink: #0f1a1b;
+    --accent-soft: #1f2e2f;
+    --focus: #6cc0c8;
+
+    --good-fg: #8fd0a6;    --good-bar: #4fa673;    --good-bg: #222b24;
+    --neutral-fg: #bdb7ac; --neutral-bar: #7d776b; --neutral-bg: #2a2723;
+    --caution-fg: #e8bd6e; --caution-bar: #d19a3d; --caution-bg: #2f2819;
+    --bad-fg: #f0968c;     --bad-bar: #d9534a;     --bad-bg: #35221f;
+    --info-fg: #9bbfe8;    --info-bar: #5f8fcb;    --info-bg: #1f2833;
+  }
+}

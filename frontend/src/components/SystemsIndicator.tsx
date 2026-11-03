@@ -29,7 +29,7 @@ export function SystemsIndicator() {
     ? "Checking systems"
     : error || !data
       ? "Systems unavailable"
-      : `Systems: ${connected} of ${total} connected`;
+      : `Systems ${connected}/${total} connected`;
 
   return (
     <div className="systems" ref={wrapRef}>

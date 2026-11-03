@@ -1,6 +1,7 @@
 import type { EvidenceRef, FindingView, Tone } from "../api/types";
 import { formatDate } from "../lib/format";
-import { EmptyBox, SectionHead, StatusPill } from "./ui";
+import { EmptyBox, StatusPill } from "./ui";
+import { ReportHead } from "./ReportHead";
 
 type Kind = FindingView["kind"];
 
@@ -17,98 +18,91 @@ const SEVERITY_TONE: Record<FindingView["severity"], Tone> = {
   high: "bad",
 };
 
-function EvidenceItems({ items, counter = false }: { items: EvidenceRef[]; counter?: boolean }) {
+interface Note {
+  n: number;
+  ref: EvidenceRef;
+  counter: boolean;
+}
+
+/** Footnote-style evidence references, numbered continuously across the whole section. */
+function numberNotes(group: FindingView[], start: number): { notes: Map<string, Note[]>; next: number } {
+  const notes = new Map<string, Note[]>();
+  let n = start;
+  for (const f of group) {
+    const list: Note[] = [];
+    for (const ref of f.evidence) list.push({ n: n++, ref, counter: false });
+    for (const ref of f.counter_evidence) list.push({ n: n++, ref, counter: true });
+    notes.set(f.id, list);
+  }
+  return { notes, next: n };
+}
+
+function SubList({ title, items }: { title: string; items: string[] }) {
+  if (items.length === 0) return null;
   return (
-    <ul className="ev-list">
-      {items.map((e, i) => (
-        <li key={`${e.id}-${i}`} className={`ev-item${counter ? " counter" : ""}`}>
-          <div className="ev-label">{e.label}</div>
-          <div className="ev-meta">
-            {e.date ? `${formatDate(e.date)} - ` : ""}
-            {e.source}
-          </div>
-        </li>
-      ))}
-    </ul>
+    <div className="finding-sub">
+      <h4>{title}</h4>
+      <ul>
+        {items.map((c, i) => (
+          <li key={i}>{c}</li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
-function FindingCard({ f }: { f: FindingView }) {
+function Finding({ f, notes }: { f: FindingView; notes: Note[] }) {
   const tone = SEVERITY_TONE[f.severity];
   const caveated = f.verification === "Verified with caveats";
   return (
-    <article className={`card finding tone-${tone}`}>
+    <article className={`finding tone-${tone}`}>
       <div className="finding-top">
         <StatusPill tone={tone}>{`${f.severity.charAt(0).toUpperCase()}${f.severity.slice(1)} severity`}</StatusPill>
         <StatusPill tone={caveated ? "caution" : "good"}>{f.verification}</StatusPill>
       </div>
-      <p className="finding-text">{f.text}</p>
+      <p className="finding-text">
+        {f.text}
+        {notes.map((nt) => (
+          <sup key={nt.n} className={`fn-mark${nt.counter ? " counter" : ""}`}>
+            <a href={`#fn-${f.id}-${nt.n}`} aria-label={`${nt.counter ? "Counter-evidence" : "Evidence"} ${nt.n}`}>
+              {nt.counter ? `c${nt.n}` : nt.n}
+            </a>
+          </sup>
+        ))}
+      </p>
 
-      {f.caveats.length > 0 ? (
-        <>
-          <h4>Caveats</h4>
-          <ul>
-            {f.caveats.map((c, i) => (
-              <li key={i}>{c}</li>
-            ))}
-          </ul>
-        </>
-      ) : null}
+      <SubList title="Caveats" items={f.caveats} />
+      <SubList title="Other possible explanations" items={f.alternatives} />
+      <SubList title="Limitations" items={f.limitations} />
 
-      {f.alternatives.length > 0 ? (
-        <>
-          <h4>Other possible explanations</h4>
-          <ul>
-            {f.alternatives.map((a, i) => (
-              <li key={i}>{a}</li>
-            ))}
-          </ul>
-        </>
-      ) : null}
-
-      {f.limitations.length > 0 ? (
-        <>
-          <h4>Limitations</h4>
-          <ul>
-            {f.limitations.map((l, i) => (
-              <li key={i}>{l}</li>
-            ))}
-          </ul>
-        </>
-      ) : null}
-
-      {f.evidence.length + f.counter_evidence.length > 0 ? (
-      <details className="disclosure">
-        <summary>
-          Evidence ({f.evidence.length})
-          {f.counter_evidence.length > 0 ? `, counter-evidence (${f.counter_evidence.length})` : ""}
-        </summary>
-        <div className="disc-body">
-          {f.evidence.length > 0 ? (
-            <EvidenceItems items={f.evidence} />
-          ) : (
-            <p className="muted small">No supporting evidence items are attached.</p>
-          )}
-          {f.counter_evidence.length > 0 ? (
-            <>
-              <h4>Evidence that points the other way</h4>
-              <EvidenceItems items={f.counter_evidence} counter />
-            </>
-          ) : null}
-        </div>
-      </details>
+      {notes.length > 0 ? (
+        <ol className="fn-list" aria-label="Evidence references">
+          {notes.map((nt) => (
+            <li key={nt.n} id={`fn-${f.id}-${nt.n}`} value={nt.n} className={nt.counter ? "counter" : undefined}>
+              <span className="fn-label">
+                {nt.counter ? <strong>Points the other way: </strong> : null}
+                {nt.ref.label}
+              </span>
+              <span className="fn-meta">
+                {nt.ref.date ? `${formatDate(nt.ref.date)} - ` : ""}
+                {nt.ref.source}
+              </span>
+            </li>
+          ))}
+        </ol>
       ) : null}
     </article>
   );
 }
 
 export function FindingsSection({ findings }: { findings: FindingView[] }) {
+  let counter = 1;
   return (
     <section className="section" aria-labelledby="findings-h">
-      <SectionHead
-        id="findings-h"
+      <ReportHead
+        num={2}
         title="Key findings"
-        subtitle="Every finding was checked against its evidence before being published."
+        subtitle="Every finding was checked against its evidence before being published. Numbered marks refer to the evidence listed under each claim."
       />
       {findings.length === 0 ? (
         <EmptyBox>No findings were published for this case.</EmptyBox>
@@ -116,13 +110,15 @@ export function FindingsSection({ findings }: { findings: FindingView[] }) {
         KIND_ORDER.map(({ kind, title, blurb }) => {
           const group = findings.filter((f) => f.kind === kind);
           if (group.length === 0) return null;
+          const { notes, next } = numberNotes(group, counter);
+          counter = next;
           return (
             <div className="finding-group" key={kind}>
               <h3>
                 {title} <span className="muted">{blurb}</span>
               </h3>
               {group.map((f) => (
-                <FindingCard key={f.id} f={f} />
+                <Finding key={f.id} f={f} notes={notes.get(f.id) ?? []} />
               ))}
             </div>
           );

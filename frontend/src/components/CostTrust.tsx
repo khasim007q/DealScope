@@ -1,67 +1,87 @@
+import type { ReactNode } from "react";
 import type { CreditsView, VerificationView } from "../api/types";
 import { formatCredits, formatInt, formatRate } from "../lib/format";
-import { CopyButton, SectionHead, StatusPill } from "./ui";
+import { CopyButton, StatusPill } from "./ui";
+import { ReportHead } from "./ReportHead";
 
-export function Stat({ k, v, hint }: { k: string; v: string; hint?: string }) {
+interface Fig {
+  k: string;
+  v: string;
+  note?: string;
+}
+
+/** Compact two-or-three column table of labelled figures. */
+function FigTable({ caption, rows }: { caption: string; rows: Fig[] }) {
   return (
-    <div className="stat">
-      <div className="stat-v">{v}</div>
-      <div className="stat-k">{k}</div>
-      {hint ? <div className="stat-k">{hint}</div> : null}
+    <div className="table-wrap figs">
+      <table>
+        <caption className="sr-only">{caption}</caption>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.k}>
+              <th scope="row">{r.k}</th>
+              <td className="num">{r.v}</td>
+              <td className="fig-note">{r.note ?? ""}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-function CreditsCard({ credits }: { credits: CreditsView }) {
+function CreditsBlock({ credits }: { credits: CreditsView }) {
   return (
-    <div className="card" style={{ margin: 0 }}>
-      <h3>
+    <div>
+      <h3 className="fig-h">
         Credits{" "}
-        {credits.simulated ? (
-          <StatusPill tone="caution">Simulated - no real credits used</StatusPill>
-        ) : null}
+        {credits.simulated ? <StatusPill tone="caution">Simulated - no real credits used</StatusPill> : null}
       </h3>
-      <div className="stat-grid">
-        <Stat k="Credit cap" v={formatCredits(credits.cap)} />
-        <Stat k="Remaining under cap" v={formatCredits(credits.remaining)} />
-        <Stat k="Estimated used" v={formatCredits(credits.estimated_used)} hint="Before the provider confirms" />
-        <Stat
-          k="Confirmed used"
-          v={formatCredits(credits.actual_used)}
-          hint={credits.simulated ? "Simulated" : "From provider responses"}
-        />
-        <Stat k="Held in reserve" v={formatCredits(credits.reserved)} hint="Set aside for in-flight calls" />
-        <Stat
-          k="Calls with unknown cost"
-          v={formatInt(credits.unknown_calls)}
-          hint={credits.unknown_calls > 0 ? "Cost could not be confirmed" : "All costs confirmed"}
-        />
-      </div>
+      <FigTable
+        caption="Credit usage for this run"
+        rows={[
+          { k: "Credit cap", v: formatCredits(credits.cap) },
+          { k: "Remaining under cap", v: formatCredits(credits.remaining) },
+          { k: "Estimated used", v: formatCredits(credits.estimated_used), note: "Before the provider confirms" },
+          {
+            k: "Confirmed used",
+            v: formatCredits(credits.actual_used),
+            note: credits.simulated ? "Simulated" : "From provider responses",
+          },
+          { k: "Held in reserve", v: formatCredits(credits.reserved), note: "Set aside for in-flight calls" },
+          {
+            k: "Calls with unknown cost",
+            v: formatInt(credits.unknown_calls),
+            note: credits.unknown_calls > 0 ? "Cost could not be confirmed" : "All costs confirmed",
+          },
+        ]}
+      />
     </div>
   );
 }
 
-function VerificationCard({ v }: { v: VerificationView | null }) {
+function VerificationBlock({ v }: { v: VerificationView | null }) {
   return (
-    <div className="card" style={{ margin: 0 }}>
-      <h3>Verification</h3>
+    <div>
+      <h3 className="fig-h">Verification</h3>
       {v === null ? (
         <p className="muted">Verification results are not available yet.</p>
       ) : (
         <>
-          <p className="muted small" style={{ marginTop: -4 }}>
-            Every claim is checked against its cited evidence before it is published.
-          </p>
-          <div className="stat-grid">
-            <Stat k="Published" v={formatInt(v.published)} />
-            <Stat k="Verified" v={formatInt(v.verified)} />
-            <Stat k="Verified with caveats" v={formatInt(v.with_caveats)} />
-            <Stat k="Rejected" v={formatInt(v.rejected)} />
-            <Stat k="Grounded in evidence" v={formatRate(v.grounded_rate)} />
-          </div>
+          <p className="muted small">Every claim is checked against its cited evidence before it is published.</p>
+          <FigTable
+            caption="Claim verification results"
+            rows={[
+              { k: "Published", v: formatInt(v.published) },
+              { k: "Verified", v: formatInt(v.verified) },
+              { k: "Verified with caveats", v: formatInt(v.with_caveats) },
+              { k: "Rejected", v: formatInt(v.rejected) },
+              { k: "Grounded in evidence", v: formatRate(v.grounded_rate) },
+            ]}
+          />
           {v.rejected_reasons.length > 0 ? (
             <>
-              <h4 style={{ marginTop: 14 }}>Why claims were rejected</h4>
+              <h4 className="fig-sub">Why claims were rejected</h4>
               <ul>
                 {v.rejected_reasons.map((r, i) => (
                   <li key={i}>
@@ -71,7 +91,7 @@ function VerificationCard({ v }: { v: VerificationView | null }) {
               </ul>
             </>
           ) : null}
-          <p className="small" style={{ marginTop: 10, marginBottom: 0 }}>
+          <p className="small fig-foot">
             {v.ai_draft_used
               ? "An AI-written draft was used, then verified claim by claim."
               : "The AI write-up was unavailable, so only rule-based findings are shown."}
@@ -88,22 +108,25 @@ interface Props {
   llmModel: string | null;
   traceIds: string[];
   synthetic: boolean;
+  /** Optional lead-in content (the step-by-step investigation log) shown before the figures. */
+  children?: ReactNode;
 }
 
-export function CostTrust({ credits, verification, llmModel, traceIds, synthetic }: Props) {
+export function CostTrust({ credits, verification, llmModel, traceIds, synthetic, children }: Props) {
   return (
     <section className="section" aria-labelledby="cost-h">
-      <SectionHead id="cost-h" title="Cost and trust" subtitle="What this run cost and how the claims were checked." />
-      <div className="cols-2">
-        <CreditsCard credits={credits} />
-        <VerificationCard v={verification} />
+      <ReportHead num={5} title="Method and cost" subtitle="How the agent investigated, what this run cost and how the claims were checked." />
+      {children}
+      <div className="cols-2 fig-cols">
+        <CreditsBlock credits={credits} />
+        <VerificationBlock v={verification} />
       </div>
-      <div className="card" style={{ marginTop: 16 }}>
-        <h3>Run details</h3>
-        <p style={{ marginBottom: 8 }}>
+      <div className="run-details">
+        <h3 className="fig-h">Run details</h3>
+        <p>
           <strong>Language model:</strong> {llmModel ?? "None used"}
         </p>
-        <h4>Trace IDs</h4>
+        <h4 className="fig-sub">Trace IDs</h4>
         {traceIds.length === 0 ? (
           <p className="muted small" style={{ marginBottom: 0 }}>
             {synthetic ? "Demo runs may not record traces." : "No traces were recorded for this run."}

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { CaseView, SignalView } from "../api/types";
-import { Banner, Disclosure, EmptyBox, ErrorBox, Loading, ModeBadge, SectionHead, StatusPill } from "../components/ui";
+import { Banner, Disclosure, EmptyBox, ErrorBox, Loading, ModeBadge, PageHeader, StatusPill } from "../components/ui";
 import { formatCredits, formatInt, formatRate } from "../lib/format";
 import { useAsync, useDocumentTitle } from "../lib/hooks";
 
@@ -16,48 +16,49 @@ function caseLink(v: CaseView) {
   );
 }
 
-/** One comparison row: label across the top, then the two sides (stacked on narrow screens). */
+/** One comparison row: row label, then one cell per case. */
 function Row({ label, a, b }: { label: ReactNode; a: ReactNode; b: ReactNode }) {
   return (
-    <div className="cmp-row">
-      <div className="cmp-label">{label}</div>
-      <div className="cmp-cell">{a}</div>
-      <div className="cmp-cell">{b}</div>
-    </div>
+    <tr>
+      <th scope="row" className="cmp-label">
+        {label}
+      </th>
+      <td className="cmp-cell">{a}</td>
+      <td className="cmp-cell">{b}</td>
+    </tr>
   );
 }
 
-function Who({ v }: { v: CaseView }) {
-  return <div className="cmp-who">{v.target}</div>;
+function GroupRow({ children }: { children: ReactNode }) {
+  return (
+    <tr className="cmp-group">
+      <th scope="rowgroup" colSpan={3}>
+        {children}
+      </th>
+    </tr>
+  );
 }
 
 function SignalCell({ v, s }: { v: CaseView; s: SignalView | undefined }) {
-  if (!s) {
-    return (
-      <>
-        <Who v={v} />
-        <p className="muted">This signal is not in this case.</p>
-      </>
-    );
-  }
+  if (!s) return <span className="muted small">Not in this case</span>;
   const hasScore = s.scored && s.score !== null;
   const pct = hasScore ? Math.max(0, Math.min(100, s.score as number)) : 0;
   return (
     <div className={`tone-${s.tone}`}>
-      <Who v={v} />
-      <div className="bar-row">
-        <div
-          className="bar-track"
-          role="meter"
-          aria-label={`${s.name} score for ${v.target}`}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={hasScore ? Math.round(pct) : undefined}
-          aria-valuetext={hasScore ? `${Math.round(pct)} out of 100` : "Not scored"}
-        >
-          {hasScore ? <div className="bar-fill" style={{ width: `${pct}%` }} /> : null}
-        </div>
-        <span className="bar-val">{hasScore ? `${Math.round(pct)} / 100` : "Not scored"}</span>
+      <div className="cmp-fig">
+        <span className="cmp-num">{hasScore ? Math.round(pct) : "n/s"}</span>
+        <span className="cmp-unit">{hasScore ? "/ 100" : "Not scored"}</span>
+      </div>
+      <div
+        className="cmp-rule"
+        role="meter"
+        aria-label={`${s.name} score for ${v.target}`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={hasScore ? Math.round(pct) : undefined}
+        aria-valuetext={hasScore ? `${Math.round(pct)} out of 100` : "Not scored"}
+      >
+        {hasScore ? <div className="cmp-rule-fill" style={{ width: `${pct}%` }} /> : null}
       </div>
       <Disclosure summary="Finding">
         <p style={{ margin: 0 }}>{s.finding}</p>
@@ -68,34 +69,24 @@ function SignalCell({ v, s }: { v: CaseView; s: SignalView | undefined }) {
 
 function SummaryCell({ v }: { v: CaseView }) {
   const a = v.assessment;
-  if (!a) {
-    return (
-      <>
-        <Who v={v} />
-        <p className="muted">No assessment yet.</p>
-      </>
-    );
-  }
+  if (!a) return <span className="muted small">No assessment yet.</span>;
   return (
-    <>
-      <Who v={v} />
-      <div className={`cmp-score tone-${a.risk_tone}`}>
-        {a.risk_score !== null ? (
-          <>
-            <span className="cmp-score-num">{Math.round(a.risk_score)}</span>
-            <span className="cmp-score-band">{a.risk_band ?? ""}</span>
-          </>
-        ) : (
-          <span className="cmp-score-band">Not enough evidence to score</span>
-        )}
-      </div>
-      <p className="small" style={{ margin: "6px 0 0" }}>
-        Coverage: <strong>{Math.round(a.coverage_pct)}%</strong> ({a.coverage_label})
+    <div className={`tone-${a.risk_tone}`}>
+      {a.risk_score !== null ? (
+        <div className="cmp-fig">
+          <span className="cmp-num cmp-num-lg">{Math.round(a.risk_score)}</span>
+          <span className="cmp-band">{a.risk_band ?? ""}</span>
+        </div>
+      ) : (
+        <div className="cmp-band">Not enough evidence to score</div>
+      )}
+      <p className="small muted cmp-sub">
+        Coverage <strong className="num">{Math.round(a.coverage_pct)}%</strong> ({a.coverage_label})
       </p>
-      <p className="small" style={{ margin: 0 }}>
-        Confidence: <strong>{Math.round(a.confidence)}</strong> ({a.confidence_label})
+      <p className="small muted cmp-sub">
+        Confidence <strong className="num">{Math.round(a.confidence)}</strong> ({a.confidence_label})
       </p>
-    </>
+    </div>
   );
 }
 
@@ -103,40 +94,30 @@ function CreditsCell({ v }: { v: CaseView }) {
   const c = v.credits;
   return (
     <>
-      <Who v={v} />
       {c.simulated ? (
-        <p style={{ margin: 0 }}>
+        <p className="cmp-sub">
           <StatusPill tone="caution">Simulated</StatusPill> <span className="small muted">No real credits used</span>
         </p>
       ) : (
-        <p style={{ margin: 0 }}>
-          <strong>{formatCredits(c.actual_used)}</strong> confirmed used
+        <p className="cmp-sub">
+          <strong className="cmp-num">{formatCredits(c.actual_used)}</strong>{" "}
+          <span className="small muted">confirmed used</span>
         </p>
       )}
-      <p className="small muted" style={{ margin: 0 }}>
-        Cap: {formatCredits(c.cap)}
-      </p>
+      <p className="small muted cmp-sub">Cap {formatCredits(c.cap)}</p>
     </>
   );
 }
 
 function VerificationCell({ v }: { v: CaseView }) {
   const ver = v.verification;
+  if (!ver) return <span className="muted small">Not available yet.</span>;
   return (
     <>
-      <Who v={v} />
-      {ver ? (
-        <>
-          <p style={{ margin: 0 }}>
-            <strong>{formatInt(ver.published)}</strong> published, <strong>{formatInt(ver.rejected)}</strong> rejected
-          </p>
-          <p className="small muted" style={{ margin: 0 }}>
-            Grounded in evidence: {formatRate(ver.grounded_rate)}
-          </p>
-        </>
-      ) : (
-        <p className="muted">Not available yet.</p>
-      )}
+      <p className="cmp-sub">
+        <strong className="num">{formatInt(ver.published)}</strong> published, <strong className="num">{formatInt(ver.rejected)}</strong> rejected
+      </p>
+      <p className="small muted cmp-sub">Grounded in evidence {formatRate(ver.grounded_rate)}</p>
     </>
   );
 }
@@ -173,58 +154,63 @@ function CompareView({ a, b }: { a: CaseView; b: CaseView }) {
         </Banner>
       ) : null}
 
-      <div className="cmp">
-        <div className="cmp-row cmp-heads">
-          <div className="cmp-label sr-only">Case</div>
-          {[a, b].map((v) => (
-            <div className="cmp-cell card" key={v.case_id}>
-              <div className="case-meta">
-                <ModeBadge mode={v.mode} />
-                <StatusPill tone={v.status_tone}>{v.status_label}</StatusPill>
-              </div>
-              <h2 style={{ marginBottom: 4, wordBreak: "break-word" }}>{v.target}</h2>
-              <p className="small peer-list">
-                <strong>Compared with:</strong> {v.peers.length > 0 ? v.peers.join(", ") : "no peers listed"}
-              </p>
-              <p className="small" style={{ margin: 0 }}>
-                {caseLink(v)}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <Row label="Overall result" a={<SummaryCell v={a} />} b={<SummaryCell v={b} />} />
-
-        <div className="cmp-section-title">
-          <SectionHead title="Signals" subtitle="Scores run from 0 to 100; a higher score means a stronger risk signal." />
-        </div>
-        {ids.length === 0 ? (
-          <EmptyBox>Neither case has signals yet.</EmptyBox>
-        ) : (
-          ids.map((id) => {
-            const sa = find(a, id);
-            const sb = find(b, id);
-            const name = sa?.name ?? sb?.name ?? id;
-            return (
-              <Row
-                key={id}
-                label={
-                  <>
-                    <span className="muted">{id}</span> {name}
-                  </>
-                }
-                a={<SignalCell v={a} s={sa} />}
-                b={<SignalCell v={b} s={sb} />}
-              />
-            );
-          })
-        )}
-
-        <div className="cmp-section-title">
-          <SectionHead title="Cost and trust" />
-        </div>
-        <Row label="Credits" a={<CreditsCell v={a} />} b={<CreditsCell v={b} />} />
-        <Row label="Verification" a={<VerificationCell v={a} />} b={<VerificationCell v={b} />} />
+      <div className="table-wrap cmp-wrap">
+        <table className="cmp">
+          <caption className="sr-only">
+            Side-by-side comparison of {a.target} and {b.target}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col" className="sr-only">
+                Measure
+              </th>
+              {[a, b].map((v) => (
+                <th scope="col" key={v.case_id} className="cmp-head">
+                  <div className="case-meta">
+                    <ModeBadge mode={v.mode} />
+                    <StatusPill tone={v.status_tone}>{v.status_label}</StatusPill>
+                  </div>
+                  <div className="cmp-title">{v.target}</div>
+                  <div className="cmp-peers">Peers: {v.peers.length > 0 ? v.peers.join(", ") : "none listed"}</div>
+                  <div className="cmp-open">{caseLink(v)}</div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <GroupRow>Overall result</GroupRow>
+            <Row label="Risk" a={<SummaryCell v={a} />} b={<SummaryCell v={b} />} />
+            <GroupRow>Signals (0 to 100; a higher score is a stronger risk signal)</GroupRow>
+            {ids.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="muted">
+                  Neither case has signals yet.
+                </td>
+              </tr>
+            ) : (
+              ids.map((id) => {
+                const sa = find(a, id);
+                const sb = find(b, id);
+                const name = sa?.name ?? sb?.name ?? id;
+                return (
+                  <Row
+                    key={id}
+                    label={
+                      <>
+                        <span className="cmp-id">{id}</span> {name}
+                      </>
+                    }
+                    a={<SignalCell v={a} s={sa} />}
+                    b={<SignalCell v={b} s={sb} />}
+                  />
+                );
+              })
+            )}
+            <GroupRow>Cost and trust</GroupRow>
+            <Row label="Credits" a={<CreditsCell v={a} />} b={<CreditsCell v={b} />} />
+            <Row label="Verification" a={<VerificationCell v={a} />} b={<VerificationCell v={b} />} />
+          </tbody>
+        </table>
       </div>
     </>
   );
@@ -258,10 +244,11 @@ export function Compare() {
       <p className="small" style={{ marginBottom: 10 }}>
         <Link to="/cases">All cases</Link>
       </p>
-      <div className="page-head">
-        <h1>Compare cases</h1>
-        <p>Two investigations side by side: overall result, each risk signal, credits and verification.</p>
-      </div>
+      <PageHeader
+        kicker="Side by side"
+        title="Compare cases"
+        dek="Two investigations set against each other: overall result, each risk signal, credits and verification."
+      />
       {valid ? (
         <CompareLoader key={`${idA}|${idB}`} idA={idA} idB={idB} />
       ) : (
