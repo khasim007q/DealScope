@@ -1,9 +1,7 @@
 """Local copy of each run's trace.
 
-The same OpenTelemetry spans that neatlogs exports are also passed to this exporter, which keeps them per trace and,
-when the root span (investigation_workflow) ends, stores a sanitized copy in SQLite keyed by case. The UI renders it as
-a waterfall under the same trace id that appears in the neatlogs dashboard. neatlogs has no read API in its SDK, so
-this is how the flow becomes visible in the product.
+An OpenTelemetry span exporter that keeps spans per trace and, when the root span (investigation_workflow) ends,
+stores a sanitized copy in SQLite keyed by case. The UI renders it as a waterfall.
 
 Sanitization: only DealScope's own attributes and model/token/cost metadata are kept. LLM prompt and response text
 (`input.value` / `output.value` on model spans) is dropped, because it can contain profile titles.
@@ -25,18 +23,7 @@ from opentelemetry.trace import StatusCode
 
 log = logging.getLogger(__name__)
 
-_KEEP_PREFIXES = (
-    "dealscope.",
-    "llm.model_name",
-    "llm.token_count.",
-    "llm.provider",
-    "llm.cost",
-    "gen_ai.usage.",
-    "gen_ai.request.model",
-    "gen_ai.response.model",
-    "neatlogs.cost",
-    "neatlogs.llm.",
-)
+_KEEP_PREFIXES = ("dealscope.",)
 _ROOT_IO = ("input.value", "output.value")  # kept on the workflow root only (our own short summaries)
 _MAX_VALUE = 300
 
@@ -98,12 +85,7 @@ def serialize_trace(spans: list[ReadableSpan]) -> dict[str, Any]:
         name, kind = s.name, str(attrs.get("openinference.span.kind", "CHAIN")).upper()
         if "generate_content" in name or kind == "LLM":
             kind = "LLM"
-            model = (
-                attrs.get("neatlogs.llm.model_name")
-                or attrs.get("llm.model_name")
-                or attrs.get("gen_ai.request.model")
-                or attrs.get("gen_ai.response.model")
-            )
+            model = attrs.get("dealscope.model")
             name = f"Gemini call ({model})" if model else "Gemini call"
         rows.append(
             {

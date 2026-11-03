@@ -32,7 +32,7 @@ def wait_done(client, case_id, timeout=30):
 def test_status_without_keys(client):
     body = client.get("/api/status").json()
     assert body["live_available"] is False
-    assert {p["key"] for p in body["providers"]} == {"crustdata", "llm", "neatlogs", "jobs_pricing"}
+    assert {p["key"] for p in body["providers"]} == {"crustdata", "llm", "jobs_pricing"}
 
 
 def test_synthetic_case_produces_plain_language_view(client):
@@ -57,9 +57,7 @@ def test_synthetic_case_produces_plain_language_view(client):
     assert view["steps"] and any(s["actor"] in ("Rule-based planner", "AI planner") for s in view["steps"])
     assert view["companies"] and view["jobs"] and view["people"]
     assert view["verification"]["published"] > 0
-    pc = view["plan_comparison"]
-    assert pc["simulated"] and pc["data_cost_plan"] == 2.6 and pc["total_plan"] == 94.65
-    assert pc["data_cost_case"] == round(pc["credits_used"] * 0.10, 2) and "business plan" in pc["summary"]
+    assert "plan_comparison" not in view
     assert client.get(f"/api/cases/{view['case_id']}/report.md").status_code == 200
     items = client.get("/api/cases").json()
     assert items[0]["case_id"] == view["case_id"]
@@ -116,11 +114,10 @@ def test_live_requires_key(client):
     assert client.post("/api/identity-check", json={"domains": ["acme.example"]}).status_code == 400
 
 
-def test_evidence_route_blocks_traversal(client):
+def test_unknown_api_paths_404(client):
     r = client.get("/api/evidence/..%2F..%2F.env")
     assert r.status_code == 404 and "CRUSTDATA" not in r.text
     assert client.get("/api/does-not-exist").status_code == 404
-    assert client.get("/api/evidence/cfo-ai/assumptions.md").status_code == 404  # only images/pdf served
 
 
 def test_cancel_requires_running_case(client):
@@ -129,11 +126,7 @@ def test_cancel_requires_running_case(client):
 
 def test_evidence_summary_reads_committed_evidence(client):
     body = client.get("/api/evidence-summary").json()
-    assert {"neatlogs", "entire", "cfo", "crustdata"} <= set(body)
-    assert any(r["trace_ids"] for r in body["neatlogs"]["runs"])
-    assert {row["variant"] for row in body["neatlogs"]["eval_rows"]} == {"baseline", "improved"}
-    assert len(body["cfo"]["scenarios"]) == 3 and body["crustdata"]["reserve"] >= 0
-    assert all(s["path"].startswith("evidence/") for s in body["neatlogs"]["screenshots"])
+    assert set(body) == {"crustdata"} and body["crustdata"]["reserve"] >= 0
 
 
 def test_featured_round_trip(tmp_path):
@@ -175,14 +168,14 @@ def scenario_input():
 
 
 def test_local_trace_recording(tmp_path):
-    """The spans of a run are recorded per case (same spans that would go to neatlogs)."""
+    """The spans of a run are recorded per case ."""
     from dealscope.observability import tracing
     from dealscope.persistence.repository import Repository
 
     db = tmp_path / "traced.sqlite3"
     tracing.shutdown()
     try:
-        tracing.init_tracing(None, record_to=db)
+        tracing.init_tracing(record_to=db)
         repo = Repository(db)
         orch = build_orchestrator_for(repo)
         state = orch.create_case(scenario_input())
@@ -205,12 +198,68 @@ def test_recorder_drops_model_io_text():
     from dealscope.observability.recorder import _clean
 
     attrs = {
-        "neatlogs.llm.model_name": "gemini-3.8-flash",
-        "neatlogs.llm.input_messages.1.content": "SNAPSHOT: Head of Engineering ...",
-        "neatlogs.llm.output_messages.0.content": "{...}",
+        "dealscope.model": "gemini-3.8-flash",
+        "llm.input_messages.1.content": "SNAPSHOT: Head of Engineering ...",
+        "gen_ai.completion": "{...}",
+        "dealscope.prompt": "SNAPSHOT: ...",
         "dealscope.tool": "search_people",
         "input.value": "prompt text",
     }
     out = _clean(attrs, is_root=False)
-    assert out == {"neatlogs.llm.model_name": "gemini-3.8-flash", "dealscope.tool": "search_people"}
+    assert out == {"dealscope.model": "gemini-3.8-flash", "dealscope.tool": "search_people"}
     assert _clean({"input.value": "live case x"}, is_root=True) == {"input.value": "live case x"}
+
+
+def test_llm_span_renders_as_gemini_call(tmp_path):
+    import json
+
+    from dealscope.observability import tracing
+    from dealscope.persistence.repository import Repository
+
+    db = tmp_path / "llm.sqlite3"
+    tracing.shutdown()
+    try:
+        tracing.init_tracing(record_to=db)
+        with tracing.span("investigation_workflow", kind="WORKFLOW", case_id="case-llm"):
+            with tracing.span("generate_content", kind="LLM", model="gemini-3.8-flash") as sp:
+                sp.set_attribute("total_tokens", 1234)
+                sp.set_io("SECRET PROMPT TEXT", "SECRET RESPONSE")
+        repo = Repository(db)
+        traces = repo.list_traces("case-llm")
+    finally:
+        tracing.shutdown()
+    assert len(traces) == 1
+    llm = next(s for s in traces[0]["spans"] if s["kind"] == "LLM")
+    assert llm["name"] == "Gemini call (gemini-3.8-flash)"
+    assert llm["attributes"]["dealscope.total_tokens"] == 1234
+    assert "SECRET" not in json.dumps(llm)
+
+
+def test_init_tracing_without_store_is_noop():
+    from dealscope.observability import tracing
+
+    tracing.shutdown()
+    try:
+        assert tracing.init_tracing() is False and not tracing.tracing_enabled()
+        with tracing.span("x") as sp:
+            sp.set_attribute("a", 1)
+    finally:
+        tracing.shutdown()
+
+
+def test_init_tracing_with_record_to_persists_case_trace(tmp_path):
+    from dealscope.observability import tracing
+    from dealscope.persistence.repository import Repository
+
+    db = tmp_path / "t.sqlite3"
+    tracing.shutdown()
+    try:
+        assert tracing.init_tracing(record_to=db) is True and tracing.tracing_enabled()
+        with tracing.span("investigation_workflow", kind="WORKFLOW", case_id="case-x"):
+            with tracing.span("tool.search", kind="TOOL"):
+                pass
+        tracing.flush()
+        traces = Repository(db).list_traces("case-x")
+    finally:
+        tracing.shutdown()
+    assert len(traces) == 1 and traces[0]["span_count"] == 2

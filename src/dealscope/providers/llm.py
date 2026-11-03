@@ -47,10 +47,9 @@ class GeminiProvider:
         from google import genai
         from google.genai import types
 
-        # Construct after tracing.init_tracing() so neatlogs can instrument the client.
         # Bounded request time (ms); a cold model was observed to take ~45 s on the first call.
         http = types.HttpOptions(timeout=60_000)
-        self._client = tracing.wrap_llm_client(genai.Client(api_key=api_key, http_options=http))
+        self._client = genai.Client(api_key=api_key, http_options=http)
         self.model = model
         self.escalation_model = escalation_model
         self.fallback_models = list(fallback_models or [])
@@ -94,7 +93,10 @@ class GeminiProvider:
         last: Exception | None = None
         for attempt in range(TRANSIENT_RETRIES + 1):
             try:
-                resp = self._client.models.generate_content(model=model, contents=prompt, config=config)
+                with tracing.span("generate_content", kind="LLM", model=model, attempt=attempt + 1) as sp:
+                    resp = self._client.models.generate_content(model=model, contents=prompt, config=config)
+                    usage = getattr(resp, "usage_metadata", None)
+                    sp.set_attribute("total_tokens", int(getattr(usage, "total_token_count", 0) or 0))
             except Exception as exc:  # SDK raises several error types; normalize them
                 last = exc
                 delay = _retry_delay(exc, attempt)
@@ -105,7 +107,6 @@ class GeminiProvider:
             text = getattr(resp, "text", None)
             if not text:
                 raise LLMError("gemini returned empty response")
-            usage = getattr(resp, "usage_metadata", None)
             self.tokens_used += int(getattr(usage, "total_token_count", 0) or 0)
             self.calls_made += 1
             return text

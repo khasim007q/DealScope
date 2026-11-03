@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/khasim007q/DealScope/actions/workflows/ci.yml/badge.svg)](https://github.com/khasim007q/DealScope/actions/workflows/ci.yml)
 
-Evidence-led, outside-in organizational diligence agent for PE, growth-equity and corp-dev teams (neatHack MVP).
+Evidence-led, outside-in organizational diligence agent for PE, growth-equity and corp-dev teams.
 It surfaces externally observable organizational signals that could undermine a deal thesis, shows the evidence
 behind each one, and turns them into a sourced list of questions to validate before signing.
 
@@ -22,8 +22,8 @@ conclusion. Draft findings (template or LLM) must pass the deterministic claim v
 causal or over-generalised claims, before anything reaches the memo. Failed runs can be resumed without replaying
 completed metered calls.
 
-For a guided summary of how the agent works, the tradeoffs and what neatlogs, Entire and cfo.ai changed, see
-[docs/walkthrough.md](docs/walkthrough.md) (also in the app under **How it works**).
+For a guided summary of how the agent works and the tradeoffs, see [docs/walkthrough.md](docs/walkthrough.md)
+(also in the app under **How it works**).
 
 ## Quickstart
 
@@ -49,7 +49,7 @@ Tests and lint: `python -m pytest -q`, `ruff check .`, and `npm --prefix fronten
 | Synthetic fixture | none |
 | Live Crustdata | `CRUSTDATA_API_KEY` |
 | LLM planner/synthesis (optional) | `LLM_API_KEY` (Gemini); without it the deterministic planner runs |
-| Traces | `NEATLOGS_API_KEY`; without it tracing is a no-op and the UI says "not connected" |
+| Tracing | none; the agent's OpenTelemetry spans are recorded locally to SQLite |
 
 Live mode never falls back to fixtures. Put secrets only in `.env` (never commit it).
 
@@ -61,7 +61,7 @@ Live mode never falls back to fixtures. Put secrets only in `.env` (never commit
 | `api/views.py` | Translates internal state (reason codes, stages, outcomes) into plain-language view models |
 | `analysis/data_quality.py` | Drops implausible provider growth values before scoring and flags them |
 | `../../frontend/` | React + TypeScript UI (Vite): new investigation, case detail (with Stop/Resume), cases, compare, evidence, how it works |
-| `api/evidence.py` | Judge-facing partner evidence summary (neatlogs, Entire, cfo.ai, Crustdata) from committed files |
+| `api/evidence.py` | Evidence page data: Crustdata pricing and credit usage from committed files |
 | `persistence/featured.py` | Local-only featured (recorded) live cases for credit-free demos (gitignored) |
 | `agent/planner.py` | Enumerates legal candidate actions; LLM picks one or deterministic policy decides |
 | `agent/orchestrator.py` | Bounded investigate / recover / stop loop; checkpoints every stage and tool result |
@@ -78,7 +78,8 @@ Live mode never falls back to fixtures. Put secrets only in `.env` (never commit
 | `providers/llm.py` | Configurable LLM adapter (Gemini); output treated as untrusted |
 | `verification/claims.py` | Deterministic claim verifier gating the memo |
 | `reports/memo.py` | Memo renderer and JSON evidence bundle (verified claims only) |
-| `observability/tracing.py` | neatlogs facade with safe attributes; no-op without a key |
+| `observability/tracing.py` | OpenTelemetry instrumentation with redacted attributes |
+| `observability/recorder.py` | Records each run's spans per case into SQLite for the trace waterfall on the case page |
 
 ```mermaid
 flowchart LR
@@ -108,20 +109,23 @@ Figures in the UI are estimates unless marked actual.
 - Per run: 8 planner turns, 12 tool calls, 240 s, 2 retries (configurable in `.env`).
 - Risk, evidence confidence and coverage are reported separately; low coverage is never shown as low risk.
 - No attrition rates, causal or misconduct allegations, or valuation/buy-pass advice.
-- No contact data requested; raw provider JSON is hashed, not stored; traces carry redacted attributes only.
+- No contact data requested; raw provider JSON is hashed, not stored; recorded traces carry redacted attributes only (model prompt/response text is dropped).
 
-## Partner tools
+## Observability
 
-All proof is browsable in the app on the **Evidence** page and in [`evidence/`](evidence/).
+Every run emits OpenTelemetry spans for planning, each tool call, retries, scoring, the verifier and the memo. They are
+recorded per case into the local SQLite database (`src/dealscope/observability/recorder.py`) and shown as a trace
+waterfall on the case page. There is no tracing service and no tracing API key.
 
-- **neatlogs** (runtime tracing): every run traces planning, tool calls, retries, scoring, the verifier and the memo.
-  Traces exposed the Gemini failures behind the rule-based fallback, confirmed the resume fix, and measured real AI
-  cost. Raw results: [`evidence/neatlogs/`](evidence/neatlogs/) (run JSON + 13 dashboard screenshots).
-- **Entire** (coding-session checkpoints): each commit made with Claude Code carries an `Entire-Checkpoint` trailer
-  linking it to the session that produced it. Session timeline and transcript: [`evidence/entire/`](evidence/entire/).
-- **cfo.ai** (business plan): pricing, unit economics ($94.65 per audit), three scenarios; runway left blank because
-  cash is unknown. Each case page compares its real cost with the plan. Exports: [`evidence/cfo-ai/`](evidence/cfo-ai/).
+## CLI runner
 
-Walkthrough: [`docs/walkthrough.md`](docs/walkthrough.md). Submission video script:
-[`docs/video-script.md`](docs/video-script.md). Evidence index: [`SUBMISSION_EVIDENCE.md`](SUBMISSION_EVIDENCE.md).
-Build history: [`IMPLEMENTATION_LOG.md`](IMPLEMENTATION_LOG.md).
+`scripts/run_case.py` runs cases without the UI (synthetic fixture runs, live runs, a failure/resume drill and a
+baseline-versus-improved prompt comparison; see `python scripts/run_case.py --help`). Results are written to
+`reports/runs/` (gitignored).
+
+## Evidence page
+
+The **Evidence** page in the app shows the Crustdata pricing and credit usage behind the credit policy, read from
+[`evidence/crustdata/`](evidence/crustdata/) (account pricing check and a single-company smoke test).
+
+Walkthrough: [`docs/walkthrough.md`](docs/walkthrough.md).

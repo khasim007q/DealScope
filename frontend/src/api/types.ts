@@ -6,7 +6,7 @@ export type RunMode = "live" | "synthetic";
 export type Tone = "good" | "neutral" | "caution" | "bad" | "info";
 
 export interface ProviderStatus {
-  key: "crustdata" | "llm" | "neatlogs" | "jobs_pricing";
+  key: "crustdata" | "llm" | "jobs_pricing";
   label: string; // e.g. "Company data (Crustdata)"
   connected: boolean;
   detail: string; // e.g. "Connected" / "Model: gemini-3.1-flash-lite" / "Not configured"
@@ -226,7 +226,6 @@ export interface CaseView {
   people: PersonRow[];
   jobs: JobRow[];
   credits: CreditsView;
-  plan_comparison: PlanComparison | null;
   verification: VerificationView | null;
   trace_ids: string[];
   llm_model: string | null;
@@ -235,7 +234,7 @@ export interface CaseView {
 }
 
 // ---------------------------------------------------------------------------
-// v0.3 additions: featured (recorded) cases, cancel, partner evidence summary
+// v0.3 additions: featured (recorded) cases, cancel, Crustdata credit evidence summary
 // ---------------------------------------------------------------------------
 
 // GET /api/featured -> FeaturedCase[]  (finished live cases bundled with the repo; open without spending credits)
@@ -249,61 +248,7 @@ export interface FeaturedCase {
 // POST /api/cases/{id}/cancel -> CreateCaseResponse  (409 when the case is not running)
 // After cancelling, the case ends with status_label "Stopped by you" and can be resumed.
 
-export interface NeatlogsRun {
-  label: string; // "Live investigation - airtable.com"
-  kind: "live" | "failure" | "eval";
-  case_id: string | null;
-  trace_ids: string[];
-  summary: string; // plain sentence with the outcome
-}
-
-export interface EvalRow {
-  scenario: string; // "A" | "B"
-  variant: "baseline" | "improved";
-  trace_id: string | null;
-  draft_claims: number;
-  draft_rejected: number;
-  draft_verified: number;
-  draft_with_caveats: number;
-  published: number;
-  tool_calls: number;
-}
-
-export interface EvidenceFile {
-  label: string;
-  path: string; // repo-relative "evidence/..."; images and PDFs load from /api/evidence/<path after "evidence/">
-}
-
 export interface EvidenceSummary {
-  neatlogs: {
-    runs: NeatlogsRun[];
-    eval_rows: EvalRow[];
-    eval_reading: string; // honest one-paragraph interpretation
-    screenshots: EvidenceFile[];
-    traces?: EvidenceTrace[];
-  };
-  entire: {
-    checkpoints: { commit: string; subject: string; checkpoint: string }[];
-    screenshots: EvidenceFile[];
-    flow?: EntireCommitCheckpoint[];
-    session?: { session_id: string; agent: string; checkpoints_total: number; first: string; last: string } | null;
-    transcript_path: string | null;
-    notes: string[];
-  };
-  cfo: {
-    scenarios: {
-      name: string;
-      revenue: string;
-      audits: string;
-      gross_margin: string;
-      contribution_margin: string;
-      peak_funding_need: string;
-    }[];
-    unit_cost: string; // e.g. "$94.65 per audit (QA $90, tooling $2, Crustdata $2.60, LLM $0.05)"
-    pricing: string[];
-    notes: string[];
-    files: EvidenceFile[];
-  };
   crustdata: {
     total: number;
     reserve: number;
@@ -316,32 +261,8 @@ export interface EvidenceSummary {
   };
 }
 
-// Case cost vs the cfo.ai business-plan assumptions per audit (USD). Plan values are editable assumptions.
-export interface PlanComparison {
-  dollars_per_credit: number;
-  credits_used: number;
-  credits_basis: string; // "confirmed credits" | "estimated credits" | "simulated credits (demo data)"
-  simulated: boolean;
-  data_cost_case: number;
-  data_cost_plan: number;
-  plan_credits_per_audit: number;
-  llm_cost_plan: number;
-  llm_tokens: number | null; // tokens in the latest run, as reported by the provider
-  llm_calls: number | null;
-  llm_model: string | null;
-  review_cost: number;
-  tooling_cost: number;
-  total_case: number;
-  total_plan: number;
-  price: number;
-  margin_case_pct: number | null;
-  margin_plan_pct: number | null;
-  summary: string;
-  notes: string[];
-}
-
 // ---------------------------------------------------------------------------
-// v0.4: real trace flows (same spans exported to neatlogs, recorded locally) and the Entire commit flow
+// v0.4: recorded trace flows (OpenTelemetry spans recorded locally)
 // ---------------------------------------------------------------------------
 
 export interface TraceSpanEvent {
@@ -364,7 +285,7 @@ export interface TraceSpan {
 }
 
 export interface RecordedTrace {
-  trace_id: string; // same id as in the neatlogs dashboard
+  trace_id: string; // OpenTelemetry trace id
   started_at: string; // ISO
   duration_ms: number;
   span_count: number;
@@ -374,25 +295,3 @@ export interface RecordedTrace {
 
 // GET /api/cases/{id}/traces -> RecordedTrace[]  (one per run of the case, oldest first; empty for runs recorded
 // before local trace capture existed)
-
-export interface EvidenceTrace {
-  label: string; // "Failure recovery: first run (partial)"
-  description: string; // what to look for in this flow
-  trace: RecordedTrace;
-}
-
-export interface EntireCommitCheckpoint {
-  checkpoint: string; // Entire checkpoint id (Entire-Checkpoint trailer)
-  commit: string; // short sha
-  date: string; // ISO
-  subject: string;
-  files_changed: number;
-  insertions: number;
-  deletions: number;
-  files: { path: string; insertions: number; deletions: number }[]; // up to 12 largest changes
-}
-
-// Added fields (backend fills them; older servers may omit -> treat as empty):
-// EvidenceSummary.neatlogs.traces?: EvidenceTrace[]
-// EvidenceSummary.entire.flow?: EntireCommitCheckpoint[]   (commit checkpoints only, newest first; no prompt text)
-// EvidenceSummary.entire.session?: { session_id: string; agent: string; checkpoints_total: number; first: string; last: string } | null

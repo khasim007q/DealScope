@@ -1,5 +1,4 @@
-import type { CreditsView, PlanComparison, VerificationView } from "../api/types";
-import { PlanComparisonCard } from "./PlanComparisonCard";
+import type { CreditsView, VerificationView } from "../api/types";
 import { formatCredits, formatInt, formatRate } from "../lib/format";
 import { CopyButton, SectionHead, StatusPill } from "./ui";
 
@@ -89,10 +88,9 @@ interface Props {
   llmModel: string | null;
   traceIds: string[];
   synthetic: boolean;
-  planComparison?: PlanComparison | null;
 }
 
-export function CostTrust({ credits, verification, llmModel, traceIds, synthetic, planComparison }: Props) {
+export function CostTrust({ credits, verification, llmModel, traceIds, synthetic }: Props) {
   return (
     <section className="section" aria-labelledby="cost-h">
       <SectionHead id="cost-h" title="Cost and trust" subtitle="What this run cost and how the claims were checked." />
@@ -100,7 +98,6 @@ export function CostTrust({ credits, verification, llmModel, traceIds, synthetic
         <CreditsCard credits={credits} />
         <VerificationCard v={verification} />
       </div>
-      {planComparison ? <PlanComparisonCard pc={planComparison} /> : null}
       <div className="card" style={{ marginTop: 16 }}>
         <h3>Run details</h3>
         <p style={{ marginBottom: 8 }}>

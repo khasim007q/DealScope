@@ -87,7 +87,7 @@ function eventLabel(e: TraceSpan["events"][number]): string {
 }
 
 function SpanDetails({ span, id }: { span: TraceSpan; id: string }) {
-  const attrs = Object.entries(span.attributes).filter(([k]) => !k.startsWith("neatlogs."));
+  const attrs = Object.entries(span.attributes);
   return (
     <div className="tw-details" id={id}>
       <div className="tw-detail-meta">
@@ -241,7 +241,7 @@ export function TraceWaterfall({ trace, compact = false }: { trace: RecordedTrac
     <div className={`tw${compact ? " compact" : ""}`}>
       <div className="tw-head">
         <div className="tw-id">
-          <span className="muted small">neatlogs trace</span>
+          <span className="muted small">Run trace</span>
           <span className="trace-id">{trace.trace_id}</span>
           <CopyButton text={trace.trace_id} label="Copy" />
         </div>

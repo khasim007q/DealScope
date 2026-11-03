@@ -41,17 +41,6 @@ class Settings(BaseSettings):
     def llm_fallback_list(self) -> list[str]:
         return [m.strip() for m in self.llm_fallback_models.split(",") if m.strip() and m.strip() != self.llm_model]
 
-    # Business-plan assumptions per audit, from the cfo.ai model (evidence/cfo-ai/). Editable; used only to compare a
-    # case's real cost with the plan. Dollars per credit is an assumption (Crustdata does not publish it).
-    plan_dollars_per_credit: Decimal = Decimal("0.10")
-    plan_credits_per_audit: Decimal = Decimal("26")
-    plan_llm_cost_per_audit: Decimal = Decimal("0.05")
-    plan_review_cost_per_audit: Decimal = Decimal("90")
-    plan_tooling_cost_per_audit: Decimal = Decimal("2")
-    plan_price_per_audit: Decimal = Decimal("1500")
-
-    neatlogs_api_key: SecretStr | None = None
-
     dealscope_mode: RunMode = RunMode.SYNTHETIC
     dealscope_db_path: Path = Path("./data/dealscope.sqlite3")
     dealscope_max_iterations: int = Field(default=8, ge=1, le=8)
@@ -65,7 +54,7 @@ class Settings(BaseSettings):
     def _blank_is_none(cls, v: object) -> object:
         return None if isinstance(v, str) and not v.strip() else v
 
-    @field_validator("crustdata_api_key", "llm_api_key", "neatlogs_api_key", mode="before")
+    @field_validator("crustdata_api_key", "llm_api_key", mode="before")
     @classmethod
     def _blank_secret_is_none(cls, v: object) -> object:
         return None if isinstance(v, str) and not v.strip() else v
@@ -86,7 +75,6 @@ class Settings(BaseSettings):
             "llm_provider": self.llm_provider,
             "llm_model": self.llm_model,
             "llm_key_present": self.llm_api_key is not None,
-            "neatlogs_key_present": self.neatlogs_api_key is not None,
             "jobs_price_configured": self.jobs_price_configured,
             "max_case_credits": str(self.crustdata_max_case_credits),
         }

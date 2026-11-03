@@ -1,11 +1,11 @@
-"""CLI runner for traced DealScope runs (used for neatlogs evidence).
+"""CLI runner for traced DealScope runs.
 
   python scripts/run_case.py case --scenario scenario_a            # synthetic run
   python scripts/run_case.py case --live --target t.com --peers a.com b.com c.com --thesis "..." --budget 60
   python scripts/run_case.py failure                                # 503x3 -> partial -> restart -> resume
   python scripts/run_case.py eval --scenario scenario_a             # baseline vs improved on the same fixture
 
-Results (metrics + trace ids, no secrets) are written to evidence/neatlogs/*.json.
+Results (metrics + trace ids, no secrets) are written to reports/runs/*.json.
 """
 
 from __future__ import annotations
@@ -30,15 +30,14 @@ from dealscope.observability import tracing  # noqa: E402
 from dealscope.persistence.repository import Repository  # noqa: E402
 
 FIX = ROOT / "fixtures"
-OUT = ROOT / "evidence" / "neatlogs"
+OUT = ROOT / "reports" / "runs"
 NO_LLM = False  # set by --no-llm: deterministic planner + deterministic findings only
 DETERMINISTIC_PLANNER = False  # set by --deterministic-planner: LLM used only for memo drafting
 
 
 def init(settings: Settings) -> bool:
-    key = settings.neatlogs_api_key.get_secret_value() if settings.neatlogs_api_key else None
-    enabled = tracing.init_tracing(key, workflow_name="dealscope", record_to=settings.dealscope_db_path)
-    print(f"neatlogs tracing: {'ENABLED' if enabled else 'DISABLED (no NEATLOGS_API_KEY)'}")
+    enabled = tracing.init_tracing(workflow_name="dealscope", record_to=settings.dealscope_db_path)
+    print(f"local trace recording: {'ENABLED' if enabled else 'DISABLED'}")
     return enabled
 
 

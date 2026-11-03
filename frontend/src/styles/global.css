@@ -420,15 +420,6 @@ details.disclosure > .disc-body { padding: 4px 14px 12px; }
 .confirm-box p { margin: 0 0 8px; font-weight: 600; }
 .row-check { width: 20px; height: 20px; accent-color: var(--accent); }
 
-/* Evidence page */
-.shot-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
-.shot-grid li { margin: 0; }
-.shot { margin: 0; }
-.shot a { display: block; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; background: var(--surface); }
-.shot img { display: block; width: 100%; height: 150px; object-fit: cover; object-position: top; }
-.shot figcaption { font-size: 0.84rem; color: var(--muted); margin-top: 4px; }
-.file-list { list-style: none; padding: 0; }
-
 /* Trace waterfall */
 .tw {
   --k-llm-fg: #5b3a99; --k-llm-bg: #ece6f8; --k-llm-bar: #8a68c9;
@@ -454,7 +445,6 @@ details.disclosure > .disc-body { padding: 4px 14px 12px; }
 .tw-legend { margin: 0; color: var(--muted); font-size: 0.88rem; }
 .tw-filter { font-size: 0.88rem; font-weight: 600; align-items: center; }
 .tw-filter input { width: 18px; height: 18px; margin-top: 0; }
-.tw-desc { margin: 0 0 12px; color: var(--ink-2); font-size: 0.92rem; }
 .tw-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); overflow: hidden; }
 .tw-item { margin: 0; padding: 0; border-bottom: 1px solid var(--line); }
 .tw-item:last-child { border-bottom: 0; }
@@ -494,27 +484,6 @@ details.disclosure > .disc-body { padding: 4px 14px 12px; }
   .tw-track { display: none; }
 }
 
-/* Entire commit flow */
-.flow { list-style: none; margin: 0 0 8px; padding: 0; position: relative; }
-.flow > li { position: relative; padding: 0 0 20px 28px; margin: 0; }
-.flow > li::before { content: ""; position: absolute; left: 7px; top: 16px; bottom: -4px; width: 2px; background: var(--line-strong); }
-.flow > li:last-child::before { display: none; }
-.flow-dot { position: absolute; left: 0; top: 4px; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--accent); }
-.flow-top { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
-.flow-date { font-size: 0.84rem; color: var(--muted); }
-.flow-subject { font-weight: 600; margin: 4px 0; }
-.flow-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 4px; }
-.flow-diff { margin: 2px 0 0; color: var(--ink-2); }
-.flow-files { list-style: none; margin: 0; padding: 0; }
-.flow-files li { display: grid; grid-template-columns: minmax(0, 1fr) auto 90px; gap: 10px; align-items: center; padding: 4px 0; margin: 0; border-bottom: 1px solid var(--line); }
-.flow-files li:last-child { border-bottom: 0; }
-.flow-path { font-size: 0.8rem; word-break: break-all; }
-.flow-counts { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.diff-bar { display: block; height: 8px; background: var(--neutral-bg); border-radius: 999px; overflow: hidden; }
-.diff-bar-inner { display: flex; height: 100%; }
-.diff-ins { background: var(--good-bar); height: 100%; }
-.diff-del { background: var(--bad-bar); height: 100%; }
-
 /* Compare page */
 .cmp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; padding: 12px 0; border-top: 1px solid var(--line); }
 .cmp-row.cmp-heads { border-top: 0; padding-top: 0; }
@@ -546,10 +515,6 @@ details.disclosure > .disc-body { padding: 4px 14px 12px; }
 .hiw-section:first-of-type { margin-top: 20px; }
 .hiw-section .summary-line { font-size: 1.02rem; color: var(--ink-2); font-weight: 500; }
 .hiw-section p { max-width: 74ch; }
-.figure { margin: 16px 0; }
-.figure a { display: block; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
-.figure img { display: block; max-width: 100%; height: auto; margin: 0 auto; }
-.figure figcaption { color: var(--muted); font-size: 0.85rem; margin-top: 6px; }
 
 @media (max-width: 900px) {
   .summary { grid-template-columns: 1fr; gap: 18px; }

@@ -23,7 +23,7 @@ export function CaseTraces({ caseId, traceIds, running }: { caseId: string; trac
       <SectionHead
         id="trace-h"
         title="Trace of this run"
-        subtitle="The real sequence of steps the agent executed, with timing. The same trace is in the neatlogs dashboard."
+        subtitle="The real sequence of steps the agent executed, with timing."
       />
       {loading && !data ? (
         <Loading label="Loading trace..." />
@@ -32,8 +32,7 @@ export function CaseTraces({ caseId, traceIds, running }: { caseId: string; trac
       ) : !current ? (
         <EmptyBox>
           <p style={{ margin: 0 }}>
-            No recorded trace for this run. Runs started before trace recording was added only have their trace in the
-            neatlogs dashboard.
+            No recorded trace for this run. Runs started before local trace recording was added have no trace to show.
           </p>
           {traceIds.length > 0 ? (
             <div style={{ marginTop: 10 }}>

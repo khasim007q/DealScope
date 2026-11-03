@@ -92,12 +92,6 @@ export function plural(n: number, one: string, many?: string): string {
   return n === 1 ? one : (many ?? `${one}s`);
 }
 
-/** Encode each path segment after the leading "evidence/" for the evidence endpoint. */
-export function evidenceUrl(repoPath: string): string {
-  const rel = repoPath.replace(/^\/+/, "").replace(/^evidence\//, "");
-  return "/api/evidence/" + rel.split("/").map(encodeURIComponent).join("/");
-}
-
 /** Normalize a user-entered domain: strip protocol, www, paths, whitespace, lowercase. */
 export function normalizeDomain(raw: string): string {
   let s = raw.trim().toLowerCase();

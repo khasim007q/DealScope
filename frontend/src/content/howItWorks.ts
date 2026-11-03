@@ -1,7 +1,6 @@
 import type { HowItWorksContent } from "./types";
 
-// Plain-language "How it works" content. Every figure is taken from files in this repository
-// (IMPLEMENTATION_LOG.md, SUBMISSION_EVIDENCE.md, evidence/). The long version is docs/walkthrough.md.
+// Plain-language "How it works" content. The long version is docs/walkthrough.md.
 
 export const HOW_IT_WORKS: HowItWorksContent = {
   intro:
@@ -164,70 +163,13 @@ export const HOW_IT_WORKS: HowItWorksContent = {
       },
     },
     {
-      id: "neatlogs",
-      title: "neatlogs: seeing what the agent did",
-      summary:
-        "Each run is traced step by step, which found a real bug and proved the fallback behaviour.",
-      paragraphs: [
-        "neatlogs records the planner turns, every provider call, scoring, the verifier and the memo. Because of it we found that an early resume did not re-run a failed enrichment, and fixed it. The traces also show Gemini calls failing and the run still completing through the rule-based fallback, and they let us measure the real AI cost per call (about $0.003 per planner call and $0.0015 to $0.02 per memo draft, against $0.05 per audit assumed in the business plan; the free tier was billed at $0).",
-        "A controlled experiment compared a loose memo prompt with a strict one on the same synthetic cases. The honest result: no difference in unsupported claims (zero in both), but the strict prompt produced more claims that passed verification outright (5 versus 2 on one scenario, 6 versus 1 on the other). It was one run per variant, so treat it as an indication only. The first run of the second scenario was invalid because of a budget bug we found and fixed, and it was re-run on 2026-10-12.",
-      ],
-      images: [
-        {
-          path: "evidence/neatlogs/screenshots/Screenshot 2026-10-11 213732.png",
-          caption:
-            "Live Airtable investigation: real tool latencies, Gemini errors and successful retries inside the planner steps.",
-        },
-        {
-          path: "evidence/neatlogs/screenshots/Screenshot 2026-10-11 213609.png",
-          caption:
-            "Resilience: several Gemini calls show Execution Failed, yet the run completes through the rule-based fallback, verifies and renders the memo.",
-        },
-        {
-          path: "evidence/neatlogs/screenshots/Screenshot 2026-10-11 213802.png",
-          caption:
-            "Failure recovery: the resumed run retries the failed enrichment and completes without repeating completed calls.",
-        },
-        {
-          path: "evidence/neatlogs/screenshots/Screenshot 2026-10-11 213710.png",
-          caption:
-            "Live memo regeneration through recover_run: 11,146 tokens, $0.02, and no new tool calls.",
-        },
-        {
-          path: "evidence/neatlogs/screenshots/Screenshot 2026-10-11 213426.png",
-          caption:
-            "Synthetic run showing the input and output summary and the Gemini 3.1-flash-lite synthesis step (2,175 tokens, $0.0015).",
-        },
-      ],
-    },
-    {
-      id: "entire-cfo",
-      title: "Entire and cfo.ai",
-      summary:
-        "Entire makes the build traceable; cfo.ai holds the business plan. Both are hypotheses and records, not traction.",
-      paragraphs: [
-        "Entire links commits to the Claude Code session that produced them. Commit 70400f8 carries checkpoint 01M4NTHZJBFDKJ80R5FCA3CDZS and a transcript of the build session is saved in the repository, including the hand-offs from the lead model to its Sonnet sub-agents. One gotcha: the commit hook asks an interactive question that blocks an automated shell, which we resolved by answering once in a terminal.",
-        "The cfo.ai plan compares pricing of $750, $1,500 or $3,000 per audit, a $24,000 annual plan, and a hybrid. Delivery cost is $94.65 per audit, mostly an assumed 1.5 hours of human review. The three scenarios below are assumptions: DealScope has no customers, no revenue and no signed pilots. Runway is left blank because opening cash is unknown.",
-        "Real runs fed back into the plan: Crustdata use measured 9.18 to 12.21 credits per audit against the 26 the plan assumed, so the modeled data cost is conservative. The measured numbers have not yet been written back into the cfo.ai export.",
-      ],
-      table: {
-        headers: ["12 months", "Conservative", "Base", "Growth"],
-        rows: [
-          ["Earned revenue", "$30,000", "$270,000", "$390,000"],
-          ["Audits delivered", "40", "180", "390"],
-          ["Gross margin", "87.20%", "93.69%", "90.54%"],
-          ["Peak modeled funding need", "$1,500", "$0", "$0"],
-        ],
-      },
-    },
-    {
       id: "limits",
       title: "Limits and what comes next",
       summary:
         "What you should not read into the results, and what we would do next.",
       paragraphs: [
-        "Results come from a few live cases and two synthetic scenarios. Signal thresholds are unvalidated heuristics, and public-profile coverage is incomplete. The Gemini free tier forced model switches and fallbacks, and one live trace is missing from the neatlogs dashboard because of an ingest outage.",
-        "Next steps we would take: re-export the business plan with measured costs, run more live cases with a higher-quota model key to compare AI and rule-based planning, add a human review step in the app, and run paid pilots with agreed accuracy and usefulness criteria.",
+        "Results come from a few live cases and two synthetic scenarios. Signal thresholds are unvalidated heuristics, and public-profile coverage is incomplete. The Gemini free tier forced model switches and fallbacks.",
+        "Next steps we would take: run more live cases with a higher-quota model key to compare AI and rule-based planning, add a human review step in the app, and run paid pilots with agreed accuracy and usefulness criteria.",
       ],
       bullets: [
         "A memo is a starting point for validation, not a conclusion about the company.",

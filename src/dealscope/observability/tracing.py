@@ -1,8 +1,7 @@
-"""neatlogs instrumentation behind a tiny facade.
+"""Tracing facade over OpenTelemetry with a local SQLite recorder.
 
-When NEATLOGS_API_KEY is absent the facade becomes a no-op so local/fixture runs keep working,
-and the UI reports observability as disconnected. Attributes are passed through `safe_attrs`
-so secrets, contact data and long free text never reach traces.
+When no trace store is configured the facade is a no-op so tests and scripts keep working.
+Attributes are passed through `safe_attrs` so secrets, contact data and long free text never reach traces.
 """
 
 from __future__ import annotations
@@ -16,51 +15,40 @@ from typing import Any
 
 log = logging.getLogger(__name__)
 
-_state: dict[str, Any] = {"enabled": False, "initialized": False, "local": False, "provider": None}
+_state: dict[str, Any] = {"enabled": False, "initialized": False, "provider": None}
 
-_SECRET_KEY = re.compile(r"(api[_-]?key|token|secret|password|authorization|email|phone)", re.I)
+_SECRET_KEY = re.compile(r"(api[_-]?key|token(?!s$)|secret|password|authorization|email|phone)", re.I)
 _MAX_STR = 300
 
 
 def init_tracing(
-    api_key: str | None,
     workflow_name: str = "dealscope",
-    tags: list[str] | None = None,
     record_to: Path | str | None = None,
 ) -> bool:
-    """Initialize tracing once. Must run before constructing wrapped LLM clients.
+    """Initialize tracing once; returns whether spans are being recorded.
 
-    One OpenTelemetry provider is shared: neatlogs attaches its exporters to it (when a key is set) and, when
-    `record_to` is given, a local recorder stores the same spans per case for the UI waterfall."""
+    A plain OpenTelemetry provider is created. When `record_to` is given, a local recorder stores each run's spans
+    per case in SQLite for the UI waterfall. Without it, spans are no-ops."""
     if _state["initialized"]:
         return _state["enabled"]
+    if record_to is None:
+        log.info("no trace store configured; tracing disabled")
+        return False
     _state["initialized"] = True
+    from opentelemetry.sdk.resources import Resource
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 
-    provider = TracerProvider()
-    _state["provider"] = provider
-    if api_key:
-        import neatlogs
+    from dealscope.observability.recorder import TraceRecorder
 
-        neatlogs.init(
-            api_key=api_key,
-            workflow_name=workflow_name,
-            tags=tags or ["dealscope", "neatHack"],
-            tracer_provider=provider,
-        )
-        _state["enabled"] = True
-    else:
-        log.info("neatlogs not configured; neatlogs export disabled")
-    if record_to is not None:
-        from dealscope.observability.recorder import TraceRecorder
-
-        provider.add_span_processor(SimpleSpanProcessor(TraceRecorder(record_to)))
-        _state["local"] = True
-    return bool(_state["enabled"])
+    provider = TracerProvider(resource=Resource.create({"service.name": workflow_name}))
+    provider.add_span_processor(SimpleSpanProcessor(TraceRecorder(record_to)))
+    _state.update(provider=provider, enabled=True)
+    return True
 
 
 def tracing_enabled() -> bool:
+    """True when spans are recorded to the local trace store."""
     return bool(_state["enabled"])
 
 
@@ -110,7 +98,7 @@ class _SpanHandle:
         self._span.record_exception(exc)
 
     def set_io(self, input_text: str | None = None, output_text: str | None = None) -> None:
-        """Short, non-sensitive summaries shown in the neatlogs Input/Output columns."""
+        """Short, non-sensitive summaries shown as the span input/output."""
         if input_text is not None:
             self._span.set_attribute("input.value", str(input_text)[:_MAX_STR])
         if output_text is not None:
@@ -125,18 +113,10 @@ class _SpanHandle:
 
 @contextlib.contextmanager
 def span(name: str, kind: str = "CHAIN", **attrs: Any) -> Iterator[_SpanHandle | _NullSpan]:
-    """Open a named span (kinds: WORKFLOW, AGENT, CHAIN, TOOL, GUARDRAIL)."""
-    if _state["enabled"]:
-        import neatlogs
-
-        with neatlogs.trace(name, kind=kind) as raw:
-            handle = _SpanHandle(raw)
-            for k, v in safe_attrs(attrs).items():
-                raw.set_attribute(f"dealscope.{k}", v)
-            yield handle
-        return
-    if _state.get("local") and _state.get("provider") is not None:
-        tracer = _state["provider"].get_tracer("dealscope")
+    """Open a named span (kinds: WORKFLOW, AGENT, CHAIN, TOOL, GUARDRAIL, LLM)."""
+    provider = _state.get("provider")
+    if _state["enabled"] and provider is not None:
+        tracer = provider.get_tracer("dealscope")
         with tracer.start_as_current_span(name, attributes={"openinference.span.kind": kind}) as raw:
             handle = _SpanHandle(raw)
             for k, v in safe_attrs(attrs).items():
@@ -146,31 +126,20 @@ def span(name: str, kind: str = "CHAIN", **attrs: Any) -> Iterator[_SpanHandle |
     yield _NullSpan()
 
 
-def wrap_llm_client(client: Any) -> Any:
-    if not _state["enabled"]:
-        return client
-    import neatlogs
-
-    return neatlogs.wrap(client)
-
-
 def flush() -> None:
-    if _state["enabled"]:
-        import neatlogs
-
-        neatlogs.flush()
+    provider = _state.get("provider")
+    if provider is not None:
+        try:
+            provider.force_flush()
+        except Exception:  # pragma: no cover - best effort
+            pass
 
 
 def shutdown() -> None:
-    if _state["enabled"]:
-        import neatlogs
-
-        neatlogs.flush()
-        neatlogs.shutdown()
     provider = _state.get("provider")
     if provider is not None:
         try:
             provider.shutdown()
         except Exception:  # pragma: no cover - best effort
             pass
-    _state.update(enabled=False, initialized=False, local=False, provider=None)
+    _state.update(enabled=False, initialized=False, provider=None)

@@ -35,7 +35,6 @@ from dealscope.persistence.repository import Repository
 log = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURES = ROOT / "fixtures"
-EVIDENCE = ROOT / "evidence"
 DIST = ROOT / "frontend" / "dist"
 
 SCENARIOS = {
@@ -78,11 +77,7 @@ FAULTS = {
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     s = _settings()
-    tracing.init_tracing(
-        s.neatlogs_api_key.get_secret_value() if s.neatlogs_api_key else None,
-        workflow_name="dealscope",
-        record_to=s.dealscope_db_path,
-    )
+    tracing.init_tracing(workflow_name="dealscope", record_to=s.dealscope_db_path)
     repo = _repo()
     try:
         imported = featured.import_all(repo)
@@ -190,12 +185,6 @@ def status() -> dict:
             "label": "AI planner and writer (Gemini)",
             "connected": bool(st["llm_key_present"]),
             "detail": f"Model: {s.llm_model}" if st["llm_key_present"] else "No API key - rule-based planner only",
-        },
-        {
-            "key": "neatlogs",
-            "label": "Run tracing (neatlogs)",
-            "connected": tracing.tracing_enabled(),
-            "detail": "Traces are being recorded" if tracing.tracing_enabled() else "Not connected",
         },
         {
             "key": "jobs_pricing",
@@ -459,17 +448,6 @@ def report_bundle(case_id: str) -> JSONResponse:
         json.loads(json.dumps(rep["bundle"], default=str)),
         headers={"Content-Disposition": f'attachment; filename="dealscope-{case_id}.json"'},
     )
-
-
-_EVIDENCE_TYPES = {".png", ".jpg", ".jpeg", ".webp", ".pdf"}
-
-
-@app.get("/api/evidence/{path:path}")
-def evidence_file(path: str) -> FileResponse:
-    target = (EVIDENCE / path).resolve()
-    if EVIDENCE.resolve() not in target.parents or target.suffix.lower() not in _EVIDENCE_TYPES or not target.is_file():
-        raise HTTPException(404, "Not found")
-    return FileResponse(target)
 
 
 # Serve the built single-page app (frontend/dist) with client-side routing fallback.

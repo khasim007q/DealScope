@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { HOW_IT_WORKS } from "../content";
 import type { HowItWorksContent, HowItWorksSection } from "../content/types";
-import { evidenceUrl } from "../lib/format";
 import { useDocumentTitle } from "../lib/hooks";
 
 const CONTENT: HowItWorksContent = HOW_IT_WORKS;
@@ -45,17 +44,6 @@ function Section({ section }: { section: HowItWorksSection }) {
           </table>
         </div>
       ) : null}
-      {section.images?.map((img) => {
-        const src = evidenceUrl(img.path);
-        return (
-          <figure className="figure" key={img.path}>
-            <a href={src} target="_blank" rel="noopener noreferrer" aria-label={`Open full size: ${img.caption}`}>
-              <img src={src} alt={img.caption} loading="lazy" />
-            </a>
-            <figcaption>{img.caption}</figcaption>
-          </figure>
-        );
-      })}
     </section>
   );
 }

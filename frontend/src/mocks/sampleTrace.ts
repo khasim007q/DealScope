@@ -1,4 +1,4 @@
-import type { EntireCommitCheckpoint, EvidenceTrace, RecordedTrace, TraceSpan } from "../api/types";
+import type { RecordedTrace, TraceSpan } from "../api/types";
 
 const ERR_429 =
   "429 RESOURCE_EXHAUSTED: Quota exceeded for model gemini-3.8-flash. Please retry in 28s. The run fell back to gemini-3.1-flash-lite.";
@@ -29,7 +29,7 @@ function span(
 
 const spans: TraceSpan[] = [
   span("s01", null, "investigation_workflow", "WORKFLOW", 0, 41800, {
-    attributes: { "dealscope.case_id": "case_live_airtable", "dealscope.mode": "live", "neatlogs.span.kind": "workflow" },
+    attributes: { "dealscope.case_id": "case_live_airtable", "dealscope.mode": "live" },
   }),
   span("s02", "s01", "tool.enrich_company", "TOOL", 120, 1480, { attributes: { "dealscope.domain": "airtable.com", "dealscope.credits": 1 } }),
   span("s03", "s01", "tool.enrich_company", "TOOL", 1700, 1320, { attributes: { "dealscope.domain": "notion.com", "dealscope.credits": 1 } }),
@@ -46,20 +46,18 @@ const spans: TraceSpan[] = [
   span("s08", "s07", "gemini-3.8-flash", "LLM", 10600, 1900, {
     status: "error",
     error: ERR_429,
-    attributes: { "llm.model": "gemini-3.8-flash", "dealscope.attempt": 1 },
+    attributes: { "dealscope.model": "gemini-3.8-flash", "dealscope.attempt": 1 },
     events: [{ name: "exception", at_ms: 12400, attributes: { type: "ResourceExhausted" } }],
   }),
   span("s09", "s07", "gemini-3.8-flash", "LLM", 12600, 1700, {
     status: "error",
     error: ERR_429,
-    attributes: { "llm.model": "gemini-3.8-flash", "dealscope.attempt": 2 },
+    attributes: { "dealscope.model": "gemini-3.8-flash", "dealscope.attempt": 2 },
   }),
   span("s10", "s07", "gemini-3.1-flash-lite", "LLM", 14500, 5200, {
     attributes: {
-      "llm.model": "gemini-3.1-flash-lite",
-      "llm.token_count.prompt": 4812,
-      "llm.token_count.completion": 356,
-      "llm.token_count.total": 5168,
+      "dealscope.model": "gemini-3.1-flash-lite",
+      "dealscope.total_tokens": 5168,
       "dealscope.fallback": true,
     },
   }),
@@ -68,10 +66,8 @@ const spans: TraceSpan[] = [
   span("s13", "s01", "synthesize_findings", "CHAIN", 23200, 12600, { attributes: { "dealscope.draft_claims": 11 } }),
   span("s14", "s13", "gemini-3.1-flash-lite", "LLM", 23400, 12100, {
     attributes: {
-      "llm.model": "gemini-3.1-flash-lite",
-      "llm.token_count.prompt": 7340,
-      "llm.token_count.completion": 1520,
-      "llm.token_count.total": 8860,
+      "dealscope.model": "gemini-3.1-flash-lite",
+      "dealscope.total_tokens": 8860,
     },
   }),
   span("s15", "s01", "verify_claims", "GUARDRAIL", 35900, 3100, {
@@ -107,66 +103,3 @@ export const sampleResumeTrace: RecordedTrace = {
 };
 
 export const sampleCaseTraces: RecordedTrace[] = [sampleTrace, sampleResumeTrace];
-
-export const sampleEvidenceTraces: EvidenceTrace[] = [
-  {
-    label: "Live run with model rate limit",
-    description:
-      "Look for the two red gemini-3.8-flash steps: the model was rate limited, the agent fell back to gemini-3.1-flash-lite and finished.",
-    trace: sampleTrace,
-  },
-  {
-    label: "Failure recovery: resumed run",
-    description: "A short second run that picks up where the first stopped and finishes the memo.",
-    trace: sampleResumeTrace,
-  },
-];
-
-export const sampleEntireFlow: EntireCommitCheckpoint[] = [
-  {
-    checkpoint: "a3f91c2d4e7b",
-    commit: "fe73170",
-    date: "2026-10-12T09:14:00Z",
-    subject: "Clean up repository: remove spec pack, build prompt and duplicate write-ups",
-    files_changed: 14,
-    insertions: 42,
-    deletions: 1380,
-    files: [
-      { path: "docs/build-prompt.md", insertions: 0, deletions: 640 },
-      { path: "spec/README.md", insertions: 3, deletions: 410 },
-      { path: "README.md", insertions: 39, deletions: 21 },
-    ],
-  },
-  {
-    checkpoint: "7be20a914c3d",
-    commit: "9cf484c",
-    date: "2026-10-11T18:02:00Z",
-    subject: "Show each case's real cost against the cfo.ai business plan",
-    files_changed: 6,
-    insertions: 318,
-    deletions: 24,
-    files: [
-      { path: "src/dealscope/api/plan.py", insertions: 140, deletions: 4 },
-      { path: "frontend/src/components/PlanComparisonCard.tsx", insertions: 120, deletions: 0 },
-      { path: "frontend/src/api/types.ts", insertions: 40, deletions: 2 },
-    ],
-  },
-  {
-    checkpoint: "2b8e40a6f1d9",
-    commit: "8a17c25",
-    date: "2026-10-11T11:30:00Z",
-    subject: "Add Entire session timeline screenshot to evidence and the Evidence page",
-    files_changed: 3,
-    insertions: 55,
-    deletions: 6,
-    files: [{ path: "frontend/src/pages/Evidence.tsx", insertions: 55, deletions: 6 }],
-  },
-];
-
-export const sampleEntireSession = {
-  session_id: "7c1d2e9a-55b0-4c3e-9f21-0a8b6d4e3c11",
-  agent: "Claude Code",
-  checkpoints_total: 3,
-  first: "2026-10-11T11:30:00Z",
-  last: "2026-10-12T09:14:00Z",
-};

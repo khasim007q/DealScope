@@ -1,6 +1,6 @@
 """LLM drafting of cited findings. The model only proposes claims; `verification.claims` decides.
 
-Two prompt variants exist for the neatlogs baseline-vs-improved experiment (docs/07 §1):
+Two prompt variants exist for a baseline-vs-improved comparison:
 - "baseline": a loose summarization prompt (no schema discipline beyond JSON, no counter-evidence rule).
 - "improved": strict evidence schema, observation/interpretation separation, alternative explanations.
 """
