@@ -7,15 +7,21 @@ restart loses nothing and a partial case can be resumed.
 
 from __future__ import annotations
 
+import hmac
+import ipaddress
 import json
 import logging
+import os
 import threading
+import time
+import uuid
+from collections import deque
 from contextlib import asynccontextmanager
 from decimal import Decimal
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
@@ -26,12 +32,13 @@ from dealscope.api import evidence as evidence_mod
 from dealscope.api import views
 from dealscope.budget.governor import CreditGovernor
 from dealscope.config import Settings, get_settings
-from dealscope.domain.enums import RunMode
+from dealscope.domain.enums import CaseStage, RunMode
 from dealscope.domain.models import CaseInput, normalize_domain
 from dealscope.observability import tracing
 from dealscope.persistence import featured
 from dealscope.persistence.repository import Repository
 from dealscope.providers.base import ProviderError
+from dealscope.providers.llm import LLMError
 
 log = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parents[3]
@@ -79,6 +86,8 @@ FAULTS = {
 async def lifespan(_: FastAPI):
     s = _settings()
     tracing.init_tracing(workflow_name="dealscope", record_to=s.dealscope_db_path)
+    if (problem := s.llm_config_error) is not None:
+        log.error("LLM configuration problem: %s", problem)
     repo = _repo()
     try:
         imported = featured.import_all(repo)
@@ -100,6 +109,104 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+
+@app.middleware("http")
+async def _host_guard(request: Request, call_next):
+    """Reject unexpected Host headers (DNS rebinding: a hostile page re-pointing its own domain at 127.0.0.1)."""
+    allowed = _settings().trusted_host_list
+    if "*" not in allowed:
+        raw = request.headers.get("host", "").strip().lower()
+        host = raw.split("]")[0] + "]" if raw.startswith("[") else raw.rsplit(":", 1)[0]
+        if host not in allowed:
+            return JSONResponse({"detail": "Invalid host header."}, status_code=400)
+    return await call_next(request)
+
+
+def _is_loopback(host: str) -> bool:
+    if host == "localhost":
+        return True
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    mapped = getattr(ip, "ipv4_mapped", None)
+    return ip.is_loopback or bool(mapped and mapped.is_loopback)
+
+
+def _origin_host(origin: str) -> str | None:
+    """Host part (no port) of an Origin header value, lower-cased; None when it cannot be parsed."""
+    from urllib.parse import urlsplit
+
+    try:
+        host = urlsplit(origin).hostname
+    except ValueError:
+        return None
+    if not host:
+        return None
+    host = host.lower()
+    return f"[{host}]" if ":" in host else host
+
+
+def _reject_cross_site(request: Request) -> None:
+    """Browsers attach Origin / Sec-Fetch-Site to cross-origin requests; a hostile page can fire body-less POSTs
+    (resume, cancel) from the user's own browser, where the loopback check alone would pass."""
+    if request.headers.get("sec-fetch-site", "").strip().lower() == "cross-site":
+        raise HTTPException(403, "Cross-site requests are not allowed.")
+    origin = request.headers.get("origin")
+    if origin is None:
+        return
+    allowed = _settings().trusted_host_list
+    if "*" in allowed:
+        return
+    if origin.strip().lower() == "null" or _origin_host(origin) not in allowed:
+        raise HTTPException(403, "Requests from this origin are not allowed.")
+
+
+def _require_access(request: Request) -> None:
+    """Guard for routes that spend quota or start work.
+
+    With DEALSCOPE_API_TOKEN set, every client must present it (constant-time compare). Without one only loopback
+    clients are accepted, so exposing the port beyond this machine never exposes the paid routes by accident."""
+    _reject_cross_site(request)
+    token = _settings().dealscope_api_token
+    if token is not None:
+        supplied = request.headers.get("x-dealscope-token", "")
+        if not hmac.compare_digest(supplied.encode(), token.get_secret_value().encode()):
+            raise HTTPException(401, "A valid access token is required.")
+        return
+    client = request.client.host if request.client else ""
+    if not _is_loopback(client):
+        raise HTTPException(
+            403,
+            "This server only accepts these requests from the local machine. Set DEALSCOPE_API_TOKEN to allow others.",
+        )
+
+
+_IDENTITY_PER_MINUTE = 30
+_identity_hits: dict[str, deque[float]] = {}
+_identity_lock = threading.Lock()
+
+
+def _identity_rate_ok(client: str, count: int, now: float | None = None) -> bool:
+    """In-process sliding window: at most _IDENTITY_PER_MINUTE looked-up domains per client per minute."""
+    t = time.monotonic() if now is None else now
+    with _identity_lock:
+        q = _identity_hits.get(client)
+        if q is not None:
+            while q and t - q[0] >= 60:
+                q.popleft()
+            if not q:
+                del _identity_hits[client]  # bounded memory: no entry for idle clients
+                q = None
+        if (len(q) if q is not None else 0) + count > _IDENTITY_PER_MINUTE:
+            return False
+        if q is None:
+            q = _identity_hits.setdefault(client, deque())
+        q.extend([t] * count)
+        return True
+
+
 _runs: dict[str, threading.Thread] = {}
 _cancels: dict[str, threading.Event] = {}
 _runs_lock = threading.Lock()
@@ -119,28 +226,121 @@ def _running(case_id: str) -> bool:
         return bool(t and t.is_alive())
 
 
+_LEASE_TTL_S = 60.0
+_HEARTBEAT_S = 15.0
+_RESUMABLE_BUILD_STAGES = (
+    CaseStage.CREATED,
+    CaseStage.BASELINE,
+    CaseStage.INVESTIGATING,
+    CaseStage.VERIFYING,
+    CaseStage.REPORTING,
+)
+
+
+def _plain_error(exc: BaseException) -> str:
+    if isinstance(exc, ConfigError | LLMError):
+        return str(exc)[:240]
+    return (
+        f"The investigation stopped because of an unexpected internal error ({type(exc).__name__}). "
+        "Saved progress is kept; you can resume."
+    )
+
+
+def _record_failure(case_id: str, exc: BaseException) -> None:
+    """Make a worker-level failure visible: stage FAILED (unless already finished/partial) plus a plain error event."""
+    repo = _repo()
+    try:
+        state = repo.load_case(case_id)
+        if state is None:
+            return
+        if state.stage in _RESUMABLE_BUILD_STAGES:
+            state.finish_reason = f"error:{type(exc).__name__}"
+            state.stage = CaseStage.FAILED
+            repo.checkpoint(state, "stage:failed")
+            repo.add_event(case_id, "stage", {"from": "unknown", "to": CaseStage.FAILED.value})
+        repo.add_event(case_id, "error", {"message": _plain_error(exc), "type": type(exc).__name__})
+    except Exception:
+        log.exception("could not record failure for %s", case_id)
+    finally:
+        repo.close()
+
+
+def _release_lease_quietly(case_id: str, owner: str) -> None:
+    try:
+        r = _repo()
+        try:
+            r.release_lease(case_id, owner)
+        finally:
+            r.close()
+    except Exception:
+        log.exception("could not release lease for %s", case_id)
+
+
 def _start_thread(case_id: str, mode: RunMode, scenario: Path | None, faults: dict | None, resume: bool) -> None:
+    """Start the background run. Atomic under the runs lock plus a per-case DB lease, so a case never has two
+    workers (threads here, or other processes sharing the database). Raises 409 if it is already running."""
     cancel = threading.Event()
+    owner = f"{os.getpid()}-{uuid.uuid4().hex[:8]}"
 
     def work() -> None:
-        repo = _repo()
+        repo = None
+        stop = threading.Event()
+        beat: threading.Thread | None = None
         try:
+            repo = _repo()
+
+            def heartbeat() -> None:
+                while not stop.wait(_HEARTBEAT_S):
+                    try:
+                        repo.heartbeat_lease(case_id, owner)
+                    except Exception:
+                        log.exception("lease heartbeat failed for %s", case_id)
+
+            beat = threading.Thread(target=heartbeat, name=f"lease-{case_id}", daemon=True)
+            beat.start()
             orch = build_orchestrator(_settings(), mode, repo=repo, fixture_path=scenario, faults=faults)
             orch.cancel_event = cancel
             try:
                 orch.run(case_id, resume=resume)
             finally:
                 orch.close()
-        except Exception:  # state is persisted as failed by the orchestrator; log for the operator
+        except Exception as exc:  # whatever went wrong, the case must not be left looking unstarted
             log.exception("run failed for %s", case_id)
+            _record_failure(case_id, exc)
         finally:
-            repo.close()
+            stop.set()
+            if beat is not None:
+                beat.join(2)
+            if repo is not None:
+                try:
+                    repo.release_lease(case_id, owner)
+                except Exception:
+                    log.exception("could not release lease for %s", case_id)
+                repo.close()
+            else:  # _repo() itself failed: still free the lease so the case is not stuck for the TTL
+                _release_lease_quietly(case_id, owner)
 
     t = threading.Thread(target=work, name=f"run-{case_id}", daemon=True)
     with _runs_lock:
-        _runs[case_id] = t
-        _cancels[case_id] = cancel
-    t.start()
+        existing = _runs.get(case_id)
+        if existing is not None and existing.is_alive():
+            raise HTTPException(409, "This case is already running")
+        lease_repo = _repo()
+        try:
+            got = lease_repo.acquire_lease(case_id, owner, _LEASE_TTL_S)
+        finally:
+            lease_repo.close()
+        if not got:
+            raise HTTPException(409, "This case is already running (in another server process)")
+        try:
+            _runs[case_id] = t
+            _cancels[case_id] = cancel
+            t.start()
+        except BaseException:
+            _runs.pop(case_id, None)
+            _cancels.pop(case_id, None)
+            _release_lease_quietly(case_id, owner)
+            raise
 
 
 # ---------------------------------------------------------------------------
@@ -181,8 +381,9 @@ def status() -> dict:
     llm_row = {
         "key": "llm",
         "label": "AI planner and writer (Gemini)",
-        "connected": bool(st["llm_key_present"]),
-        "detail": f"Model: {s.llm_model}" if st["llm_key_present"] else "No API key - rule-based planner only",
+        "connected": bool(st["llm_key_present"]) and s.llm_config_error is None,
+        "detail": s.llm_config_error
+        or (f"Model: {s.llm_model}" if st["llm_key_present"] else "No API key - rule-based planner only"),
     }
     crust_row = {
         "key": "crustdata",
@@ -239,6 +440,8 @@ def status() -> dict:
         "live_available": True if free else bool(st["crustdata_key_present"]),
         "data_provider": s.data_provider,
         "pdl_key_present": bool(st["pdl_key_present"]),
+        "llm_config_error": s.llm_config_error,
+        "auth_required": s.dealscope_api_token is not None,
     }
 
 
@@ -317,9 +520,11 @@ def _identity_error(raw: str, message: str) -> dict:
     }
 
 
-@app.post("/api/identity-check")
-def identity_check(req: IdentityRequest) -> list[dict]:
+@app.post("/api/identity-check", dependencies=[Depends(_require_access)])
+def identity_check(req: IdentityRequest, request: Request) -> list[dict]:
     s = _settings()
+    if not _identity_rate_ok(request.client.host if request.client else "unknown", len(req.domains)):
+        raise HTTPException(429, "Too many domain checks in a short time. Wait a minute and try again.")
     close = None
     if s.data_provider == "free":
         if s.pdl_api_key is None:
@@ -378,7 +583,7 @@ def identity_check(req: IdentityRequest) -> list[dict]:
     return out
 
 
-@app.post("/api/cases")
+@app.post("/api/cases", dependencies=[Depends(_require_access)])
 def create_case(req: CreateCase) -> dict:
     s = _settings()
     mode = RunMode(req.mode)
@@ -434,7 +639,7 @@ def _case_provider(case_id: str, events: list[dict]) -> str | None:
     return providers.pop() if len(providers) == 1 else None
 
 
-@app.post("/api/cases/{case_id}/resume")
+@app.post("/api/cases/{case_id}/resume", dependencies=[Depends(_require_access)])
 def resume_case(case_id: str) -> dict:
     repo = _repo()
     try:
@@ -464,7 +669,7 @@ def resume_case(case_id: str) -> dict:
     return {"case_id": case_id}
 
 
-@app.post("/api/cases/{case_id}/cancel")
+@app.post("/api/cases/{case_id}/cancel", dependencies=[Depends(_require_access)])
 def cancel_case(case_id: str) -> dict:
     with _runs_lock:
         t, ev = _runs.get(case_id), _cancels.get(case_id)

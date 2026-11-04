@@ -8,7 +8,8 @@ Two prompt variants exist for a baseline-vs-improved comparison:
 from __future__ import annotations
 
 import json
-from typing import Literal
+import logging
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
@@ -17,7 +18,10 @@ from dealscope.domain.models import CaseState, EvidenceRecord, FindingClaim, Sco
 from dealscope.providers.llm import LLMProvider, parse_structured
 from dealscope.verification.claims import _relates_to
 
+log = logging.getLogger(__name__)
+
 Variant = Literal["baseline", "improved"]
+MAX_DRAFT_CLAIMS = 20
 
 
 class DraftClaim(BaseModel):
@@ -32,6 +36,13 @@ class DraftClaim(BaseModel):
     counter_evidence_ids: list[str] = Field(default_factory=list)
     alternative_explanations: list[str] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
+
+
+class _LooseReport(BaseModel):
+    """Envelope only: claims are validated one by one so a single bad claim never discards the narrative."""
+
+    model_config = ConfigDict(extra="ignore")
+    claims: list[Any] = Field(default_factory=list)
 
 
 class DraftReport(BaseModel):
@@ -159,27 +170,33 @@ def draft_claims(
     raw = llm.generate_json(
         system, json.dumps(body, default=str, indent=1), draft_report_schema(domains), escalate=escalate
     )
-    draft = parse_structured(raw, DraftReport)  # loose parse: topics are normalised below, not crashed on
+    loose = parse_structured(raw, _LooseReport)  # raises LLMError if the envelope is not JSON {"claims": [...]}
+    if len(loose.claims) > MAX_DRAFT_CLAIMS:
+        log.warning("model returned %d claims; keeping the first %d", len(loose.claims), MAX_DRAFT_CLAIMS)
     by_id = {e.evidence_id: e for e in evidence}
     claims = []
-    for d in draft.claims:
-        subject, note = normalize_subject_domain(
-            d.subject_domain, d.evidence_ids, by_id, state.input.target_domain, domains
-        )
-        signals = [SignalId(s) for s in d.related_signals if s in SignalId.__members__]
-        claims.append(
-            FindingClaim(
-                text=d.text[:1200],
-                claim_type=ClaimType(d.claim_type),
-                severity=Severity(d.severity),
-                confidence=max(0.0, min(100.0, d.confidence)),
-                subject_domain=subject,
-                verification_notes=[note] if note else [],
-                related_signals=signals,
-                evidence_ids=d.evidence_ids[:12],
-                counter_evidence_ids=d.counter_evidence_ids[:12],
-                alternative_explanations=d.alternative_explanations[:4],
-                limitations=d.limitations[:4],
+    for item in loose.claims[:MAX_DRAFT_CLAIMS]:
+        try:
+            d = DraftClaim.model_validate(item)
+            subject, note = normalize_subject_domain(
+                d.subject_domain, d.evidence_ids, by_id, state.input.target_domain, domains
             )
-        )
+            signals = [SignalId(s) for s in d.related_signals if s in SignalId.__members__]
+            claims.append(
+                FindingClaim(
+                    text=d.text.strip()[:1200],
+                    claim_type=ClaimType(d.claim_type),
+                    severity=Severity(d.severity),
+                    confidence=max(0.0, min(100.0, d.confidence)),
+                    subject_domain=subject,
+                    verification_notes=[note] if note else [],
+                    related_signals=signals,
+                    evidence_ids=d.evidence_ids[:12],
+                    counter_evidence_ids=d.counter_evidence_ids[:12],
+                    alternative_explanations=d.alternative_explanations[:4],
+                    limitations=d.limitations[:4],
+                )
+            )
+        except Exception as exc:  # skip this one claim; the rest are still usable
+            log.warning("skipping invalid model claim: %s", type(exc).__name__)
     return claims

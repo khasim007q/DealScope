@@ -11,6 +11,7 @@ import type {
   Scenario,
   StatusResponse,
 } from "./types";
+import { clearToken, currentToken, promptForToken, storeToken } from "./tokenPrompt";
 
 export class ApiError extends Error {
   status: number;
@@ -23,14 +24,16 @@ export class ApiError extends Error {
 
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === "true";
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, retried = false): Promise<T> {
   let res: Response;
   try {
+    const token = currentToken();
     res = await fetch(path, {
       ...init,
       headers: {
         Accept: "application/json",
         ...(init?.body ? { "Content-Type": "application/json" } : {}),
+        ...(token ? { "X-DealScope-Token": token } : {}),
         ...(init?.headers ?? {}),
       },
     });
@@ -39,6 +42,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       "Could not reach the DealScope server. Check that it is running and try again.",
       0,
     );
+  }
+  if (res.status === 401 && !retried) {
+    // The server requires DEALSCOPE_API_TOKEN: ask once, then retry the same request.
+    clearToken();
+    const entered = await promptForToken(
+      "This server needs an access token before it will start or change anything. Enter the DEALSCOPE_API_TOKEN value.",
+    );
+    if (entered) {
+      storeToken(entered);
+      return request<T>(path, init, true);
+    }
   }
   if (!res.ok) {
     let detail = `Request failed (HTTP ${res.status}).`;

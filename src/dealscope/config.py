@@ -61,6 +61,11 @@ class Settings(BaseSettings):
     dealscope_max_tool_calls: int = Field(default=12, ge=1, le=12)
     dealscope_max_runtime_seconds: int = Field(default=240, ge=10, le=900)
     dealscope_http_timeout_seconds: float = 25.0
+    # API access control. Spending routes (create / resume / cancel / identity-check) accept loopback clients only,
+    # unless DEALSCOPE_API_TOKEN is set: then every client must send it in the X-DealScope-Token header.
+    dealscope_api_token: SecretStr | None = None
+    # Host header allow-list (DNS-rebinding protection); "*" disables the check.
+    dealscope_trusted_hosts: str = "localhost,127.0.0.1,[::1]"
     dealscope_max_retries: int = Field(default=2, ge=0, le=2)
 
     @field_validator("crustdata_job_cost_per_result", "crustdata_job_call_reserve", mode="before")
@@ -68,10 +73,21 @@ class Settings(BaseSettings):
     def _blank_is_none(cls, v: object) -> object:
         return None if isinstance(v, str) and not v.strip() else v
 
-    @field_validator("crustdata_api_key", "llm_api_key", "pdl_api_key", mode="before")
+    @field_validator("crustdata_api_key", "llm_api_key", "pdl_api_key", "dealscope_api_token", mode="before")
     @classmethod
     def _blank_secret_is_none(cls, v: object) -> object:
         return None if isinstance(v, str) and not v.strip() else v
+
+    @property
+    def trusted_host_list(self) -> list[str]:
+        return [h.strip().lower() for h in self.dealscope_trusted_hosts.split(",") if h.strip()]
+
+    @property
+    def llm_config_error(self) -> str | None:
+        """Plain-words problem with the runtime LLM settings, or None (a missing key just means rule-based mode)."""
+        if self.llm_api_key is not None and self.llm_provider.strip().lower() not in {"gemini", "google"}:
+            return f"LLM_PROVIDER={self.llm_provider!r} is not supported (use 'gemini'); the AI writer is unavailable."
+        return None
 
     @property
     def pdl_cache_file(self) -> Path:
@@ -95,6 +111,7 @@ class Settings(BaseSettings):
             "llm_provider": self.llm_provider,
             "llm_model": self.llm_model,
             "llm_key_present": self.llm_api_key is not None,
+            "llm_config_error": self.llm_config_error,
             "jobs_price_configured": self.jobs_price_configured,
             "max_case_credits": str(self.crustdata_max_case_credits),
         }

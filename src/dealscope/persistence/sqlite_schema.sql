@@ -97,6 +97,13 @@ CREATE TABLE IF NOT EXISTS response_cache (
     api_version   TEXT NOT NULL
 );
 
+-- One live worker per case, across threads and processes: a lease with a heartbeat (stale leases can be taken over).
+CREATE TABLE IF NOT EXISTS case_leases (
+    case_id    TEXT PRIMARY KEY,
+    owner      TEXT NOT NULL,
+    heartbeat  REAL NOT NULL
+);
+
 -- Append-only timeline for the UI.
 CREATE TABLE IF NOT EXISTS events (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,

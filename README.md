@@ -136,6 +136,22 @@ Figures in the UI are estimates unless marked actual.
 
 ## Safety and limits
 
+- Access control: the server binds to 127.0.0.1 by default. Routes that start work or spend quota
+  (`POST /api/cases`, `/resume`, `/cancel`, `/identity-check`) accept loopback clients only. To expose the server
+  (another machine, a reverse proxy, a container) set `DEALSCOPE_API_TOKEN`; every client must then send it in the
+  `X-DealScope-Token` header (the web UI asks for it once and remembers it in the browser). Requests whose `Host` is
+  not in `DEALSCOPE_TRUSTED_HOSTS` (default `localhost,127.0.0.1,[::1]`) are rejected, which blocks DNS rebinding;
+  add your public host name there when you deploy, or use `*` to turn the check off. Behind a reverse proxy on the same host every
+  client looks like loopback, so the loopback-only rule protects nothing there: when you deploy behind a proxy or on a
+  network you must set both `DEALSCOPE_API_TOKEN` and `DEALSCOPE_TRUSTED_HOSTS`. Browser requests carrying a
+  cross-site `Sec-Fetch-Site` or an `Origin` outside the trusted hosts (any port) are refused on those routes. Identity checks are capped at 6 domains per request
+  and 30 per minute per client.
+- One worker per case: a second resume while a case is running gets HTTP 409, also across server processes (a
+  60-second database lease with a heartbeat; a crashed worker's lease expires on its own).
+- Run failures are never silent: if a run cannot start or crashes, the case ends as Failed with a plain error note,
+  and `/api/status` reports an unsupported `LLM_PROVIDER`.
+- A case whose evidence is too thin for an overall score is labelled "limited evidence"; it is Partial (resumable)
+  when a skipped data source, such as a missing key, could add more, and Complete otherwise.
 - Per run: 8 planner turns, 12 tool calls, 240 s, 2 retries (configurable in `.env`).
 - Risk, evidence confidence and coverage are reported separately; low coverage is never shown as low risk.
 - No attrition rates, causal or misconduct allegations, or valuation/buy-pass advice.

@@ -296,11 +296,34 @@ def _plain_flag(flag: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def status_of(state: CaseState, running: bool) -> tuple[str, str, str, bool]:
+def _skipped_source_now_configured(state: CaseState, settings: Any) -> bool:
+    """True when a source was skipped for lack of a key that is configured now (a resume can add evidence)."""
+    skipped = any(reason == "NOT_CONFIGURED" for reason in state.unavailable_tools.values())
+    return bool(skipped and settings is not None and getattr(settings, "pdl_api_key", None) is not None)
+
+
+def status_of(state: CaseState, running: bool, settings: Any = None) -> tuple[str, str, str, bool]:
     reason = state.finish_reason or ""
     if running:
         return "Running", "info", "The agent is investigating. Results update as each step completes.", False
     failed_actions = re.search(r"_with_(\d+)_failed_actions", reason)
+    limited_evidence = reason.endswith("limited_evidence")
+    if state.stage == CaseStage.COMPLETE and limited_evidence:
+        return (
+            "Complete - limited evidence",
+            "caution",
+            "Finished, but the evidence collected is too thin for an overall score. Read the findings as leads, "
+            "not conclusions.",
+            _skipped_source_now_configured(state, settings),
+        )
+    if state.stage == CaseStage.PARTIAL and limited_evidence:
+        return (
+            "Partial - limited evidence",
+            "caution",
+            "The evidence collected is too thin for an overall score, and a skipped data source could add more. "
+            "Add its key and resume to continue without repeating completed requests.",
+            True,
+        )
     if state.stage == CaseStage.COMPLETE:
         detail = {
             "no_candidates": "Finished: no remaining data source was likely to change the conclusion.",
@@ -507,6 +530,15 @@ def build_steps(state: CaseState, events: list[dict]) -> list[dict]:
             msg = str(p.get("message") or "Some data sources were skipped because they are not configured.")
             head, sep, rest = msg.partition(": ")
             add(at, "note", head, (rest[:1].upper() + rest[1:]) if sep else "", "System", "info")
+        elif t == "error":
+            add(
+                at,
+                "note",
+                "The run stopped with an error",
+                str(p.get("message") or "The investigation could not continue."),
+                "System",
+                "bad",
+            )
         elif t == "llm_unavailable":
             add(
                 at,
@@ -948,7 +980,7 @@ def case_view(
     settings: Any = None,
 ) -> dict:
     by_id = {e.evidence_id: e for e in evidence}
-    label, tone, detail, can_resume = status_of(state, running)
+    label, tone, detail, can_resume = status_of(state, running, settings)
     findings, questions = findings_and_questions(state, by_id)
     companies, people, jobs = tables(state, evidence)
     bundle = (report or {}).get("bundle") or {}

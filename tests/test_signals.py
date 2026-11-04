@@ -368,7 +368,8 @@ def test_s3_matrix_statuses_and_gap_rule():
     assert rows["platform_engineering"]["status"] == "observed"
     assert rows["security"]["status"] == "open_role_only"
     assert rows["security"]["departures_in_window"] == 1
-    assert rows["data_ml"]["status"] == "open_role_only"
+    # open roles alone (no person evidence for the capability) are no_data, not an inferred coverage gap
+    assert rows["data_ml"]["status"] == "no_data" and rows["data_ml"]["open_roles"] == 1
     assert rows["reliability"]["status"] == "no_data"
     assert s3.score is not None and s3.score >= 61  # open roles + departure + no observed coverage
     assert s3.state == SignalState.LOW_COVERAGE
@@ -411,7 +412,8 @@ def test_s4_no_job_data_is_not_scored_not_zero():
 def test_s4_fixture_low_band_with_reposted_role():
     case, ev = load_fixture()
     s4 = score_s4(case, ev, AS_OF)
-    assert s4.state == SignalState.SCORABLE
+    assert s4.state == SignalState.LOW_COVERAGE  # a single posting is below the s4_min_postings floor
+    assert "LOW_POSTING_COVERAGE" in s4.reason_codes
     assert s4.raw_measure["critical_openings_count"] == 1
     assert s4.raw_measure["reposted_critical_postings"] == 1
     assert s4.raw_measure["critical_posting_share"] == pytest.approx(1 / 480, abs=1e-4)
@@ -516,10 +518,12 @@ def test_t03_missing_data_insufficient_evidence_never_zero():
 
 def test_fixture_composite_provisional_and_missing_data_lowers_confidence_only():
     case, ev = load_fixture()
+    ev = [*ev, job("Staff SRE", url="https://j/x1"), job("Principal Engineer", url="https://j/x2")]  # >= 3 postings
     sc = compute_scorecard(case, ev, AS_OF)
     assert sc.coverage_label == "provisional" and 60 <= sc.coverage_pct < 80
     assert sc.risk_score is not None and sc.risk_band is not None
     case2, ev2 = load_fixture(drop_dept=True)
+    ev2 = [*ev2, job("Staff SRE", url="https://j/x1"), job("Principal Engineer", url="https://j/x2")]
     sc2 = compute_scorecard(case2, ev2, AS_OF)
     assert sc2.evidence_confidence < sc.evidence_confidence
 

@@ -77,6 +77,10 @@ THRESHOLDS: Final[dict[str, float | int]] = {
     "coverage_min_publish_pct": 60,  # < 60  -> INSUFFICIENT EVIDENCE, composite withheld
     "coverage_threshold_met_pct": 80,  # >= 80 -> "coverage threshold met" (not "validated"); 60-79 provisional
     "low_coverage_weight_factor": 0.5,  # share of weight a scored LOW_COVERAGE signal contributes to A
+    "confidence_min_publish": 50,  # weighted mean confidence of the assessable signals below this -> composite withheld
+    "conf_n_floor_factor": 0.4,  # confidence multiplier at n=1 sample unit; rises linearly to 1.0 at saturation
+    "conf_n_saturation_people": 5,  # observed eligible profiles at which S2/S5 sample-size confidence saturates
+    "conf_n_saturation_postings": 8,  # deduplicated postings at which S4 sample-size confidence saturates
     "band_watch_min": 25,  # display labels only: 0-24 Low, 25-49 Watch, 50-69 Elevated, 70+ High
     "band_elevated_min": 50,
     "band_high_min": 70,
@@ -88,6 +92,7 @@ THRESHOLDS: Final[dict[str, float | int]] = {
     "s1_gap_material_pp": 10.0,  # tech - total <= -10pp  -> material divergence
     "s1_peer_modest_pp": 5.0,  # tech - peer median <= -5pp  -> modest shortfall vs peers
     "s1_peer_material_pp": 10.0,  # tech - peer median <= -10pp -> material shortfall ("material margin")
+    "s1_tiny_gap_floor_pp": 3.0,  # tech contraction counts as divergence only if tech - total <= -3pp
     "s1_corroboration_openings_min": 3,  # critical openings (S4 measure) that count as independent support
     "s1_corroboration_departures_min": 2,  # in-window critical departures (S2 measure) that count as support
     "s1_corroboration_required": 1,  # independent supports needed before any S1 score >= 81
@@ -106,7 +111,11 @@ THRESHOLDS: Final[dict[str, float | int]] = {
     "s4_multiple_openings_min": 3,  # >= 3 critical openings = "multiple"
     "s4_concentration_openings_min": 6,  # >= 6 critical openings = unusual concentration
     "s4_posting_share_unusual": 0.03,  # critical openings / headcount >= 3%
-    "s4_persistent_days": 60,  # posting added >= 60 days before as_of (or flagged reposted) = persistent
+    "s4_persistent_days": 60,  # posting added >= 60 days before as_of AND old relative to the board = persistent
+    "s4_persistent_relative_factor": 1.5,  # ... age must also be >= 1.5x the median age of the dated postings
+    "s4_persistent_min_dated": 3,  # ... and at least 3 dated postings are needed to judge "old relative to the board"
+    "s4_min_postings": 3,  # fewer deduplicated postings -> S4 is LOW_COVERAGE (half weight)
+    "s4_max_openings_per_posting": 2,  # a single posting never contributes more than this many openings
     "s4_persistent_critical_min": 2,  # >= 2 persistent/reposted critical postings = unusual
     "s4_broad_capabilities_min": 3,  # distinct critical capabilities with openings for the 81+ band
     "s4_corroborating_s1_min_score": 41,  # S1 score at/above which S1 corroborates hiring pressure
@@ -248,6 +257,7 @@ class _Job:
     evidence_ids: list[str]
     n_records: int
     has_openings_field: bool
+    capped: bool = False  # the reported number_of_openings exceeded the per-posting cap
 
 
 @dataclass
@@ -310,15 +320,43 @@ def _merge_people(rows: list[tuple[EvidenceRecord, PersonHistoryPayload]]) -> li
     return out
 
 
+_TITLE_NOISE_RE = re.compile(r"[^a-z0-9]+")
+
+
+def _norm_title(title: str) -> str:
+    return _TITLE_NOISE_RE.sub(" ", title.lower()).strip()
+
+
 def _dedupe_jobs(rows: list[tuple[EvidenceRecord, JobPostingPayload]]) -> tuple[list[_Job], int]:
-    """Deduplicate by URL, else by (title, date added). Duplicates keep the max opening count and OR the repost flag."""
-    groups: dict[tuple[str, ...], list[tuple[EvidenceRecord, JobPostingPayload]]] = {}
-    for ev, j in sorted(rows, key=lambda r: (r[0].retrieved_at, r[0].evidence_id)):
+    """Deduplicate: records sharing a URL, or a normalised title (+ team/category when present), are ONE posting - the
+    same role listed once per location, or re-fetched, must not multiply openings. Duplicates OR the repost flag; the
+    opening count is the max reported, capped at ``s4_max_openings_per_posting`` so a single "n openings" posting
+    cannot masquerade as concentration."""
+    cap = int(_t("s4_max_openings_per_posting"))
+    ordered = sorted(rows, key=lambda r: (r[0].retrieved_at, r[0].evidence_id))
+    parent = list(range(len(ordered)))
+
+    def find(i: int) -> int:
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    seen: dict[tuple[str, ...], int] = {}
+    for idx, (_, j) in enumerate(ordered):
+        keys: list[tuple[str, ...]] = [("title", _norm_title(j.title), _norm_title(j.category or ""))]
         if j.url and j.url.strip():
-            key: tuple[str, ...] = ("url", j.url.strip().lower())
-        else:
-            key = ("title_date", j.title.strip().lower(), (j.date_added or "").strip())
-        groups.setdefault(key, []).append((ev, j))
+            keys.append(("url", j.url.strip().lower()))
+        for k in keys:
+            if k in seen:
+                parent[find(idx)] = find(seen[k])
+            else:
+                seen[k] = idx
+    groups: dict[tuple[str, ...], list[tuple[EvidenceRecord, JobPostingPayload]]] = {}
+    for idx, row in enumerate(ordered):
+        root = find(idx)
+        gkey = ("title", _norm_title(ordered[root][1].title), _norm_title(ordered[root][1].category or ""), str(root))
+        groups.setdefault(gkey, []).append(row)
     jobs: list[_Job] = []
     for key, recs in groups.items():
         payloads = [j for _, j in recs]
@@ -329,7 +367,8 @@ def _dedupe_jobs(rows: list[tuple[EvidenceRecord, JobPostingPayload]]) -> tuple[
                 title=payloads[-1].title,
                 role_group=payloads[-1].role_group,
                 capability=payloads[-1].capability,
-                openings=max(max(1, j.number_of_openings or 1) for j in payloads),
+                openings=min(cap, max(max(1, j.number_of_openings or 1) for j in payloads)),
+                capped=max(max(1, j.number_of_openings or 1) for j in payloads) > cap,
                 reposted=any(j.reposted is True for j in payloads),
                 date_added=dates[0] if dates else None,
                 url=payloads[-1].url,
@@ -404,6 +443,13 @@ def _corroboration_points(records: Sequence[EvidenceRecord]) -> float:
     return {0: 0.0, 1: 6.0, 2: 13.0}.get(groups, 20.0)
 
 
+def _n_factor(n: int, saturation: float) -> float:
+    """Confidence multiplier from sample size: ``conf_n_floor_factor`` at n=1 rising linearly to 1.0 at
+    ``saturation`` units. One posting or one profile can never carry near-full confidence."""
+    floor = _t("conf_n_floor_factor")
+    return floor + (1.0 - floor) * max(0.0, min(1.0, n / saturation))
+
+
 def _peer_points(strength: str, n: int) -> float:
     if strength == "usable":
         return 15.0
@@ -419,6 +465,7 @@ class _Conf:
     corroboration: float = 0.0
     peer: float | None = None  # None -> not applicable to this signal (rescaled)
     identity: float = 0.0
+    n_factor: float = 1.0  # sample-size multiplier (see _n_factor); not a points bucket, applied to the total
 
     def breakdown(self) -> dict[str, float]:
         out = {
@@ -435,7 +482,7 @@ class _Conf:
     def total(self) -> float:
         b = self.breakdown()
         pts = sum(v for k, v in b.items() if k != "applicable_max")
-        return round(min(100.0, pts / b["applicable_max"] * 100.0), 1)
+        return round(min(100.0, pts / b["applicable_max"] * 100.0 * self.n_factor), 1)
 
 
 # ---------------------------------------------------------------------------
@@ -514,6 +561,7 @@ class _S2Analysis:
     unparseable_end: list[_Person]
     missing_end: list[_Person]
     weighted: float
+    current: list[_Person] = field(default_factory=list)  # critical profiles observed as currently at the target
 
 
 def _s2_analysis(ctx: _Ctx) -> _S2Analysis:
@@ -534,7 +582,8 @@ def _s2_analysis(ctx: _Ctx) -> _S2Analysis:
         elif _in_window(parsed, ctx.window_start, ctx.as_of):
             departures.append(p)
     weighted = sum(ROLE_SENIORITY_WEIGHT[p.role_group] for p in departures)
-    return _S2Analysis(critical, eligible, departures, conflicts, unparseable, missing, weighted)
+    current = [p for p in critical if p.current_at_target is True and not p.conflict]
+    return _S2Analysis(critical, eligible, departures, conflicts, unparseable, missing, weighted, current)
 
 
 @dataclass
@@ -546,6 +595,7 @@ class _JobStats:
     persistent_or_reposted: int
     capabilities: list[str]
     undated_critical: int
+    capped: int = 0  # critical postings whose reported opening count exceeded the per-posting cap
 
 
 def _is_critical_job(job: _Job, caps: frozenset[str]) -> bool:
@@ -556,11 +606,26 @@ def _is_critical_job(job: _Job, caps: frozenset[str]) -> bool:
 
 def _job_stats(ctx: _Ctx) -> _JobStats:
     critical = [j for j in ctx.jobs if _is_critical_job(j, ctx.critical_caps)]
+    # "Old" is relative to the board: absolute age alone is meaningless when the whole board was captured on one
+    # day (or the board never prunes). A posting is persistent only if it is >= s4_persistent_days old AND at least
+    # s4_persistent_relative_factor x the median age of the dated postings (needs enough dated postings to judge);
+    # an explicit repost flag is always evidence of persistence.
+    ages = sorted(
+        (ctx.as_of - parsed[0]).days for j in ctx.jobs if (parsed := _parse_date(j.date_added)) is not None
+    )
+    median_age = (ages[len(ages) // 2] + ages[(len(ages) - 1) // 2]) / 2 if ages else 0.0
+    can_judge_age = len(ages) >= _t("s4_persistent_min_dated")
     persistent = 0
     undated = 0
     for j in critical:
         parsed = _parse_date(j.date_added)
-        old = parsed is not None and (ctx.as_of - parsed[0]).days >= _t("s4_persistent_days")
+        age = None if parsed is None else (ctx.as_of - parsed[0]).days
+        old = (
+            can_judge_age
+            and age is not None
+            and age >= _t("s4_persistent_days")
+            and age >= _t("s4_persistent_relative_factor") * median_age
+        )
         if parsed is None:
             undated += 1
         if j.reposted or old:
@@ -573,6 +638,7 @@ def _job_stats(ctx: _Ctx) -> _JobStats:
         persistent_or_reposted=persistent,
         capabilities=sorted({j.capability for j in critical}),
         undated_critical=undated,
+        capped=sum(1 for j in critical if j.capped),
     )
 
 
@@ -591,7 +657,7 @@ class _S1Period:
     score: float
     level: str
     reasons: list[str]
-    tech_contracting_total_stable: bool
+    tech_contracting_gap: bool  # tech contracted AND trails total by >= the tiny-gap floor (any sign of total)
     peer_material: bool
     gap_material: bool
 
@@ -612,6 +678,10 @@ def _s1_period(period: str, tech: float, total: float, bench: BenchmarkResult) -
 
     flat_or_down = tech <= _t("s1_tech_flat_max_pct")
     contraction = tech < 0
+    # A contraction only counts as divergence if it is large relative to total headcount movement; a -0.5% tech
+    # change next to a flat total is noise (s1_tiny_gap_floor_pp), and a -30% collapse next to a -3% total is NOT
+    # "consistent with the company" - the score is driven by the gap, whatever the sign of total growth.
+    material_contraction = contraction and gap <= -_t("s1_tiny_gap_floor_pp")
     total_growing = total >= _t("s1_total_growing_min_pct")
     total_stable = total >= _t("s1_total_stable_min_pct")
     gap_modest = gap <= -_t("s1_gap_modest_pp")
@@ -619,17 +689,22 @@ def _s1_period(period: str, tech: float, total: float, bench: BenchmarkResult) -
     reasons: list[str] = []
     tag = period.upper()
 
-    if flat_or_down and total_growing and (contraction or gap_modest):
+    if flat_or_down and total_growing and (material_contraction or gap_modest):
         # 41-60: technical function flat/declining while total headcount grows.
         score = 45.0 + (5 if gap_material else 0) + (5 if peer_material else 0) + (3 if contraction else 0)
         level = "divergence"
         reasons.append(f"TECH_FLAT_OR_DECLINING_TOTAL_GROWING_{tag}")
-    elif contraction and total_stable:
+    elif material_contraction and total_stable:
         score = 45.0 + (5 if peer_material else 0)  # tech contracting while total is stable (single period: 41-50)
         level = "tech_contraction_total_stable"
         reasons.append(f"TECH_CONTRACTION_TOTAL_STABLE_{tag}")
+    elif material_contraction:
+        # total is shrinking too, but engineering contracts far faster: scored on the gap, not waved through.
+        score = 45.0 + (5 if gap_material else 0) + (5 if peer_material else 0) + (5 if gap <= -20 else 0)
+        level = "tech_contraction_exceeds_total"
+        reasons.append(f"TECH_CONTRACTION_EXCEEDS_TOTAL_{tag}")
     elif contraction:
-        score = 25.0  # total company shrinking too: consistent with company-wide change, not tech-specific
+        score = 25.0  # contraction no larger than the (floor-sized) gap to total: consistent with company-wide change
         level = "company_wide_contraction"
         reasons.append(f"CONTRACTION_CONSISTENT_WITH_TOTAL_{tag}")
     elif peer_material:
@@ -654,10 +729,46 @@ def _s1_period(period: str, tech: float, total: float, bench: BenchmarkResult) -
         reasons.append(f"NO_DIVERGENCE_OBSERVED_{tag}")
     return _S1Period(
         period, tech, total, gap, bench, score, level, reasons,
-        tech_contracting_total_stable=contraction and total_stable,
+        tech_contracting_gap=material_contraction,
         peer_material=peer_material,
         gap_material=gap_material,
     )  # fmt: skip
+
+
+def _period_months(period: str) -> int | None:
+    key = _period_sort_key(period)[0]
+    return None if key >= 10_000 else key
+
+
+def _independent_segments(periods: list[_S1Period], flagged: list[_S1Period]) -> int:
+    """Number of non-overlapping observation segments among the flagged trailing windows.
+
+    All returned periods are trailing windows ending at the same date (3m sits inside 6m inside 12m), so two
+    flagged periods are NOT two observations. A longer window counts as an additional, independent observation
+    only if the segment it adds beyond the next-shorter returned window ALSO shows tech trailing total by the
+    tiny-gap floor (implied from compounding: (1+g_long)/(1+g_short)-1). Unparseable periods are never independent.
+    """
+    ordered = sorted(
+        (p for p in flagged if _period_months(p.period) is not None),
+        key=lambda p: _period_months(p.period) or 0,
+    )
+    if not ordered:
+        return 0
+    count = 1
+    floor = _t("s1_tiny_gap_floor_pp")
+    for longer in ordered[1:]:
+        m_long = _period_months(longer.period) or 0
+        shorter = [p for p in periods if (m := _period_months(p.period)) is not None and m < m_long]
+        if not shorter:
+            continue
+        near = max(shorter, key=lambda p: _period_months(p.period) or 0)
+        if min(longer.tech, longer.total, near.tech, near.total) <= -100.0:
+            continue
+        tech_seg = (1 + longer.tech / 100) / (1 + near.tech / 100) - 1
+        total_seg = (1 + longer.total / 100) / (1 + near.total / 100) - 1
+        if (tech_seg - total_seg) * 100.0 <= -floor:
+            count += 1
+    return count
 
 
 def _fmt_pct(v: float) -> str:
@@ -722,8 +833,11 @@ def score_s1(case_input: CaseInput, evidence: Sequence[EvidenceRecord], as_of: d
         supports.append("CRITICAL_DEPARTURES_IN_WINDOW")
 
     reasons = [r for per in periods for r in per.reasons]
-    contracting = [per for per in periods if per.tech_contracting_total_stable]
-    multi = len(contracting) >= 2
+    contracting = [per for per in periods if per.tech_contracting_gap]
+    n_independent = _independent_segments(periods, contracting)
+    multi = n_independent >= 2
+    if len(contracting) >= 2 and not multi:
+        reasons.append("OVERLAPPING_WINDOWS_TREATED_AS_ONE")
     if multi:
         # 61-80: technical contraction across more than one returned period while total is stable/growing.
         score = 65.0
@@ -736,7 +850,7 @@ def score_s1(case_input: CaseInput, evidence: Sequence[EvidenceRecord], as_of: d
             reasons.extend(f"CORROBORATED_BY_{s}" for s in supports)
     else:
         score = max(per.score for per in periods)
-        if sum(1 for per in periods if per.score >= 41) >= 2:
+        if _independent_segments(periods, [per for per in periods if per.score >= 41]) >= 2:
             score = min(60.0, score + 5)
             reasons.append("DIVERGENCE_IN_MULTIPLE_PERIODS")
     if len(periods) == 1:
@@ -848,6 +962,7 @@ def score_s2(case_input: CaseInput, evidence: Sequence[EvidenceRecord], as_of: d
         )  # fmt: skip
 
     n_dep, n_elig = len(a.departures), len(a.eligible)
+    has_current = bool(a.current)
     score = _interp(a.weighted, _S2_CURVE)
     reasons: list[str] = []
     if n_dep:
@@ -856,16 +971,32 @@ def score_s2(case_input: CaseInput, evidence: Sequence[EvidenceRecord], as_of: d
         if n_dep >= 2 and months[-1] - months[0] <= _t("s2_concentration_months"):
             score += _t("s2_concentration_bonus")
             reasons.append("CONCENTRATED_DEPARTURES")
-        if n_elig >= _t("s2_min_eligible_profiles") and n_dep / n_elig >= _t("s2_share_bonus_threshold"):
+        # The share bonus needs a denominator: departures / eligible is only meaningful when the sample also holds
+        # current leaders. A leavers-only sample (past-employment query alone) is ~100% departures by construction.
+        if (
+            has_current
+            and n_elig >= _t("s2_min_eligible_profiles")
+            and n_dep / n_elig >= _t("s2_share_bonus_threshold")
+        ):
             score += _t("s2_share_bonus")
             reasons.append("HIGH_SHARE_OF_OBSERVED_PROFILES")
     else:
         reasons.append("NO_DEPARTURES_OBSERVED")
     score = min(score, _t("s2_score_cap"))
 
-    low = n_elig < _t("s2_min_eligible_profiles") or n_elig / len(a.critical) < _t("s2_min_eligible_share")
+    low = (
+        n_elig < _t("s2_min_eligible_profiles")
+        or n_elig / len(a.critical) < _t("s2_min_eligible_share")
+        or not has_current
+    )
     state = SignalState.LOW_COVERAGE if low else SignalState.SCORABLE
     lims = list(base_lims)
+    if not has_current:
+        reasons.append("NO_CURRENT_LEADERSHIP_DENOMINATOR")
+        lims.append(
+            "No current technical leaders were observed in the sample, so there is no denominator: the departure "
+            "count stands alone and no departure-share adjustment is applied."
+        )
     if low:
         reasons.append("LOW_PROFILE_COVERAGE")
         lims.append(
@@ -894,6 +1025,7 @@ def score_s2(case_input: CaseInput, evidence: Sequence[EvidenceRecord], as_of: d
         "departures_in_window": n_dep,
         "observed_eligible_profiles": n_elig,
         "critical_role_profiles_seen": len(a.critical),
+        "current_leaders_observed": len(a.current),
         "missing_end_date_count": len(a.missing_end),
         "unparseable_end_date_count": len(a.unparseable_end),
         "seniority_weighted_departures": round(a.weighted, 2),
@@ -909,7 +1041,10 @@ def score_s2(case_input: CaseInput, evidence: Sequence[EvidenceRecord], as_of: d
         recency=_recency_points(used, ctx.as_of),
         corroboration=_corroboration_points(used),
         identity=15.0 * len(a.eligible) / max(1, sum(p.n_records for p in a.eligible)),
+        n_factor=_n_factor(n_elig, _t("conf_n_saturation_people")),
     )
+    if n_elig < _t("conf_n_saturation_people"):
+        lims.append(f"Confidence reduced for sample size: only {n_elig} eligible profile(s) observed.")
     return _result(ctx, sid, state, score, raw=raw, reasons=reasons, evidence_ids=used_ids, conf=conf, limitations=lims)
 
 
@@ -963,13 +1098,14 @@ def score_s3(case_input: CaseInput, evidence: Sequence[EvidenceRecord], as_of: d
                 score = 50.0 if (open_roles and departures) else 35.0 if open_roles else 20.0 if departures else 15.0
             if len(current) == 1:
                 reasons.append(f"SINGLE_OBSERVED_LEADER_{cap.upper()}")
-        elif open_roles:
+        elif open_roles and cap_people:
             status = "open_role_only"
             # Elevated risk needs open roles + departures + no observed current coverage (two independent sources).
             score = 70.0 if departures else 30.0
             if departures:
                 reasons.append(f"GAP_WITH_OPEN_ROLES_AND_DEPARTURES_{cap.upper()}")
         else:
+            # Open roles alone (no person evidence for this capability) say nothing about coverage: no_data.
             status, score = "no_data", None
         if score is not None:
             row_scores[cap] = score
@@ -1036,6 +1172,15 @@ def score_s3(case_input: CaseInput, evidence: Sequence[EvidenceRecord], as_of: d
 # ---------------------------------------------------------------------------
 
 
+def _target_growing(ctx: _Ctx) -> bool:
+    """True when the target's total AND engineering headcount are positive in every returned period."""
+    if ctx.target is None:
+        return False
+    tp = ctx.target[1]
+    shared = set(tp.engineering_growth_pct) & set(tp.total_growth_pct)
+    return bool(shared) and all(tp.engineering_growth_pct[k] > 0 and tp.total_growth_pct[k] > 0 for k in shared)
+
+
 def score_s4(
     case_input: CaseInput,
     evidence: Sequence[EvidenceRecord],
@@ -1070,6 +1215,9 @@ def score_s4(
 
     c = js.critical_openings
     reasons: list[str] = []
+    # Hiring into growth is not pressure: when total AND engineering headcount are both growing in every returned
+    # period, a large opening count (or an old posting) reflects expansion, not a rebuild.
+    growing = _target_growing(ctx)
     if c == 0:
         score = 5.0
         reasons.append("NO_CRITICAL_OPENINGS_OBSERVED")
@@ -1081,11 +1229,17 @@ def score_s4(
     else:
         score = 30.0  # 21-40: multiple relevant openings without stronger corroboration
         reasons.append("MULTIPLE_CRITICAL_OPENINGS")
-        unusual = (
-            c >= _t("s4_concentration_openings_min")
-            or (share is not None and share >= _t("s4_posting_share_unusual"))
-            or js.persistent_or_reposted >= _t("s4_persistent_critical_min")
+        # Concentration is share-of-headcount based whenever headcount is known; the absolute count rule is only a
+        # fallback when there is no denominator (6 openings mean different things at 50 and at 5,000 people).
+        concentrated = (
+            share >= _t("s4_posting_share_unusual")
+            if share is not None
+            else c >= _t("s4_concentration_openings_min")
         )
+        unusual = concentrated or js.persistent_or_reposted >= _t("s4_persistent_critical_min")
+        if unusual and growing:
+            unusual = False
+            reasons.append("HIRING_INTO_GROWTH_NOT_PRESSURE")
         if unusual:
             score = 50.0  # 41-60
             reasons.append("UNUSUAL_CONCENTRATION_OR_PERSISTENCE")
@@ -1094,7 +1248,10 @@ def score_s4(
             reasons.extend(f"CORROBORATED_BY_{x}" for x in corrob)
         if (
             len(corrob) >= 2
-            and c >= _t("s4_concentration_openings_min")
+            and (
+                c >= _t("s4_concentration_openings_min")
+                or (share is not None and share >= _t("s4_posting_share_unusual"))
+            )
             and len(js.capabilities) >= _t("s4_broad_capabilities_min")
         ):
             score = 85.0  # 81+ only: broad, multi-signal corroborated rebuild pressure
@@ -1107,6 +1264,12 @@ def score_s4(
     if share is None:
         lims.append("Target headcount unavailable; critical posting share not computed.")
         reasons.append("NO_HEADCOUNT_DENOMINATOR")
+    if js.capped:
+        reasons.append("OPENINGS_CAPPED_PER_POSTING")
+        lims.append(
+            f"{js.capped} posting(s) reported more than {int(_t('s4_max_openings_per_posting'))} openings; each "
+            "posting's contribution is capped, and same-title postings (e.g. one per location) count once."
+        )
     if js.undated_critical:
         lims.append(f"{js.undated_critical} critical posting(s) lack a date; persistence cannot be assessed for them.")
     if ctx.duplicate_job_records:
@@ -1116,6 +1279,9 @@ def score_s4(
         "duplicate_records_removed": ctx.duplicate_job_records,
         "critical_openings_count": c,
         "critical_postings": len(js.critical),
+        "critical_posting_evidence_ids": [j.evidence_ids[0] for j in js.critical if j.evidence_ids],
+        "postings_with_capped_openings": js.capped,
+        "hiring_into_growth": growing,
         "critical_posting_share": None if share is None else round(share, 4),
         "target_headcount": headcount,
         "reposted_critical_postings": js.reposted,
@@ -1147,10 +1313,20 @@ def score_s4(
         recency=_recency_points(used, ctx.as_of),
         corroboration=_corroboration_points(used) + (4.0 if corrob else 0.0),
         identity=15.0 * len(ctx.jobs) / max(1, sum(j.n_records for j in ctx.jobs)) * (1.0 - 0.67 * unconfirmed_frac),
+        n_factor=_n_factor(len(ctx.jobs), _t("conf_n_saturation_postings")),
     )
     conf.corroboration = min(20.0, conf.corroboration)
-    return _result(ctx, sid, SignalState.SCORABLE, score, raw=raw, reasons=reasons, evidence_ids=ids, conf=conf,
-                   limitations=lims)  # fmt: skip
+    low = len(ctx.jobs) < _t("s4_min_postings")
+    if low:
+        reasons.append("LOW_POSTING_COVERAGE")
+        lims.append(
+            f"Only {len(ctx.jobs)} deduplicated posting(s) observed; too few to characterise hiring pressure "
+            "(counted at half weight)."
+        )
+    return _result(
+        ctx, sid, SignalState.LOW_COVERAGE if low else SignalState.SCORABLE, score,
+        raw=raw, reasons=reasons, evidence_ids=ids, conf=conf, limitations=lims,
+    )  # fmt: skip
 
 
 # ---------------------------------------------------------------------------
@@ -1237,6 +1413,7 @@ def score_s5(case_input: CaseInput, evidence: Sequence[EvidenceRecord], as_of: d
         recency=_recency_points(used, ctx.as_of),
         corroboration=_corroboration_points(used),
         identity=15.0 * len(eligible) / max(1, sum(p.n_records for p in eligible)),
+        n_factor=_n_factor(n_elig, _t("conf_n_saturation_people")),
     )
     return _result(
         ctx, sid, SignalState.LOW_COVERAGE if low else SignalState.SCORABLE, score,
@@ -1270,6 +1447,21 @@ def coverage_label_for(
     return "coverage_threshold_met"
 
 
+def is_inconclusive(scorecard: Scorecard) -> bool:
+    """True when no composite was published (coverage < 60% OR weighted evidence confidence < 50). The orchestrator
+    should treat such a case as PARTIAL / inconclusive, not as a clean 'complete' run."""
+    return scorecard.risk_score is None
+
+
+def inconclusive_reason(scorecard: Scorecard) -> str | None:
+    """None when the composite was published; else "insufficient_coverage" or "low_evidence_confidence"."""
+    if scorecard.risk_score is not None:
+        return None
+    if scorecard.coverage_pct < _t("coverage_min_publish_pct"):
+        return "insufficient_coverage"
+    return "low_evidence_confidence"
+
+
 def build_scorecard(signals: Sequence[SignalResult]) -> Scorecard:
     """Composite per the catalog: risk = sum(w*s)/sum(w) over assessable signals A; coverage = sum(w_A)/sum(w_all).
 
@@ -1290,7 +1482,10 @@ def build_scorecard(signals: Sequence[SignalResult]) -> Scorecard:
     label = coverage_label_for(coverage)
     risk: float | None = None
     band = None
-    if label != "insufficient_evidence" and assessable > 0:
+    # Confidence gate: a composite built from thin samples (one posting, one profile) is withheld even if the weight
+    # coverage looks adequate. Weighted mean confidence over the assessable signals only.
+    assessable_conf = sum(w * s.confidence for s, w in eff) / assessable if assessable else 0.0
+    if label != "insufficient_evidence" and assessable > 0 and assessable_conf >= _t("confidence_min_publish"):
         risk = round(sum(w * (s.score or 0.0) for s, w in eff) / assessable, 1)
         band = risk_band_for(risk)
     conf = round(sum(s.weight * s.confidence for s in signals) / total_w, 1) if total_w else 0.0
@@ -1326,6 +1521,8 @@ __all__ = [
     "build_scorecard",
     "compute_scorecard",
     "coverage_label_for",
+    "inconclusive_reason",
+    "is_inconclusive",
     "resolve_as_of",
     "risk_band_for",
     "score_s1",

@@ -44,6 +44,16 @@ TERMINAL = {CaseStage.COMPLETE, CaseStage.FAILED}
 SIMULATED_JOB_PRICE = Decimal("0.03")
 
 
+def _is_inconclusive(scorecard: Scorecard | None) -> bool:
+    """True when the scorecard withholds its composite (coverage below the publish threshold)."""
+    if scorecard is None:
+        return True
+    flag = getattr(scorecard, "is_inconclusive", None)
+    if callable(flag):
+        flag = flag()
+    return bool(flag) if flag is not None else scorecard.risk_score is None
+
+
 class ConfigError(RuntimeError):
     pass
 
@@ -451,6 +461,12 @@ class Orchestrator:
                 narrative = True
             except LLMError as exc:
                 self.repo.add_event(state.case_id, "llm_unavailable", {"error": str(exc)[:200]})
+            except Exception as exc:  # model output or SDK trouble must never fail a run after the spend is done
+                log.exception("synthesis failed; falling back to deterministic findings")
+                claims = []
+                self.repo.add_event(
+                    state.case_id, "llm_unavailable", {"error": f"unexpected {type(exc).__name__} in synthesis"}
+                )
         det = deterministic_claims(scorecard, evidence, state.input)
         with tracing.span("verify_claims", kind="GUARDRAIL", case_id=state.case_id) as vs:
             draft_verification = verify_claims(claims, evidence, state.input, scorecard) if claims else None
@@ -474,6 +490,10 @@ class Orchestrator:
             # Evidence gaps from failed tool calls: report is partial and the case can be resumed.
             limited = True
             state.finish_reason = f"{state.finish_reason}_with_{len(failed)}_failed_actions"
+        if not limited and _is_inconclusive(scorecard):
+            # Not enough evidence for a composite: the case is finished and labelled "limited evidence". A source
+            # skipped for lack of a key is not a reason to stay resumable; the answer card says which key to add.
+            state.finish_reason = f"{state.finish_reason}_limited_evidence"
         as_of = datetime.combine(self.as_of, datetime.min.time(), tzinfo=UTC) if self.as_of else datetime.now(UTC)
         with tracing.span("render_memo", kind="CHAIN", case_id=state.case_id):
             memo = render_memo(state, evidence, verification, scorecard, narrative, as_of)

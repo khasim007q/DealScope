@@ -29,6 +29,28 @@ from dealscope.providers.llm import LLMError, LLMProvider, parse_structured
 log = logging.getLogger(__name__)
 
 CRITICAL_JOB_TERMS = ["engineering_leadership", "platform", "security", "reliability", "data_ml"]
+# Case critical capability -> job-search role term (the provider vocabulary is closed; see SearchJobsArgs).
+_CAPABILITY_JOB_TERM = {
+    "platform_engineering": "platform",
+    "security": "security",
+    "reliability": "reliability",
+    "data_ml": "data_ml",
+}
+MIN_PUBLISH_COVERAGE_PCT = 60.0
+
+
+def job_query_terms(state: CaseState) -> list[str]:
+    """Role terms for job searches: engineering leadership plus the case's own thesis-critical capabilities.
+    Falls back to the full critical set when none of the case capabilities map to a provider term."""
+    mapped = {_CAPABILITY_JOB_TERM[c] for c in state.input.critical_capabilities if c in _CAPABILITY_JOB_TERM}
+    if not mapped:
+        return list(CRITICAL_JOB_TERMS)
+    return [t for t in CRITICAL_JOB_TERMS if t == "engineering_leadership" or t in mapped]
+
+
+def job_query_lookback_days(state: CaseState) -> int:
+    """Honour the case lookback (months -> days), within the provider bounds [90, 365] for a current-state board."""
+    return int(min(365, max(90, state.input.lookback_months * 30)))
 
 
 @dataclass
@@ -161,14 +183,14 @@ def candidate_actions(
         "Role-continuity (S2) and competitor movement (S5) need past-employment profile evidence.",
         "high" if concern else "medium",
     )
-    if view.people and (view.departures() > 0 or view.histories_incomplete()):
-        add(
-            ToolName.SEARCH_PEOPLE,
-            {"role_group": "technical_leadership", "relationship": "current_target_employment", "limit": 25},
-            "Which critical capabilities still have observable current technical leadership?",
-            "Departures or incomplete histories found; current coverage (S3) tests whether gaps are real.",
-            "high",
-        )
+    # Always offered: S2 needs current leaders as the denominator for any departure share, and S3 needs them.
+    add(
+        ToolName.SEARCH_PEOPLE,
+        {"role_group": "technical_leadership", "relationship": "current_target_employment", "limit": 25},
+        "Which critical capabilities still have observable current technical leadership?",
+        "A leavers-only sample has no denominator (S2) and no current coverage (S3); current leaders supply both.",
+        "high" if (view.people and (view.departures() > 0 or view.histories_incomplete())) else "medium",
+    )
     if view.people and view.histories_incomplete():
         add(
             ToolName.SEARCH_PEOPLE,
@@ -178,13 +200,24 @@ def candidate_actions(
             "medium",
         )
     if jobs_enabled:
+        terms, days = job_query_terms(state), job_query_lookback_days(state)
         add(
             ToolName.SEARCH_JOBS,
-            {"domain": target, "role_terms": CRITICAL_JOB_TERMS, "lookback_days": 90, "limit": 25},
+            {"domain": target, "role_terms": terms, "lookback_days": days, "limit": 25},
             "Are thesis-critical technical roles open or reposted at the target?",
             "Hiring pressure (S4) and capability gaps (S3) need current critical-role postings.",
             "high" if (concern or view.departures() > 0) else "low",
         )
+        # Lower priority than the target: a jobs baseline for each peer (the only peer evidence obtainable when
+        # company/people tools are unavailable, e.g. free mode without a People Data Labs key).
+        for peer in state.input.competitor_domains:
+            add(
+                ToolName.SEARCH_JOBS,
+                {"domain": peer, "role_terms": terms, "lookback_days": days, "limit": 25},
+                f"How many thesis-critical technical roles does peer {peer} have open (a hiring baseline)?",
+                "Peer job postings give the target's hiring pressure a comparison baseline.",
+                "low",
+            )
     return cands
 
 
@@ -198,7 +231,18 @@ def deterministic_choice(
         (c.action.action, c.action.arguments.get("relationship"), c.action.arguments.get("role_group")): c
         for c in candidates
     }
-    jobs = next((c for c in candidates if c.action.action == ToolName.SEARCH_JOBS), None)
+    target = state.input.target_domain
+    jobs = next(
+        (
+            c
+            for c in candidates
+            if c.action.action == ToolName.SEARCH_JOBS and c.action.arguments.get("domain") == target
+        ),
+        None,
+    )
+    peer_jobs = [
+        c for c in candidates if c.action.action == ToolName.SEARCH_JOBS and c.action.arguments.get("domain") != target
+    ]
     past_lead = by_tool.get((ToolName.SEARCH_PEOPLE, "past_target_employment", "technical_leadership"))
     current_lead = by_tool.get((ToolName.SEARCH_PEOPLE, "current_target_employment", "technical_leadership"))
     past_ic = by_tool.get((ToolName.SEARCH_PEOPLE, "past_target_employment", "senior_technical_ic"))
@@ -222,13 +266,25 @@ def deterministic_choice(
         return pick(past_lead, why)
     if view.histories_incomplete() and past_ic:
         return pick(past_ic, "Returned leadership histories mostly lack dates; broaden coverage to senior ICs.")
-    if current_lead and (view.departures() > 0 or view.histories_incomplete()):
-        return pick(current_lead, "Departures/incomplete histories found; verify current capability coverage.")
+    if current_lead and not view.current_coverage_known():
+        return pick(
+            current_lead,
+            "No current technical leaders observed yet; they are the denominator for departure share and "
+            "the evidence for current capability coverage.",
+        )
     if jobs and (view.departures() > 0 or concern):
         return pick(jobs, "Continuity signals present; test for corroborating critical-role postings.")
     if jobs and ToolName.SEARCH_PEOPLE.value in state.unavailable_tools:
         # People data is unavailable (e.g. free mode without a PDL key): job postings are the only observable left.
         return pick(jobs, "People data is unavailable; open critical-role postings are the remaining signal.")
+    thin = scorecard is None or scorecard.risk_score is None or scorecard.coverage_pct < MIN_PUBLISH_COVERAGE_PCT
+    if jobs and thin:
+        return pick(jobs, "Coverage is too thin to publish a verdict; open critical-role postings add evidence.")
+    if peer_jobs and (
+        ToolName.ENRICH_COMPANY.value in state.unavailable_tools
+        or ToolName.SEARCH_PEOPLE.value in state.unavailable_tools
+    ):
+        return pick(peer_jobs[0], "Peers lack company/people baselines; their job postings are what remains.")
     return PlannerAction(
         action=ToolName.STOP,
         question="",
@@ -401,9 +457,9 @@ class Planner:
 
 
 def refresh_open_questions(state: CaseState, evidence: list[EvidenceRecord], scorecard: Scorecard | None) -> list[str]:
-    qs: list[str] = []
+    ranked: list[tuple[float, int, str]] = []
     view = EvidenceView.build(state, evidence)
-    for sid, q in [
+    for order, (sid, q) in enumerate([
         (
             SignalId.S1,
             "Provide internal engineering headcount by month for the lookback window (department data is "
@@ -421,10 +477,13 @@ def refresh_open_questions(state: CaseState, evidence: list[EvidenceRecord], sco
             "Do any departed technical leaders now work at direct competitors, and are standard "
             "confidentiality/non-solicit protections in place?",
         ),
-    ]:
+    ]):
         s = _signal(scorecard, sid)
         if s is None or s.state != SignalState.SCORABLE or (s.score or 0) >= 41:
-            qs.append(q)
+            # Highest-severity scored signals first; data gaps (no score) rank as a mid-severity 40.
+            rank = 40.0 if s is None or s.score is None else float(s.score)
+            ranked.append((-rank, order, q))
+    qs = [q for _, _, q in sorted(ranked)]
     if view.trajectory_concern():
         qs.insert(
             0,

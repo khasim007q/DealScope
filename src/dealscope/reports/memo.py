@@ -12,7 +12,14 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from dealscope.analysis.signals import CRITICAL_ROLE_GROUPS, _in_window, _parse_date, _subtract_months, resolve_as_of
+from dealscope.analysis.signals import (
+    CRITICAL_ROLE_GROUPS,
+    _in_window,
+    _parse_date,
+    _subtract_months,
+    resolve_as_of,
+    risk_band_for,
+)
 from dealscope.domain.enums import ClaimType, EvidenceKind, RunMode, Severity, SignalId, SignalState
 from dealscope.domain.models import (
     CaseInput,
@@ -245,6 +252,12 @@ def deterministic_claims(
 
     # --- S4: hiring pressure --------------------------------------------------------------------------------------
     jobs = [e for e in evidence if e.kind is EvidenceKind.JOB_POSTING and e.subject_domain == target]
+    s4 = sig.get(SignalId.S4)
+    s4_ids = s4.raw_measure.get("critical_posting_evidence_ids") if s4 is not None else None
+    if isinstance(s4_ids, list):
+        # Reuse the signal's deduplicated, thesis-critical posting set (no re-fetch duplicates, no non-technical roles).
+        wanted = set(s4_ids)
+        jobs = [e for e in jobs if e.evidence_id in wanted]
     if jobs:
         n = len(jobs)
         reposted = sum(1 for j in jobs if isinstance(j.payload, JobPostingPayload) and j.payload.reposted)
@@ -380,22 +393,39 @@ def _is_synthetic(state: CaseState, evidence: list[EvidenceRecord]) -> bool:
 def _coverage_text(scorecard: Scorecard) -> tuple[str, str]:
     """Returns (headline, label) for the executive assessment."""
     cov = scorecard.coverage_pct
-    if cov < MIN_COVERAGE_PCT or scorecard.risk_score is None:
+    if cov < MIN_COVERAGE_PCT:
         return (
             f"**INSUFFICIENT EVIDENCE** — composite risk score withheld (signal coverage {cov:.0f}% is below the "
             f"{MIN_COVERAGE_PCT:.0f}% minimum). Individual scorable signals are shown below.",
             "insufficient_evidence",
         )
+    if scorecard.risk_score is None:
+        return (
+            "**INSUFFICIENT EVIDENCE** — composite risk score withheld (coverage is adequate but the evidence "
+            "behind the assessable signals is too thin: weighted evidence confidence is below the minimum). "
+            "Individual signals are shown below.",
+            "insufficient_evidence",
+        )
     band = f" — band: {scorecard.risk_band}" if scorecard.risk_band else ""
     if cov < THRESHOLD_COVERAGE_PCT:
-        return (
+        headline, label = (
             f"Composite risk signal score (provisional): **{scorecard.risk_score:.0f}/100**{band}.",
             "provisional",
         )
-    return (
-        f"Composite risk signal score (coverage threshold met): **{scorecard.risk_score:.0f}/100**{band}.",
-        "coverage_threshold_met",
-    )
+    else:
+        headline, label = (
+            f"Composite risk signal score (coverage threshold met): **{scorecard.risk_score:.0f}/100**{band}.",
+            "coverage_threshold_met",
+        )
+    # A weighted average can hide one dominant signal: always name the highest single signal when it outranks the band.
+    top = max((x for x in scorecard.signals if x.score is not None), key=lambda x: x.score or 0.0, default=None)
+    if top is not None and top.score is not None and risk_band_for(top.score) != scorecard.risk_band:
+        if top.score > scorecard.risk_score and top.score >= 50:
+            headline += (
+                f" Highest single signal: **{top.signal_id.value} {top.name} {top.score:.0f}/100** "
+                f"({risk_band_for(top.score)}), which the weighted composite does not reflect on its own."
+            )
+    return headline, label
 
 
 def _weight_text(w: float) -> str:

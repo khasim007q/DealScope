@@ -11,6 +11,7 @@ import hashlib
 import json
 import sqlite3
 import threading
+import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -375,6 +376,35 @@ class Repository:
     def cache_get(self, key: str) -> Any | None:
         row = self._one("SELECT response_json FROM response_cache WHERE cache_key=?", (key,))
         return None if row is None else json.loads(row["response_json"])
+
+    def cache_delete(self, key: str) -> None:
+        with self.transaction() as conn:
+            conn.execute("DELETE FROM response_cache WHERE cache_key=?", (key,))
+
+    # -- per-case run lease (one live worker per case, across processes) ---
+
+    def acquire_lease(self, case_id: str, owner: str, ttl_s: float = 60.0, now: float | None = None) -> bool:
+        """Take the run lease unless another owner holds a fresh one. Atomic (BEGIN IMMEDIATE)."""
+        t = time.time() if now is None else now
+        with self.transaction() as conn:
+            row = conn.execute("SELECT owner, heartbeat FROM case_leases WHERE case_id=?", (case_id,)).fetchone()
+            if row is not None and row["owner"] != owner and t - float(row["heartbeat"]) < ttl_s:
+                return False
+            conn.execute(
+                "INSERT OR REPLACE INTO case_leases (case_id, owner, heartbeat) VALUES (?,?,?)", (case_id, owner, t)
+            )
+            return True
+
+    def heartbeat_lease(self, case_id: str, owner: str, now: float | None = None) -> None:
+        with self.transaction() as conn:
+            conn.execute(
+                "UPDATE case_leases SET heartbeat=? WHERE case_id=? AND owner=?",
+                (time.time() if now is None else now, case_id, owner),
+            )
+
+    def release_lease(self, case_id: str, owner: str) -> None:
+        with self.transaction() as conn:
+            conn.execute("DELETE FROM case_leases WHERE case_id=? AND owner=?", (case_id, owner))
 
     def cache_put(self, key: str, endpoint: str, response_obj: Any, api_version: str) -> None:
         with self.transaction() as conn:

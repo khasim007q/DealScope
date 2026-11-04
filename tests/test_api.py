@@ -16,7 +16,7 @@ def client(tmp_path, monkeypatch):
     settings = Settings(_env_file=None, dealscope_db_path=tmp_path / "api.sqlite3", data_provider="crustdata")
     monkeypatch.setattr(server, "_settings", lambda: settings)
     monkeypatch.setattr("dealscope.agent.orchestrator.time.sleep", lambda s: None, raising=False)
-    return TestClient(server.app)
+    return TestClient(server.app, base_url="http://localhost", client=("127.0.0.1", 50000))
 
 
 def wait_done(client, case_id, timeout=30):
@@ -319,7 +319,7 @@ def test_answer_block_null_safe_while_running():
 def _free_client(tmp_path, monkeypatch, **kw):
     settings = Settings(_env_file=None, dealscope_db_path=tmp_path / "f.sqlite3", data_provider="free", **kw)
     monkeypatch.setattr(server, "_settings", lambda: settings)
-    return TestClient(server.app)
+    return TestClient(server.app, base_url="http://localhost", client=("127.0.0.1", 50000))
 
 
 def test_free_status_is_live_available_without_keys(tmp_path, monkeypatch):

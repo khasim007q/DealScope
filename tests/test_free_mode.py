@@ -134,11 +134,12 @@ def _run_free_without_pdl(tmp_path, monkeypatch, peers=("peerone.com",)):
     return s, repo, repo.load_case(state.case_id)
 
 
-def test_no_pdl_key_skips_people_tools_and_finishes_complete(tmp_path, monkeypatch):
+def test_no_pdl_key_skips_people_tools_and_finishes_complete_limited_evidence(tmp_path, monkeypatch):
     from dealscope.api import views
 
     s, repo, final = _run_free_without_pdl(tmp_path, monkeypatch)
-    assert final.stage == CaseStage.COMPLETE, final.finish_reason
+    # Thin evidence (no composite) and a skipped source that a key would unlock: resumable, labelled "limited evidence".
+    assert final.stage == CaseStage.COMPLETE and final.finish_reason.endswith("limited_evidence"), final.finish_reason
     assert "_failed_actions" not in (final.finish_reason or "")
     tried = {c.action.action.value for c in final.completed_actions}
     assert tried == {"search_jobs"}  # never planned or attempted enrich_company / search_people
@@ -150,7 +151,7 @@ def test_no_pdl_key_skips_people_tools_and_finishes_complete(tmp_path, monkeypat
     assert len(skipped) == 1 and "no People Data Labs key set" in skipped[0]["detail"].replace("No ", "no ", 1)
     text = " ".join(x["title"] + " " + x["detail"] for x in steps).lower()
     assert "not_configured" not in text and "failed because" not in text
-    assert views.status_of(final, False)[0] == "Complete"
+    assert views.status_of(final, False)[0] == "Complete - limited evidence"
 
 
 def test_resume_after_adding_pdl_key_reenables_people_tools(tmp_path, monkeypatch):
@@ -209,7 +210,7 @@ def test_answer_block_reports_what_was_found_and_what_to_do(tmp_path, monkeypatc
         "Add a free People Data Labs key (PDL_API_KEY) to score headcount, departures and competitor moves."
     )
     note = ans["coverage_note"]
-    assert note.startswith("Based on 2 of 5 checks: ") and "Not checked: " in note and "People Data Labs" in note
+    assert note.startswith("Based on 1 of 5 checks: ") and "Not checked: " in note and "People Data Labs" in note
     # the mocked boards link only to boards.greenhouse.io, so ownership is unconfirmed and must be surfaced
     assert "name only" in note and "acme.com" in note
     assert all(j["board_match"] == "name_only" for j in view["jobs"])

@@ -46,6 +46,9 @@ from dealscope.providers.base import (
 
 log = logging.getLogger(__name__)
 
+# Bump when the cached response shape changes: old rows then miss (different key) instead of crashing a run.
+CACHE_SCHEMA_VERSION = 2
+
 OPERATION = {
     ToolName.ENRICH_COMPANY: "company_enrich",
     ToolName.SEARCH_PEOPLE: "person_search",
@@ -207,7 +210,9 @@ class ToolExecutor:
 
         quantity = quantity_for(action, self.max_people_results)
         operation = OPERATION[tool]
-        ckey = cache_key(provider, ENDPOINT[tool], canonical, self.api_version, self._time_bucket())
+        ckey = cache_key(
+            provider, ENDPOINT[tool], canonical, f"{self.api_version}+cache{CACHE_SCHEMA_VERSION}", self._time_bucket()
+        )
 
         with tracing.span(
             f"tool.{tool.value}",
@@ -218,15 +223,29 @@ class ToolExecutor:
             operation=operation,
             quantity=quantity,
         ) as span:
-            cached = self.repo.cache_get(ckey) if provider != "fixture" else None
-            if cached is not None:
+            hit = self._cached_result(state, ckey) if provider != "fixture" else None
+            if hit is None and provider != "fixture":
+                hit = self._legacy_cached_result(state, ckey, provider, tool, canonical)
+            if hit is not None:
+                cached_result, records = hit
                 run_id = self.repo.start_tool_run(state.case_id, tool.value, idem, ckey, Decimal("0"))
-                result = self._result_from_cache(cached)
-                ids, new = self._persist_items(state, result, run_id, None)
+                try:
+                    records = [r.model_copy(update={"tool_run_id": run_id}) for r in records]
+                    ids, new = self._persist_records(state, records)
+                except Exception as exc:  # never leave a tool_run in `started`
+                    log.exception("could not store cached evidence for %s", tool.value)
+                    self.repo.cache_delete(ckey)
+                    self.repo.finish_tool_run(
+                        run_id,
+                        ToolRunStatus.FAILED,
+                        error_code="CACHE_PERSIST_ERROR",
+                        error_message=type(exc).__name__,
+                    )
+                    return ToolOutcome(ToolRunStatus.FAILED, run_id, reason="CACHE_PERSIST_ERROR")
                 self.repo.finish_tool_run(
                     run_id,
                     ToolRunStatus.CACHED,
-                    result_count=result.result_count,
+                    result_count=cached_result.result_count,
                     cost_actual=Decimal("0"),
                     attempt_count=0,
                 )
@@ -236,7 +255,7 @@ class ToolExecutor:
                     run_id,
                     new,
                     ids,
-                    result_count=result.result_count,
+                    result_count=cached_result.result_count,
                     credits_actual=Decimal("0"),
                     notes=["served from response cache; no spend"],
                 )
@@ -308,19 +327,29 @@ class ToolExecutor:
                     attempts=self._ctx.get("retries", 0) + 1,
                     credits_estimate=reservation.amount,
                 )
+            except Exception as exc:  # normaliser bug, decoding error, ...: the request may already have been sent
+                log.exception("unexpected error in %s", tool.value)
+                return self._fail_unexpected(run_id, reservation, exc, span, sent=True)
 
             actual = result.credits_used if result.provider in ("crustdata", "free") else None
-            self.governor.settle(reservation, actual)
-            ids, new = self._persist_items(state, result, run_id, actual)
-            self.repo.finish_tool_run(
-                run_id,
-                ToolRunStatus.SUCCEEDED,
-                result_count=result.result_count,
-                cost_actual=actual,
-                attempt_count=result.attempts,
-            )
+            try:
+                self.governor.settle(reservation, actual)
+                ids, new = self._persist_items(state, result, run_id, actual)
+                self.repo.finish_tool_run(
+                    run_id,
+                    ToolRunStatus.SUCCEEDED,
+                    result_count=result.result_count,
+                    cost_actual=actual,
+                    attempt_count=result.attempts,
+                )
+            except Exception as exc:  # response received but could not be stored: the spend stays counted
+                log.exception("could not store results of %s", tool.value)
+                return self._fail_unexpected(run_id, reservation, exc, span, sent=True, code="PERSIST_ERROR")
             if result.provider in ("crustdata", "free"):
-                self.repo.cache_put(ckey, ENDPOINT[tool], self._result_to_cache(result), self.api_version)
+                try:
+                    self.repo.cache_put(ckey, ENDPOINT[tool], self._result_to_cache(result), self.api_version)
+                except Exception:  # a cache write must never fail an already stored (possibly paid) call
+                    log.exception("cache write failed for %s", tool.value)
             span.set_attribute("result_count", result.result_count)
             span.set_attribute("attempts", result.attempts)
             span.set_attribute("new_evidence", len(new))
@@ -339,6 +368,92 @@ class ToolExecutor:
             )
 
     # ------------------------------------------------------------------
+    def _fail_unexpected(
+        self, run_id: str, reservation, exc: Exception, span, *, sent: bool, code: str = "UNEXPECTED_ERROR"
+    ) -> ToolOutcome:
+        """Close out a tool run after an unexpected exception: no `reserved` ledger row or `started` run is left.
+
+        If the request may have been sent the estimate stays charged (unknown outcome); if it definitely was not,
+        the reservation is released."""
+        try:
+            if self.governor._status_of(reservation) == "reserved":
+                if sent:
+                    self.governor.mark_unknown(reservation, code)
+                else:
+                    self.governor.release(reservation, code)
+        except Exception:  # bookkeeping must not mask the original problem
+            log.exception("could not close ledger row after %s", code)
+        try:
+            self.repo.finish_tool_run(
+                run_id,
+                ToolRunStatus.FAILED,
+                error_code=code,
+                error_message=f"{type(exc).__name__}: {str(exc)[:200]}",
+                attempt_count=self._ctx.get("retries", 0) + 1,
+            )
+        except Exception:
+            log.exception("could not finish tool run %s", run_id)
+        span.record_exception(exc)
+        span.set_attribute("error_code", code)
+        return ToolOutcome(
+            ToolRunStatus.FAILED,
+            run_id,
+            reason=code,
+            disable_tool=True,
+            attempts=self._ctx.get("retries", 0) + 1,
+            credits_estimate=reservation.amount,
+        )
+
+    def _legacy_cached_result(
+        self, state: CaseState, ckey: str, provider: str, tool: ToolName, canonical: dict[str, Any]
+    ) -> tuple[ProviderResult, list[EvidenceRecord]] | None:
+        """Rows written before the cache-key version suffix existed: reuse (and re-store under the current key)
+        rather than re-buy paid responses; an undecodable legacy row is deleted."""
+        old_key = cache_key(provider, ENDPOINT[tool], canonical, self.api_version, self._time_bucket())
+        if old_key == ckey:
+            return None
+        try:
+            raw = self.repo.cache_get(old_key)
+        except Exception:
+            log.warning("could not read legacy cache row %s", old_key, exc_info=True)
+            raw = None
+        if raw is None:
+            return None
+        try:
+            data = dict(raw) if isinstance(raw, dict) else json.loads(raw)
+            data["schema"] = CACHE_SCHEMA_VERSION
+            result = self._result_from_cache(data)
+            records = [self._to_record(state, result, item, "pending") for item in result.items]
+        except Exception:
+            log.warning("discarding unreadable legacy cache row %s", old_key, exc_info=True)
+            try:
+                self.repo.cache_delete(old_key)
+            except Exception:
+                log.exception("could not delete bad legacy cache row")
+            return None
+        try:
+            self.repo.cache_put(ckey, ENDPOINT[tool], self._result_to_cache(result), self.api_version)
+        except Exception:
+            log.exception("could not re-store legacy cache row under the current key")
+        return result, records
+
+    def _cached_result(self, state: CaseState, ckey: str) -> tuple[ProviderResult, list[EvidenceRecord]] | None:
+        """Decode a cache row into a result plus ready-to-store records. A row that cannot be decoded (stale shape,
+        corruption) is deleted and treated as a miss, so one bad row never fails a run."""
+        try:
+            raw = self.repo.cache_get(ckey)
+            if raw is None:
+                return None
+            result = self._result_from_cache(raw)
+            return result, [self._to_record(state, result, item, "pending") for item in result.items]
+        except Exception:
+            log.warning("discarding unreadable response-cache row %s", ckey, exc_info=True)
+            try:
+                self.repo.cache_delete(ckey)
+            except Exception:
+                log.exception("could not delete bad cache row")
+            return None
+
     def _call(self, tool: ToolName, a: dict[str, Any]) -> ProviderResult:
         if tool == ToolName.ENRICH_COMPANY:
             return self.source.enrich_company(a["domain"])
@@ -355,7 +470,9 @@ class ToolExecutor:
     def _persist_items(
         self, state: CaseState, result: ProviderResult, run_id: str, actual: Decimal | None
     ) -> tuple[list[str], list[str]]:
-        records = [self._to_record(state, result, item, run_id) for item in result.items]
+        return self._persist_records(state, [self._to_record(state, result, item, run_id) for item in result.items])
+
+    def _persist_records(self, state: CaseState, records: list[EvidenceRecord]) -> tuple[list[str], list[str]]:
         if not records:
             return [], []
         pairs = self.repo.add_evidence_detailed(records)
@@ -390,6 +507,7 @@ class ToolExecutor:
     @staticmethod
     def _result_to_cache(result: ProviderResult) -> dict[str, Any]:
         return {
+            "schema": CACHE_SCHEMA_VERSION,
             "provider": result.provider,
             "endpoint": result.endpoint,
             "request_body": result.request_body,
@@ -416,6 +534,8 @@ class ToolExecutor:
     @staticmethod
     def _result_from_cache(obj: Any) -> ProviderResult:
         data = obj if isinstance(obj, dict) else json.loads(obj)
+        if data.get("schema") != CACHE_SCHEMA_VERSION:
+            raise ValueError("response-cache row has an unsupported schema version")
         items = []
         for i in data["items"]:
             kind = EvidenceKind(i["kind"])
