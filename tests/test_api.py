@@ -13,7 +13,7 @@ from dealscope.config import Settings
 
 @pytest.fixture()
 def client(tmp_path, monkeypatch):
-    settings = Settings(_env_file=None, dealscope_db_path=tmp_path / "api.sqlite3")
+    settings = Settings(_env_file=None, dealscope_db_path=tmp_path / "api.sqlite3", data_provider="crustdata")
     monkeypatch.setattr(server, "_settings", lambda: settings)
     monkeypatch.setattr("dealscope.agent.orchestrator.time.sleep", lambda s: None, raising=False)
     return TestClient(server.app)
@@ -263,3 +263,117 @@ def test_init_tracing_with_record_to_persists_case_trace(tmp_path):
     finally:
         tracing.shutdown()
     assert len(traces) == 1 and traces[0]["span_count"] == 2
+
+
+def _scenario_a(client):
+    return next(s for s in client.get("/api/scenarios").json() if s["id"] == "scenario_a")
+
+
+def test_minimal_body_target_only_flow(client):
+    a = _scenario_a(client)
+    r = client.post("/api/cases", json={"target_domain": a["target_domain"], "mode": "synthetic"})
+    assert r.status_code == 200, r.text
+    view = wait_done(client, r.json()["case_id"])
+    assert view["peers"] == [] and view["thesis_is_default"] is True
+    assert view["thesis"] == "General diligence (no thesis given)"
+    assert view["status_label"] in ("Complete", "Partial results")
+    s5 = next(s for s in view["signals"] if s["id"] == "S5")
+    assert not s5["scored"] and "No competitors given" in s5["finding"]
+    ans = view["answer"]
+    assert set(ans) == {"headline", "level", "tone", "score", "top_questions", "coverage_note", "next_step"}
+    assert ans["headline"] and ans["coverage_note"].startswith("Based on ") and ans["next_step"]
+    assert len(ans["top_questions"]) <= 3
+    assert "No competitors given" in ans["coverage_note"]
+
+
+def test_answer_block_for_complete_case(client):
+    a = _scenario_a(client)
+    r = client.post(
+        "/api/cases",
+        json={
+            "target_domain": a["target_domain"],
+            "competitor_domains": a["competitor_domains"],
+            "deal_thesis": a["deal_thesis"],
+            "mode": "synthetic",
+        },
+    )
+    view = wait_done(client, r.json()["case_id"])
+    ans = view["answer"]
+    assert ans["level"] == view["assessment"]["risk_band"] and ans["score"] == view["assessment"]["risk_score"]
+    assert ans["tone"] == view["assessment"]["risk_tone"]
+    assert ans["top_questions"] and all(isinstance(q, str) for q in ans["top_questions"])
+    assert view["thesis_is_default"] is False
+
+
+def test_answer_block_null_safe_while_running():
+    from dealscope.api.views import answer_view
+    from dealscope.domain.models import CaseInput, CaseState
+
+    inp = CaseInput(target_domain="acme.com")
+    state = CaseState.model_construct(input=inp, scorecard=None, claims=[], open_questions=[])
+    ans = answer_view(state, True)
+    assert ans["headline"] == "Investigating..." and ans["score"] is None and ans["level"] == "Investigating"
+    assert ans["top_questions"] == []
+
+
+def _free_client(tmp_path, monkeypatch, **kw):
+    settings = Settings(_env_file=None, dealscope_db_path=tmp_path / "f.sqlite3", data_provider="free", **kw)
+    monkeypatch.setattr(server, "_settings", lambda: settings)
+    return TestClient(server.app)
+
+
+def test_free_status_is_live_available_without_keys(tmp_path, monkeypatch):
+    body = _free_client(tmp_path, monkeypatch).get("/api/status").json()
+    assert body["data_provider"] == "free" and body["live_available"] is True
+    rows = {p["key"]: p for p in body["providers"]}
+    assert rows["job_boards"]["connected"] and rows["job_boards"]["label"] == "Public job boards (free)"
+    assert not rows["pdl"]["connected"] and "not set" in rows["pdl"]["detail"]
+    assert rows["crustdata"]["optional"] and "jobs_pricing" not in rows
+
+
+def test_free_status_with_pdl_key(tmp_path, monkeypatch):
+    body = _free_client(tmp_path, monkeypatch, pdl_api_key="k").get("/api/status").json()
+    assert {p["key"]: p for p in body["providers"]}["pdl"]["connected"] is True
+
+
+def test_free_identity_check_unverified_without_pdl_key(tmp_path, monkeypatch):
+    c = _free_client(tmp_path, monkeypatch)
+    r = c.post("/api/identity-check", json={"domains": ["https://www.linear.app/", "height.app"]})
+    assert r.status_code == 200
+    out = r.json()
+    assert [o["domain"] for o in out] == ["linear.app", "height.app"]
+    assert all(
+        o["ok"] is True
+        and o["status"] == "unverified"
+        and o["resolved_name"] is None
+        and o["match_count"] == 0
+        and o["candidates"] == []
+        and o["message"] == "Not verified: no company-data key set. Public job boards only."
+        for o in out
+    )
+
+
+def test_resume_refused_when_data_provider_changed(tmp_path, monkeypatch):
+    from dealscope.agent.orchestrator import build_orchestrator
+    from dealscope.domain.enums import RunMode
+    from dealscope.domain.models import CaseInput
+    from dealscope.persistence.repository import Repository
+
+    c = _free_client(tmp_path, monkeypatch)
+    free = server._settings()
+    repo = Repository(free.dealscope_db_path)
+    orch = build_orchestrator(free, RunMode.LIVE, repo=repo, llm=None)
+    try:
+        state = orch.create_case(CaseInput(target_domain="acme.com", mode=RunMode.LIVE, max_case_credits=10))
+    finally:
+        orch.close()
+    created = next(e for e in repo.list_events(state.case_id) if e["type"] == "case_created")
+    assert created["payload"]["provider"] == "free"
+    repo.close()
+
+    paid = free.model_copy(update={"data_provider": "crustdata"})
+    monkeypatch.setattr(server, "_settings", lambda: paid)
+    r = c.post(f"/api/cases/{state.case_id}/resume")
+    assert r.status_code == 409
+    detail = r.json()["detail"]
+    assert "free (public job boards)" in detail and "Crustdata" in detail and "start a new investigation" in detail

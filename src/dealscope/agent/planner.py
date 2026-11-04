@@ -110,6 +110,8 @@ def _signal(scorecard: Scorecard | None, sid: SignalId):
 
 def baseline_actions(state: CaseState, evidence: list[EvidenceRecord]) -> list[PlannerAction]:
     """Minimum evidence baseline: enrich target then each peer once (spec §5 step 3)."""
+    if ToolName.ENRICH_COMPANY.value in state.unavailable_tools:
+        return []  # e.g. no People Data Labs key: never attempt (and never "fail") a call that cannot work
     view = EvidenceView.build(state, evidence)
     done = _done(state)
     out = []
@@ -224,6 +226,9 @@ def deterministic_choice(
         return pick(current_lead, "Departures/incomplete histories found; verify current capability coverage.")
     if jobs and (view.departures() > 0 or concern):
         return pick(jobs, "Continuity signals present; test for corroborating critical-role postings.")
+    if jobs and ToolName.SEARCH_PEOPLE.value in state.unavailable_tools:
+        # People data is unavailable (e.g. free mode without a PDL key): job postings are the only observable left.
+        return pick(jobs, "People data is unavailable; open critical-role postings are the remaining signal.")
     return PlannerAction(
         action=ToolName.STOP,
         question="",

@@ -29,6 +29,7 @@ from dealscope.verification.claims import REJECTION_DESCRIPTIONS, REWRITE_HINTS,
 
 SYNTHETIC_BANNER = "SYNTHETIC DEMO DATA — NOT A REAL COMPANY ASSESSMENT"
 LIVE_INDICATOR = "LIVE CRUSTDATA"
+FREE_INDICATOR = "LIVE FREE SOURCES (public job boards, People Data Labs)"
 MIN_COVERAGE_PCT = 60.0
 THRESHOLD_COVERAGE_PCT = 80.0
 DISCLAIMER = (
@@ -340,7 +341,17 @@ def _describe(e: EvidenceRecord) -> str:
     return "Job posting; " + "; ".join(bits)
 
 
+def _is_free(evidence: list[EvidenceRecord]) -> bool:
+    return any(e.source_provider == "free" for e in evidence)
+
+
 def _budget_lines(state: CaseState, evidence: list[EvidenceRecord]) -> list[str]:
+    if _is_free(evidence) and state.mode is not RunMode.SYNTHETIC:
+        return [
+            "- Credits consumed: 0 (free sources: public job boards and People Data Labs; no metered credits)",
+            f"- Planner iterations: {state.iteration_count}; tool calls: {state.tool_call_count}; "
+            f"runtime: {state.runtime_seconds_used:.1f}s",
+        ]
     actual_known = state.credit_actual_used > 0 or any(e.credit_actual is not None for e in evidence)
     lines = [
         f"- Case credit ceiling (configured): {state.credit_budget}",
@@ -407,6 +418,7 @@ def render_memo(
     state = case_state
     inp = state.input
     synthetic = _is_synthetic(state, evidence)
+    mode_label = "SYNTHETIC FIXTURE" if synthetic else (FREE_INDICATOR if _is_free(evidence) else LIVE_INDICATOR)
     by_id = {e.evidence_id: e for e in evidence}
     out: list[str] = []
 
@@ -419,14 +431,14 @@ def render_memo(
         "",
         "## 1. Cover and case context",
         "",
-        f"- Mode: **{'SYNTHETIC FIXTURE' if synthetic else LIVE_INDICATOR}**",
+        f"- Mode: **{mode_label}**",
         f"- As-of: {as_of.isoformat(timespec='minutes')}",
         f"- Case ID: `{state.case_id}`; run label: {state.run_label}; finish: {state.finish_reason or 'in progress'}",
         f"- Tool calls: {state.tool_call_count}; planner turns: {state.iteration_count}",
         f"- Target: {inp.target_domain}",
-        f"- Peer cohort (user-confirmed): {', '.join(inp.competitor_domains)}",
+        f"- Peer cohort (user-confirmed): {', '.join(inp.competitor_domains) or 'No competitors given'}",
         f"- Lookback: {inp.lookback_months} months",
-        f"- Deal thesis: {_cell(inp.deal_thesis)}",
+        f"- Deal thesis: {_cell(inp.thesis_label)}",
         "",
     ]
 

@@ -2,10 +2,15 @@
 
 Reads like a diligence report (FT / Economist research note): warm paper, ink, hairline rules, serif headlines and numerals. Structure comes from rules and whitespace, not boxes or shadows.
 
+## Flow
+- **Search-first Home** (`pages/Home.tsx`): one company-website box and one button. Live searches run a free identity check first, then start. Competitors, thesis, look-back (3-36 months) and credit limit sit under "Refine". Demo data is an opt-in toggle that prefills a made-up scenario; leaving demo clears those values.
+- **Answer card** (`components/AnswerCard.tsx`): the first thing on a case page. While running: one calm progress line ("Step n - current step - elapsed time") over a skeleton, with no invented totals. When done: headline, verdict pill (neutral "Not enough evidence" when there is no level), score, a plain coverage note, up to three questions to ask management, then one next step. Setup hints (keys, config) show as a quiet note instead of the call to action.
+- **Full report** is a collapsed disclosure below the card; it opens automatically for section deep links such as `/cases/x#evidence`.
+
 ## Files
 - `src/styles/tokens.css` - all custom properties + dark mode. Never hardcode colors/sizes elsewhere.
 - `src/styles/base.css` - reset, typography, links, tables, forms, buttons, masthead/footer, styles for `ui.tsx` primitives.
-- `src/styles/start.css` (New investigation, Cases), `case.css` (case detail + components), `pages.css` (Compare, Evidence, How it works) - page-owned, seeded from legacy rules.
+- `src/styles/start.css` (search Home, recent searches, Cases history), `case.css` (case detail + components), `pages.css` (Compare, Evidence, How it works) - page-owned, seeded from legacy rules.
 - `global.css` only `@import`s them in order. Page CSS goes in the matching page file.
 
 ## Tokens
@@ -51,6 +56,6 @@ Layout `.main .section .grid-2 .cols-2 .btn-row .dek .muted .small .num`; `.btn`
 
 ## Migration notes for page agents
 - `.stat` is now flat (top hairline, serif value); `.stat-grid` unchanged.
-- `.pill`, `.badge`, `.banner`, `.infobox`, `.thesis`, `.finding`, `.signal`, `.progress-panel`, `.score-box`, `.choice`, `.featured-list li`, `.tw-*` were restyled to flat/ruled looks but keep their class names; restructure markup freely.
+- `.pill`, `.badge`, `.banner`, `.thesis`, `.finding`, `.signal`, `.tw-*` were restyled to flat/ruled looks but keep their class names; restructure markup freely.
 - Removed: `.topbar`, `.topbar-inner` (now `.masthead*`), `--navy`, `--shadow`, `--navy-ink`. `--radius` is 3px.
 - Page CSS owners: start.css, case.css, pages.css. Do not edit base.css/tokens.css; request changes instead.

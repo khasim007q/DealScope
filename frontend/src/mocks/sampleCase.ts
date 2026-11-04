@@ -26,6 +26,19 @@ export const sampleCase: CaseView = {
   current_question: null,
   planner_turns: 6,
   tool_calls: 9,
+  answer: {
+    headline: "Engineering is growing more slowly than the company, and two senior engineers moved to a competitor.",
+    level: "Watch",
+    tone: "caution",
+    score: 41,
+    top_questions: [
+      "Why has engineering headcount grown only 2% while the company grew 15%?",
+      "Were the two senior engineers who left recruited by a competitor?",
+      "Who owns the roadmap if more technical leaders leave?",
+    ],
+    coverage_note: "We found about 80% of the evidence we looked for, enough to give a score.",
+    next_step: "Ask management about engineering hiring plans and recent senior departures before you commit.",
+  },
   assessment: {
     risk_score: 41,
     risk_band: "Watch",

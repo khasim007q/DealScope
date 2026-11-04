@@ -51,7 +51,6 @@ a:hover { text-decoration-thickness: 2px; }
 /* ---------- Layout ---------- */
 .main { max-width: var(--max-w); margin: 0 auto; padding: var(--space-5) var(--gutter) var(--space-7); }
 .section { margin-top: var(--space-6); }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
 .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
 .btn-row { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center; }
 
@@ -66,9 +65,10 @@ a:hover { text-decoration-thickness: 2px; }
 .nav { display: flex; gap: var(--space-1) var(--space-5); flex-wrap: wrap; margin-top: var(--space-3); }
 .nav a { color: var(--ink-2); text-decoration: none; font-size: var(--fs-sm); font-weight: 500; padding: var(--space-2) 0 calc(var(--space-2) + 1px); border-bottom: 2px solid transparent; margin-bottom: -2px; }
 .nav a:hover { color: var(--ink); border-bottom-color: var(--line-strong); }
+.nav a.nav-quiet { font-weight: 400; color: var(--muted); margin-left: auto; }
 .nav a.active { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
 
-.systems { position: relative; font-size: var(--fs-xs); }
+.systems { position: relative; font-size: var(--fs-2xs); }
 .systems-btn { display: inline-flex; align-items: center; gap: var(--space-2); background: none; border: 0; padding: 2px 0; color: var(--muted); font: inherit; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
 .systems-btn:hover { color: var(--ink); }
 .systems-panel { position: absolute; right: 0; top: calc(100% + 8px); width: min(360px, calc(100vw - 2rem)); background: var(--surface); color: var(--ink); border: var(--hair) solid var(--line-strong); border-top: var(--heavy) solid var(--rule); border-radius: 0; padding: var(--space-4); z-index: 40; font-size: var(--fs-sm); }
@@ -208,7 +208,6 @@ td.num, th.num { text-align: right; padding-right: 0; padding-left: var(--space-
 @media (max-width: 640px) {
   h1 { font-size: 1.65rem; }
   h2 { font-size: 1.35rem; }
-  .grid-2 { grid-template-columns: 1fr; }
   .brand-name { font-size: 1.6rem; }
   .systems { position: static; }
   .systems-panel { left: var(--gutter); right: var(--gutter); width: auto; }

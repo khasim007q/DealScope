@@ -5,6 +5,7 @@ from __future__ import annotations
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -27,6 +28,19 @@ class Settings(BaseSettings):
     # Empty until confirmed from official pricing; absent => live Jobs API disabled (fail closed).
     crustdata_job_cost_per_result: Decimal | None = None
     crustdata_job_call_reserve: Decimal | None = None
+
+    # Data provider: "free" = People Data Labs (company/people) + public ATS job boards; "crustdata" = paid.
+    data_provider: Literal["free", "crustdata"] = "free"
+    pdl_api_key: SecretStr | None = None
+    pdl_base_url: str = "https://api.peopledatalabs.com"
+    pdl_monthly_limit: int = Field(default=100, ge=0)
+    pdl_max_people_results: int = Field(default=10, ge=1, le=100)
+    pdl_usage_path: Path = Path("./data/pdl_usage.json")
+    # Cap on PDL records one investigation may use (company lookups + people profiles); 0 = no PDL for cases.
+    pdl_max_records_per_case: int = Field(default=30, ge=0)
+    # Shared on-disk cache of PDL company lookups; defaults to pdl_cache.sqlite3 next to the usage file.
+    pdl_cache_path: Path | None = None
+    ats_timeout_seconds: float = 20.0
 
     # Runtime LLM (a coding-agent subscription is NOT a runtime key)
     llm_provider: str = "gemini"
@@ -54,10 +68,14 @@ class Settings(BaseSettings):
     def _blank_is_none(cls, v: object) -> object:
         return None if isinstance(v, str) and not v.strip() else v
 
-    @field_validator("crustdata_api_key", "llm_api_key", mode="before")
+    @field_validator("crustdata_api_key", "llm_api_key", "pdl_api_key", mode="before")
     @classmethod
     def _blank_secret_is_none(cls, v: object) -> object:
         return None if isinstance(v, str) and not v.strip() else v
+
+    @property
+    def pdl_cache_file(self) -> Path:
+        return self.pdl_cache_path or self.pdl_usage_path.with_name("pdl_cache.sqlite3")
 
     @property
     def spendable_global_credits(self) -> Decimal:
@@ -71,6 +89,8 @@ class Settings(BaseSettings):
         """Safe-to-display status; never includes secret values."""
         return {
             "mode": self.dealscope_mode.value,
+            "data_provider": self.data_provider,
+            "pdl_key_present": self.pdl_api_key is not None,
             "crustdata_key_present": self.crustdata_api_key is not None,
             "llm_provider": self.llm_provider,
             "llm_model": self.llm_model,

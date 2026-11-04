@@ -77,12 +77,19 @@ def normalize_domain(raw: str) -> str:
 Domain = Annotated[str, Field(min_length=3, max_length=253)]
 
 
+DEFAULT_DEAL_THESIS = (
+    "General organizational diligence: is the team, especially engineering, keeping pace with the company, "
+    "and are key people staying?"
+)
+GENERIC_THESIS_LABEL = "General diligence (no thesis given)"
+
+
 class CaseInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     target_domain: Domain
-    competitor_domains: list[Domain] = Field(min_length=2, max_length=5)
-    deal_thesis: str = Field(min_length=10, max_length=2000)
+    competitor_domains: list[Domain] = Field(default_factory=list, max_length=5)
+    deal_thesis: str = Field(default=DEFAULT_DEAL_THESIS, max_length=2000)
     lookback_months: int = Field(default=12, ge=3, le=36)
     max_case_credits: Decimal = Field(default=Decimal("300"), gt=0)
     mode: RunMode = RunMode.SYNTHETIC
@@ -108,13 +115,20 @@ class CaseInput(BaseModel):
                 seen.append(d)
         return seen
 
-    @field_validator("deal_thesis")
+    @field_validator("deal_thesis", mode="before")
     @classmethod
-    def _strip_thesis(cls, v: str) -> str:
-        v = v.strip()
-        if len(v) < 10:
-            raise ValueError("deal thesis is required (at least 10 characters)")
-        return v
+    def _default_thesis(cls, v: object) -> object:
+        if v is None or (isinstance(v, str) and not v.strip()):
+            return DEFAULT_DEAL_THESIS
+        return v.strip() if isinstance(v, str) else v
+
+    @property
+    def thesis_is_default(self) -> bool:
+        return self.deal_thesis == DEFAULT_DEAL_THESIS
+
+    @property
+    def thesis_label(self) -> str:
+        return GENERIC_THESIS_LABEL if self.thesis_is_default else self.deal_thesis
 
     @model_validator(mode="after")
     def _target_not_peer(self) -> CaseInput:
@@ -182,6 +196,9 @@ class JobPostingPayload(BaseModel):
     number_of_openings: int | None = None
     url: str | None = None
     category: str | None = None
+    # Public job boards only: "confirmed" (board verifiably belongs to the target) or "name_only" (matched by
+    # name alone, ownership unconfirmed; must not be treated as strong evidence).
+    board_match: Literal["confirmed", "name_only"] | None = None
 
 
 class EvidenceRecord(BaseModel):
@@ -192,7 +209,7 @@ class EvidenceRecord(BaseModel):
     kind: EvidenceKind
     subject_domain: str
     entity_id: str | None = None
-    source_provider: Literal["crustdata", "fixture"]
+    source_provider: Literal["crustdata", "free", "fixture"]
     source_endpoint: str
     source_url: str | None = None
     source_record_id: str | None = None

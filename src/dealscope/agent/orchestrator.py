@@ -79,7 +79,24 @@ class Orchestrator:
         self.synthesis_variant = synthesis_variant
         self.as_of = as_of
         # Set by the API to stop at the next step boundary (never interrupts an in-flight provider request).
-        self.cancel_event: threading.Event | None = None
+        self._cancel_event: threading.Event | None = None
+
+    @property
+    def cancel_event(self) -> threading.Event | None:
+        return self._cancel_event
+
+    @cancel_event.setter
+    def cancel_event(self, event: threading.Event | None) -> None:
+        self._cancel_event = event
+        setter = getattr(self.executor.source, "set_cancel_event", None)
+        if callable(setter):
+            setter(event)
+
+    def close(self) -> None:
+        """Release the data source's HTTP clients (no-op for sources without close())."""
+        closer = getattr(self.executor.source, "close", None)
+        if callable(closer):
+            closer()
 
     # ------------------------------------------------------------------
     def create_case(self, case_input: CaseInput, run_label: str | None = None) -> CaseState:
@@ -92,7 +109,13 @@ class Orchestrator:
         self.repo.add_event(
             state.case_id,
             "case_created",
-            {"mode": state.mode.value, "budget": str(cap), "target": case_input.target_domain},
+            {
+                "mode": state.mode.value,
+                "budget": str(cap),
+                "target": case_input.target_domain,
+                # Which live data provider produced (or will produce) this case's evidence; resume checks it.
+                "provider": getattr(self.executor.source, "provider_name", None),
+            },
         )
         return state
 
@@ -235,7 +258,7 @@ class Orchestrator:
             trace_id = root.trace_id()
             root.set_io(
                 input_text=f"{state.mode.value} case {state.case_id}: target {state.input.target_domain}; "
-                f"peers {', '.join(state.input.competitor_domains)}; resume={resume}"
+                f"peers {', '.join(state.input.competitor_domains) or 'none'}; resume={resume}"
             )
             if trace_id:
                 self.repo.add_event(state.case_id, "trace", {"trace_id": trace_id})
@@ -296,7 +319,32 @@ class Orchestrator:
                 state.stage = CaseStage.INVESTIGATING
             state.finish_reason = None
 
+    def _sync_unconfigured_tools(self, state: CaseState) -> None:
+        """Tools whose provider is not configured are never offered or attempted; say so once, in plain words."""
+        source = self.executor.source
+        getter = getattr(source, "unconfigured_tools", None)
+        missing = getter() if callable(getter) else {}
+        for tool, reason in list(state.unavailable_tools.items()):
+            if reason == "NOT_CONFIGURED" and tool not in missing:
+                del state.unavailable_tools[tool]  # configured since the last run (e.g. a key was added)
+        new = [t for t in missing if t not in state.unavailable_tools]
+        for tool in new:
+            state.unavailable_tools[tool] = missing[tool]
+        if new:
+            self.repo.add_event(
+                state.case_id,
+                "tools_skipped",
+                {
+                    "tools": new,
+                    "reason": "NOT_CONFIGURED",
+                    "message": getattr(source, "unconfigured_message", None)
+                    or "Some data sources were skipped because they are not configured.",
+                },
+            )
+            self.repo.checkpoint(state, "tools_skipped")
+
     def _run_inner(self, state: CaseState, started: float, root) -> None:
+        self._sync_unconfigured_tools(state)
         # Pending baseline work also runs after a resume (e.g. an enrichment that failed before the restart).
         pending_baseline = baseline_actions(state, self.repo.get_evidence(state.case_id))
         if state.stage in (CaseStage.CREATED, CaseStage.BASELINE) or (
@@ -465,16 +513,36 @@ def build_orchestrator(
     as_of: date | None = None,
     sleep=time.sleep,
 ) -> Orchestrator:
-    """Wire components. Live mode fails closed without a Crustdata key; it never falls back to fixtures."""
+    """Wire components. Live mode never falls back to fixtures.
+
+    ``settings.data_provider`` picks the live source: "free" (public job boards + optional People Data Labs,
+    no key required, 0 credits) or "crustdata" (paid; fails closed without CRUSTDATA_API_KEY).
+    """
     from dealscope.providers.llm import build_provider
 
     repo = repo or Repository(settings.dealscope_db_path)
     if mode == RunMode.LIVE:
-        if settings.crustdata_api_key is None and source is None:
+        free = settings.data_provider == "free"
+        if source is not None:
+            # Zero prices are only ever granted to a source that really is the free one. Never infer them from
+            # settings alone: an injected paid client must keep real prices (and real budget enforcement).
+            source_free = getattr(source, "provider_name", None) == "free"
+            if source_free != free:
+                raise ConfigError(
+                    f"data source '{getattr(source, 'provider_name', None)}' does not match "
+                    f"DATA_PROVIDER={settings.data_provider}; refusing to pick credit prices for it."
+                )
+        if not free and settings.crustdata_api_key is None and source is None:
             raise ConfigError(
-                "LIVE mode requires CRUSTDATA_API_KEY; switch to synthetic mode explicitly to use fixtures."
+                "LIVE mode with DATA_PROVIDER=crustdata requires CRUSTDATA_API_KEY; use DATA_PROVIDER=free or "
+                "switch to synthetic mode explicitly to use fixtures."
             )
-        governor = CreditGovernor(repo, settings, pool="live")
+        if free:
+            from dealscope.providers.free_source import FREE_PRICE_OVERRIDES
+
+            governor = CreditGovernor(repo, settings, pool="live", price_overrides=FREE_PRICE_OVERRIDES)
+        else:
+            governor = CreditGovernor(repo, settings, pool="live")
     else:
         governor = CreditGovernor(repo, settings, pool="synthetic", price_overrides={"job_search": SIMULATED_JOB_PRICE})
     executor = ToolExecutor(
@@ -486,7 +554,11 @@ def build_orchestrator(
         as_of=as_of,
     )
     if source is None:
-        if mode == RunMode.LIVE:
+        if mode == RunMode.LIVE and settings.data_provider == "free":
+            from dealscope.providers.free_source import FreeDataSource
+
+            source = FreeDataSource.from_settings(settings)
+        elif mode == RunMode.LIVE:
             from dealscope.providers.crustdata import CrustdataClient
 
             source = CrustdataClient(

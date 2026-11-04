@@ -78,6 +78,7 @@ CODE_TEXT: list[tuple[str, str]] = [
     ("PEER_BENCHMARK_WEAK", "Fewer than three comparable peers, so the peer comparison is weak."),
     ("NO_PEER_BENCHMARK", "No comparable peer data was available."),
     ("CORROBORATED_BY_", "Supported by an independent signal ({x})."),
+    ("NO_COMPETITORS_GIVEN", "No competitors given, so competitor talent movement was not assessed."),
     ("NO_PERSON_DATA", "No people-history records were collected for the target."),
     ("NO_EMPLOYMENT_DATA", "Returned profiles did not include usable employment history."),
     ("NO_DATED_EMPLOYMENT", "Returned profiles did not include employment dates."),
@@ -113,6 +114,10 @@ CODE_TEXT: list[tuple[str, str]] = [
     ("UNUSUAL_CONCENTRATION_OR_PERSISTENCE", "Open critical roles are unusually concentrated or persistent."),
     ("BROAD_CAPABILITY_REBUILD_PRESSURE", "Openings suggest broad rebuilding of critical capabilities."),
     ("NO_HEADCOUNT_DENOMINATOR", "Openings could not be compared with company size."),
+    (
+        "JOB_BOARD_NAME_MATCH_ONLY",
+        "The job board was matched to the company by name only, so it may not be this company's board.",
+    ),
     ("DUPLICATE_POSTINGS_REMOVED", "Duplicate postings were removed before counting."),
     ("CRITICAL_VACANCIES", "Critical vacancies support this reading."),
     ("ENGINEERING_CONTRACTION_SIGNAL", "Engineering contraction supports this reading."),
@@ -151,7 +156,28 @@ OUTCOME_TEXT = {
     "GLOBAL_SPENDABLE_BUDGET_EXCEEDED": "it would dip into the protected credit reserve",
     "UNKNOWN_PRICE_FAIL_CLOSED": "its price is not confirmed, so it was blocked",
     "UNKNOWN_OUTCOME_NOT_REPLAYED": "an identical earlier call has an unknown charge, so it was not repeated",
+    "NOT_CONFIGURED": "no People Data Labs key is set (free mode uses public job boards only)",
+    "PDL_MONTHLY_LIMIT": "the free People Data Labs quota is used up",
+    "NOT_FOUND": "the provider has no record for this",
+    "UNSUPPORTED": "this data source does not offer that kind of data",
 }
+
+
+def plain_reason(code: str | None) -> str:
+    """Plain-language reason for any internal outcome/error code; never returns a raw SCREAMING_CODE."""
+    c = (code or "").split(":")[0].strip()
+    if not c:
+        return "of an unknown problem"
+    if c.upper() in OUTCOME_TEXT:
+        return OUTCOME_TEXT[c.upper()]
+    if c.upper().startswith("REJECTED_ACTION"):
+        return "the request did not pass validation for this case"
+    m = re.fullmatch(r"(?i)http[_ ]?(\d{3})", c)
+    if m:
+        return f"the provider answered with HTTP {m.group(1)}"
+    if c in {"ConnectError", "ConnectTimeout", "PoolTimeout"}:
+        return "the provider could not be reached"
+    return re.sub(r"(?<=[a-z])(?=[A-Z])", " ", c).replace("_", " ").lower()
 EXPLAINER = (
     "Risk, coverage and confidence are separate. Risk (0-100) is how strongly the observed signals point to "
     "organizational execution risk - a prompt for diligence questions, not a probability of failure. Coverage is how "
@@ -238,7 +264,16 @@ def _evidence_date(ev: EvidenceRecord) -> str | None:
 
 
 def _source(ev: EvidenceRecord) -> str:
-    return "Synthetic fixture" if ev.synthetic else f"Crustdata {ev.source_endpoint}"
+    if ev.synthetic:
+        return "Synthetic fixture"
+    if ev.source_provider == "free":
+        ep = ev.source_endpoint
+        if ep.startswith("ats:"):
+            parts = ep.split(":")
+            board = parts[1].capitalize() if len(parts) > 1 else "ATS"
+            return f"Public job board ({board})"
+        return "People Data Labs"
+    return f"Crustdata {ev.source_endpoint}"
 
 
 def evidence_ref(ev: EvidenceRecord) -> dict:
@@ -296,7 +331,7 @@ def status_of(state: CaseState, running: bool) -> tuple[str, str, str, bool]:
             return (
                 "Stopped",
                 "bad",
-                f"Stopped because {OUTCOME_TEXT.get(code, code.lower())}. No fallback to demo data was used.",
+                f"Stopped because {plain_reason(code)}. No fallback to demo data was used.",
                 True,
             )
         limits = {
@@ -379,7 +414,8 @@ def build_steps(state: CaseState, events: list[dict]) -> list[dict]:
                 at,
                 "stage",
                 "Investigation created",
-                f"Target {target} against {len(state.input.competitor_domains)} competitors; "
+                f"Target {target} against {len(state.input.competitor_domains)} competitors"
+                f"{' (target-only, no competitors given)' if not state.input.competitor_domains else ''}; "
                 f"credit cap {p.get('budget')}.",
                 "System",
                 "info",
@@ -425,7 +461,7 @@ def build_steps(state: CaseState, events: list[dict]) -> list[dict]:
                 kind = "tool"
             else:
                 status, _, code = outcome.partition(":")
-                reason = OUTCOME_TEXT.get(code.split(":")[0].strip(), code.lower())
+                reason = plain_reason(code)
                 if status == "blocked":
                     detail, tone, kind = f"Not sent because {reason}.", "caution", "blocked"
                 else:
@@ -436,7 +472,8 @@ def build_steps(state: CaseState, events: list[dict]) -> list[dict]:
                 at,
                 "retry",
                 f"Retrying a failed data request ({p.get('tool')})",
-                f"Attempt {p.get('attempt')} failed ({p.get('reason')}); waiting {p.get('delay_s')} s before retrying.",
+                f"Attempt {p.get('attempt')} failed ({plain_reason(str(p.get('reason')))}); "
+                f"waiting {p.get('delay_s')} s before retrying.",
                 "Retry policy",
                 "caution",
             )
@@ -466,6 +503,10 @@ def build_steps(state: CaseState, events: list[dict]) -> list[dict]:
                 "System",
                 "info",
             )
+        elif t == "tools_skipped":
+            msg = str(p.get("message") or "Some data sources were skipped because they are not configured.")
+            head, sep, rest = msg.partition(": ")
+            add(at, "note", head, (rest[:1].upper() + rest[1:]) if sep else "", "System", "info")
         elif t == "llm_unavailable":
             add(
                 at,
@@ -667,6 +708,7 @@ def tables(state: CaseState, evidence: list[EvidenceRecord]) -> tuple[list[dict]
                     "reposted": p.reposted,
                     "openings": p.number_of_openings,
                     "url": p.url,
+                    "board_match": p.board_match,
                     "evidence_id": ev.evidence_id,
                 }
             )
@@ -682,8 +724,13 @@ def tables(state: CaseState, evidence: list[EvidenceRecord]) -> tuple[list[dict]
 # ---------------------------------------------------------------------------
 
 
-def credits_view(summary: dict, synthetic: bool) -> dict:
+def _case_is_free(evidence: list[EvidenceRecord]) -> bool:
+    return any(e.source_provider == "free" for e in evidence)
+
+
+def credits_view(summary: dict, synthetic: bool, free: bool = False) -> dict:
     return {
+        "free": free,
         "cap": _f(summary["budget"]),
         "estimated_used": _f(summary["estimated_used"]),
         "actual_used": _f(summary["actual_used"]),
@@ -714,6 +761,183 @@ def verification_view(report: dict | None) -> dict | None:
     }
 
 
+def _ranked_questions(state: CaseState, sig_score: dict[str, float], limit: int = 3) -> list[str]:
+    """Top questions, ranked by the score of the signal each comes from (highest first), de-duplicated."""
+    accepted = [
+        c
+        for c in state.claims
+        if c.claim_type == ClaimType.QUESTION
+        and c.verification_status in (VerificationStatus.VERIFIED, VerificationStatus.QUALIFIED)
+    ]
+    order = {"high": 0, "medium": 1, "low": 2}
+
+    def rank(c: Any) -> tuple[float, int]:
+        scores = [sig_score.get(sid.value, -1.0) for sid in c.related_signals]
+        return (-(max(scores) if scores else -1.0), order.get(c.severity.value, 3))
+
+    out: list[str] = []
+    for c in sorted(accepted, key=rank):
+        if c.text not in out:
+            out.append(c.text)
+    for q in state.open_questions:
+        if q not in out:
+            out.append(q)
+    return out[:limit]
+
+
+NOT_ENOUGH = "Not enough evidence"
+PDL_NEXT_STEP = "Add a free People Data Labs key (PDL_API_KEY) to score headcount, departures and competitor moves."
+
+
+def _found_summary(state: CaseState, evidence: list[EvidenceRecord]) -> tuple[list[str], list[str]]:
+    """(what was found, what is missing) for the target, in reader words, from persisted evidence only."""
+    target = state.input.target_domain
+    jobs = {e.dedup_key for e in evidence if e.kind == EvidenceKind.JOB_POSTING and e.subject_domain == target}
+    profile = next(
+        (
+            e.payload
+            for e in evidence
+            if isinstance(e.payload, CompanyProfilePayload) and e.subject_domain == target
+        ),
+        None,
+    )
+    people = {e.evidence_id for e in evidence if e.kind == EvidenceKind.PERSON_HISTORY}
+    found: list[str] = []
+    missing: list[str] = []
+    if jobs:
+        found.append(f"{len(jobs)} open technical role{'s' if len(jobs) != 1 else ''}")
+    if profile is not None and profile.total_headcount:
+        found.append("a headcount figure")
+    else:
+        missing.append("headcount")
+    if people:
+        found.append(f"{len(people)} people profile{'s' if len(people) != 1 else ''}")
+    else:
+        missing.append("people data")
+    return found, missing
+
+
+def _join(items: list[str]) -> str:
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " or " + items[-1]
+
+
+def _pdl_missing(state: CaseState, settings: Any) -> bool:
+    return (
+        settings is not None
+        and state.mode == RunMode.LIVE
+        and getattr(settings, "data_provider", None) == "free"
+        and getattr(settings, "pdl_api_key", None) is None
+    )
+
+
+def answer_view(
+    state: CaseState,
+    running: bool,
+    evidence: list[EvidenceRecord] | None = None,
+    settings: Any = None,
+) -> dict:
+    """Compact, deterministic answer for the search-first UI. Null-safe while the case is still running."""
+    evidence = evidence or []
+    no_pdl = _pdl_missing(state, settings)
+    name_only = any(
+        isinstance(e.payload, JobPostingPayload)
+        and e.payload.board_match == "name_only"
+        and e.subject_domain == state.input.target_domain
+        for e in evidence
+    )
+    board_note = (
+        f" Job postings come from a public job board matched to the name only; it is not confirmed to belong to "
+        f"{state.input.target_domain}."
+        if name_only
+        else ""
+    )
+    sc = state.scorecard
+    if sc is None:
+        headline = "Investigating..." if running else "No result yet."
+        return {
+            "headline": headline,
+            "level": "Investigating" if running else NOT_ENOUGH,
+            "tone": "neutral",
+            "score": None,
+            "top_questions": [],
+            "coverage_note": "Evidence is still being collected." if running else "No evidence assessed yet.",
+            "next_step": "Wait for the first signals to appear." if running else "Run or resume the investigation.",
+        }
+    assessed = [s for s in sc.signals if s.score is not None and s.state != SignalState.NOT_SCORED]
+    assessed_ids = {s.signal_id for s in assessed}
+    sig_score = {s.signal_id.value: float(s.score or 0.0) for s in assessed}
+    n_total = len(sc.signals)
+    band, tone = band_for(sc.risk_score)
+    names = {s.signal_id: SIGNAL_TEXT[s.signal_id.value]["name"] for s in sc.signals}
+    done = [names[s.signal_id].lower() for s in assessed]
+    todo = [names[s.signal_id].lower() for s in sc.signals if s.signal_id not in assessed_ids]
+    note = f"Based on {len(assessed)} of {n_total} checks"
+    note += f": {', '.join(done)}." if done else "."
+    if todo:
+        why = "needs company and people data; no People Data Labs key is set" if no_pdl else "not enough data returned"
+        note += f" Not checked: {', '.join(todo)} ({why})."
+    if not state.input.competitor_domains:
+        note += " No competitors given, so there is no peer comparison."
+    note += board_note
+    questions = _ranked_questions(state, sig_score)
+    if sc.risk_score is None or not assessed:
+        found, missing = _found_summary(state, evidence)
+        base = "Not enough evidence for a verdict"
+        if running:
+            headline = f"{base} yet" + (f": found {_join(found)} so far; still investigating..." if found else
+                                        "; still investigating...")
+        elif found and missing:
+            headline = f"{base}: found {_join(found)}, but no {_join(missing)}."
+        elif found:
+            headline = f"{base}: found {_join(found)}, but too little to judge risk."
+        else:
+            headline = f"{base}: no usable company, people or job data was found."
+        if running:
+            nxt = "Wait for the investigation to finish."
+        elif no_pdl:
+            nxt = PDL_NEXT_STEP
+        else:
+            nxt = "Add competitors or provide a thesis, then resume, to widen the evidence."
+        return {
+            "headline": headline,
+            "level": NOT_ENOUGH,
+            "tone": "neutral",
+            "score": None,
+            "top_questions": questions,
+            "coverage_note": note,
+            "next_step": nxt,
+        }
+    top = max(assessed, key=lambda s: s.score or 0)
+    reason = next((x for x in (code_sentence(c) for c in top.reason_codes) if x), "")
+    provisional = " (provisional)" if sc.coverage_label == "provisional" else ""
+    if reason:
+        headline = f"{band}{provisional}: {reason.rstrip('.')}"
+        if tone == "good":
+            name = SIGNAL_TEXT[top.signal_id.value]["name"].lower()
+            headline = f"{band}{provisional}: no material concern found; {name} looked highest ({top.score:.0f}/100)"
+    else:
+        headline = f"{band}{provisional}: overall risk signal {sc.risk_score:.0f}/100"
+    if running:
+        headline += " (still investigating)"
+    if tone == "good":
+        nxt = "No immediate action; confirm with management in a standard diligence call."
+    elif questions:
+        nxt = "Put the questions above to management and request supporting data."
+    else:
+        nxt = "Request headcount and attrition data from management to confirm."
+    if state.input.competitor_domains == [] and tone != "good":
+        nxt += " Add competitors to test the result against peers."
+    return {
+        "headline": headline,
+        "level": band or NOT_ENOUGH,
+        "tone": tone,
+        "score": round(sc.risk_score),
+        "top_questions": questions,
+        "coverage_note": note,
+        "next_step": nxt,
+    }
+
+
 def case_view(
     state: CaseState,
     evidence: list[EvidenceRecord],
@@ -734,7 +958,8 @@ def case_view(
         "synthetic": state.mode == RunMode.SYNTHETIC,
         "target": state.input.target_domain,
         "peers": state.input.competitor_domains,
-        "thesis": state.input.deal_thesis,
+        "thesis": state.input.thesis_label,
+        "thesis_is_default": state.input.thesis_is_default,
         "lookback_months": state.input.lookback_months,
         "running": running,
         "status_label": label,
@@ -745,6 +970,7 @@ def case_view(
         "planner_turns": state.iteration_count,
         "tool_calls": state.tool_call_count,
         "assessment": assessment_view(state.scorecard) if state.scorecard else None,
+        "answer": answer_view(state, running, evidence, settings),
         "signals": [signal_view(s) for s in state.scorecard.signals] if state.scorecard else [],
         "findings": findings,
         "questions": questions,
@@ -752,7 +978,7 @@ def case_view(
         "companies": companies,
         "people": people,
         "jobs": jobs,
-        "credits": credits_view(credit_summary, state.mode == RunMode.SYNTHETIC),
+        "credits": credits_view(credit_summary, state.mode == RunMode.SYNTHETIC, free=_case_is_free(evidence)),
         "verification": verification_view(report),
         "trace_ids": [
             e["payload"]["trace_id"] for e in events if e["type"] == "trace" and e["payload"].get("trace_id")

@@ -31,6 +31,14 @@ function FigTable({ caption, rows }: { caption: string; rows: Fig[] }) {
 }
 
 function CreditsBlock({ credits }: { credits: CreditsView }) {
+  if (credits.free) {
+    return (
+      <div>
+        <h3 className="fig-h">Cost</h3>
+        <p className="muted">Free data sources. No credits were used for this run.</p>
+      </div>
+    );
+  }
   return (
     <div>
       <h3 className="fig-h">

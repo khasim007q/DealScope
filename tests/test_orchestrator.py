@@ -181,7 +181,11 @@ def test_t07_auth_failure_stops_without_fixture_fallback(tmp_path):
 
 def test_live_mode_requires_key_and_never_uses_fixtures(tmp_path):
     with pytest.raises(ConfigError):
-        build_orchestrator(settings(), RunMode.LIVE, repo=Repository(tmp_path / "x.sqlite3"))
+        build_orchestrator(
+            settings().model_copy(update={"data_provider": "crustdata"}),
+            RunMode.LIVE,
+            repo=Repository(tmp_path / "x.sqlite3"),
+        )
 
 
 class _ExplodingSource:
@@ -316,3 +320,51 @@ def test_cancel_stops_at_next_step_and_writes_partial_memo(tmp_path):
     assert final.stage == CaseStage.PARTIAL and final.finish_reason == "cancelled_by_user"
     assert len(repo.list_tool_runs(state.case_id)) == 1
     assert repo.latest_report(state.case_id) is not None
+
+
+def test_zero_peer_run_completes_and_marks_peer_signal_not_scored(tmp_path):
+    from dealscope.domain.enums import SignalId, SignalState
+
+    c = json.loads((FIX / "scenario_a.json").read_text(encoding="utf-8"))["case"]
+    orch, repo = make(tmp_path)
+    state = orch.create_case(CaseInput(target_domain=c["target_domain"], mode=RunMode.SYNTHETIC))
+    assert state.input.competitor_domains == []
+    orch.run(state.case_id)
+    final = repo.load_case(state.case_id)
+    assert final.stage in (CaseStage.COMPLETE, CaseStage.PARTIAL) and final.scorecard is not None
+    s5 = next(s for s in final.scorecard.signals if s.signal_id == SignalId.S5)
+    assert s5.state == SignalState.NOT_SCORED and s5.score is None
+    assert "NO_COMPETITORS_GIVEN" in s5.reason_codes
+    # weight of the unscorable signal is excluded from coverage
+    assert final.scorecard.coverage_pct <= 100 - s5.weight * 100 + 0.01
+    report = repo.latest_report(state.case_id)
+    assert "No competitors given" in report["markdown"]
+    assert "General diligence (no thesis given)" in report["markdown"]
+
+
+def test_one_peer_allowed_with_weak_benchmark(tmp_path):
+    from dealscope.domain.enums import SignalId
+
+    c = json.loads((FIX / "scenario_a.json").read_text(encoding="utf-8"))["case"]
+    orch, repo = make(tmp_path)
+    state = orch.create_case(
+        CaseInput(
+            target_domain=c["target_domain"],
+            competitor_domains=c["competitor_domains"][:1],
+            mode=RunMode.SYNTHETIC,
+        )
+    )
+    orch.run(state.case_id)
+    sc = repo.load_case(state.case_id).scorecard
+    s1 = next(s for s in sc.signals if s.signal_id == SignalId.S1)
+    assert s1.score is not None and "PEER_BENCHMARK_WEAK" in s1.reason_codes
+
+
+def test_default_thesis_and_peer_limits():
+    from dealscope.domain.models import DEFAULT_DEAL_THESIS
+
+    assert CaseInput(target_domain="acme.com").deal_thesis == DEFAULT_DEAL_THESIS
+    assert CaseInput(target_domain="acme.com", deal_thesis="   ").thesis_is_default
+    assert not CaseInput(target_domain="acme.com", deal_thesis="Buy for the platform team.").thesis_is_default
+    with pytest.raises(ValidationError):
+        CaseInput(target_domain="acme.com", competitor_domains=[f"c{i}.com" for i in range(6)])

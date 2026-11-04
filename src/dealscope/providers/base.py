@@ -121,7 +121,7 @@ class NormalizedItem:
 
 @dataclass
 class ProviderResult:
-    provider: Literal["crustdata", "fixture"]
+    provider: Literal["crustdata", "free", "fixture"]
     endpoint: str
     request_body: dict
     items: list[NormalizedItem]

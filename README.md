@@ -12,8 +12,10 @@ and treats missing data as "not enough data", never as reassurance. Fixture runs
 
 ## How the agent works
 
-A case (target domain, 2-5 peer domains, deal thesis, lookback) first builds a baseline: Crustdata company enrichment
-for the target and peers. Deterministic code then scores five signals (S1-S5) and enumerates the *candidate* next
+A case (target domain, 0-5 optional competitor domains, an optional deal thesis, lookback) first builds a baseline:
+company enrichment for the target and any competitors from the configured data source (Crustdata, or People Data
+Labs in free mode; a source that is not configured is skipped and the case still completes with limited coverage).
+Deterministic code then scores five signals (S1-S5) and enumerates the *candidate* next
 actions that are legal right now (allowlisted tool, registered domain, not already done, affordable). Gemini may pick
 exactly one candidate and explain why; with no `LLM_API_KEY`, or if its answer is invalid, a deterministic policy picks.
 The chosen tool runs through the credit governor (reserve before the call, settle after), the result is checkpointed to
@@ -47,11 +49,37 @@ Tests and lint: `python -m pytest -q`, `ruff check .`, and `npm --prefix fronten
 | Mode | Keys needed |
 |---|---|
 | Synthetic fixture | none |
-| Live Crustdata | `CRUSTDATA_API_KEY` |
+| Live, free (default, `DATA_PROVIDER=free`) | none for job postings; `PDL_API_KEY` (free) adds company and people data |
+| Live, paid (`DATA_PROVIDER=crustdata`) | `CRUSTDATA_API_KEY` |
 | LLM planner/synthesis (optional) | `LLM_API_KEY` (Gemini); without it the deterministic planner runs |
 | Tracing | none; the agent's OpenTelemetry spans are recorded locally to SQLite |
 
 Live mode never falls back to fixtures. Put secrets only in `.env` (never commit it).
+
+### Free data mode (`DATA_PROVIDER=free`, the default)
+
+Live runs cost 0 Crustdata credits. Job postings come from the public, keyless job-board APIs of Greenhouse, Lever and
+Ashby (board slug derived from the company domain). Company profiles and people come from
+[People Data Labs](https://www.peopledatalabs.com) (free signup, about 100 records per month; set `PDL_API_KEY`, and
+`PDL_MONTHLY_LIMIT` is a local guard on that quota, `PDL_MAX_RECORDS_PER_CASE` (default 30) caps one case). Company
+lookups are cached on disk, so the identity check and the run that follows cost one record, and resuming a case does
+not re-spend PDL records. A damaged usage file pauses PDL lookups (fail closed) rather than allowing unlimited use.
+
+A job board is matched to the company by slug, which ignores the TLD, so each board is cross-checked: job links on the
+company's own domain confirm it, links on another company's domain reject it, and anything else is kept but labelled
+"matched by name only" (lower confidence, shown in the answer's coverage note). A resume is refused if
+`DATA_PROVIDER` changed since the case was created.
+
+What each signal needs:
+
+- **S4 critical-role hiring pressure**: works from job boards alone, if the company uses one of the three ATSs.
+- **S1 technical-function trajectory**: needs role-level headcount history, which only PDL company data can provide.
+- **S2 role continuity, S3 capability coverage, S5 competitor movement**: need people and departures, so PDL.
+- Without a PDL key those signals come out "not scored", coverage drops, and a low-coverage case honestly reports
+  INSUFFICIENT EVIDENCE rather than a risk number. Without a PDL key the website check is also skipped (shown as
+  "Not verified").
+
+Set `DATA_PROVIDER=crustdata` to use the paid Crustdata source instead (requires `CRUSTDATA_API_KEY`).
 
 ## Architecture
 
@@ -60,7 +88,7 @@ Live mode never falls back to fixtures. Put secrets only in `.env` (never commit
 | `api/server.py` | FastAPI: case lifecycle, background runs, free identity check, downloads, serves the UI |
 | `api/views.py` | Translates internal state (reason codes, stages, outcomes) into plain-language view models |
 | `analysis/data_quality.py` | Drops implausible provider growth values before scoring and flags them |
-| `../../frontend/` | React + TypeScript UI (Vite): new investigation, case detail (with Stop/Resume), cases, compare, evidence, how it works |
+| `../../frontend/` | React + TypeScript UI (Vite): search-first Home (type a company, optional competitors and thesis), case detail (with Stop/Resume), cases, compare, evidence, how it works |
 | `api/evidence.py` | Evidence page data: Crustdata pricing and credit usage from committed files |
 | `persistence/featured.py` | Local-only featured (recorded) live cases for credit-free demos (gitignored) |
 | `agent/planner.py` | Enumerates legal candidate actions; LLM picks one or deterministic policy decides |
@@ -95,6 +123,8 @@ flowchart LR
 ```
 
 ## Credit policy
+
+(Applies to `DATA_PROVIDER=crustdata`. Free-source runs are priced at 0 credits and show "Free data sources".)
 
 Crustdata budget is configured from the real account balance. Our account has 200 credits, so `.env.example` sets
 200 total, a 40-credit global reserve (never spent) and a 40-credit per-case cap (spec defaults were 5,000 / 1,000 / 300).

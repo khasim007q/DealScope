@@ -26,6 +26,7 @@ export function status(): Promise<StatusResponse> {
     live_budget: { spendable: 150, estimated_used: 10, actual_used: 8, reserved: 0, remaining: 140, unknown_calls: 0, reserve: 50, total: 200 },
     max_case_credits: 60,
     live_available: true,
+    data_provider: "crustdata",
   });
 }
 
@@ -47,8 +48,8 @@ export function faults(): Promise<FaultOption[]> {
 
 export function identityCheck(domains: string[]): Promise<IdentityResult[]> {
   return delay(
-    domains.map((d, i): IdentityResult =>
-      i === 1
+    domains.map((d): IdentityResult =>
+      d.startsWith("ambiguous")
         ? {
             domain: d, ok: false, status: "ambiguous", resolved_name: null, match_count: 23,
             message: "23 different companies use this domain. Pick the one you mean.",
@@ -136,6 +137,7 @@ export function getCase(id: string): Promise<CaseView> {
       status_detail: "The investigation is in progress.",
       current_question: "Is the engineering team keeping pace with the company?",
       assessment: null,
+      answer: { headline: "Investigating...", level: "Pending", tone: "info", score: null, top_questions: [], coverage_note: "", next_step: "" },
       report_available: false,
       steps: sampleCase.steps.slice(0, n),
     });

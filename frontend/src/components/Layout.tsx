@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { SystemsIndicator } from "./SystemsIndicator";
 
@@ -21,18 +21,18 @@ export function Layout() {
               <span className="brand-name">
                 Deal<i>Scope</i>
               </span>
-              <span className="brand-tag">Outside-in organizational diligence</span>
+              <span className="brand-tag">Team check for investors</span>
             </NavLink>
             <SystemsIndicator />
           </div>
           <nav className="nav" aria-label="Main">
             <NavLink to="/" end>
-              New investigation
+              Search
             </NavLink>
-            <NavLink to="/cases">Cases</NavLink>
-            <NavLink to="/compare">Compare</NavLink>
-            <NavLink to="/evidence">Evidence</NavLink>
-            <NavLink to="/how-it-works">How it works</NavLink>
+            <NavLink to="/cases">History</NavLink>
+            <NavLink to="/how-it-works" className="nav-quiet">
+              How it works
+            </NavLink>
           </nav>
         </div>
       </header>
@@ -40,7 +40,11 @@ export function Layout() {
         <Outlet />
       </main>
       <footer className="footer">
-        <p>DealScope produces outside-in signals from public data. It supports, and does not replace, management diligence.</p>
+        <p>DealScope reads public data to flag team risks. It supports, and does not replace, your own diligence.</p>
+        <nav className="footer-links" aria-label="More">
+          <Link to="/compare">Compare</Link>
+          <Link to="/evidence">Evidence</Link>
+        </nav>
       </footer>
     </>
   );

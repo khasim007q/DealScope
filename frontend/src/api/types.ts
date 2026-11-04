@@ -6,9 +6,10 @@ export type RunMode = "live" | "synthetic";
 export type Tone = "good" | "neutral" | "caution" | "bad" | "info";
 
 export interface ProviderStatus {
-  key: "crustdata" | "llm" | "jobs_pricing";
+  key: "crustdata" | "llm" | "jobs_pricing" | "job_boards" | "pdl";
   label: string; // e.g. "Company data (Crustdata)"
   connected: boolean;
+  optional?: boolean; // optional systems are not counted in the "connected" total
   detail: string; // e.g. "Connected" / "Model: gemini-3.1-flash-lite" / "Not configured"
 }
 
@@ -28,6 +29,8 @@ export interface StatusResponse {
   live_budget: BudgetSummary;
   max_case_credits: number;
   live_available: boolean; // false when no Crustdata key: live runs are refused, never faked
+  pdl_key_present?: boolean;
+  data_provider?: "free" | "crustdata"; // optional: which live data source is configured; absent on older servers
 }
 
 export interface Scenario {
@@ -54,7 +57,7 @@ export interface IdentityCandidate {
 export interface IdentityResult {
   domain: string;
   ok: boolean;
-  status: "ok" | "ambiguous" | "mismatch" | "no_match" | "error";
+  status: "ok" | "unverified" | "ambiguous" | "mismatch" | "no_match" | "error"; // unverified counts as pass (ok: true)
   resolved_name: string | null;
   match_count: number;
   message: string; // plain-language explanation, e.g. "23 different companies use this domain..."
@@ -63,11 +66,11 @@ export interface IdentityResult {
 
 export interface CreateCaseRequest {
   target_domain: string;
-  competitor_domains: string[];
-  deal_thesis: string;
-  lookback_months: number;
-  max_case_credits: number;
   mode: RunMode;
+  competitor_domains?: string[]; // optional, 0-5 (default [])
+  deal_thesis?: string; // optional: server applies a generic default
+  lookback_months?: number; // optional (default 12)
+  max_case_credits?: number; // optional (default 40)
   scenario_id?: string; // synthetic only
   fault_id?: string; // synthetic only
 }
@@ -188,6 +191,7 @@ export interface CreditsView {
   reserved: number;
   remaining: number;
   unknown_calls: number;
+  free?: boolean; // free-source run: nothing metered
   simulated: boolean; // synthetic runs: simulated accounting, no real credits
 }
 
@@ -199,6 +203,17 @@ export interface VerificationView {
   grounded_rate: number | null; // 0-1
   rejected_reasons: { reason: string; count: number }[]; // plain reasons
   ai_draft_used: boolean; // false when the AI write-up was unavailable and only rule-based findings are shown
+}
+
+/** The one-screen answer shown first on the case page. Optional: older servers do not send it. */
+export interface AnswerView {
+  headline: string; // "Investigating..." while running
+  level: string | null; // verdict word, e.g. "Watch"; null when there is not enough evidence
+  tone: Tone;
+  score: number | null;
+  top_questions: string[]; // up to 3
+  coverage_note: string;
+  next_step: string;
 }
 
 export interface CaseView {
@@ -217,6 +232,7 @@ export interface CaseView {
   current_question: string | null;
   planner_turns: number;
   tool_calls: number;
+  answer?: AnswerView; // plain-language answer; fall back to assessment/summary fields when absent
   assessment: Assessment | null; // null until the first scoring
   signals: SignalView[];
   findings: FindingView[];

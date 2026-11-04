@@ -12,7 +12,7 @@ export function ScenarioPicker({ scenarios, selectedId, onSelect }: Props) {
   return (
     <fieldset className="field scenario-picker">
       <legend className="label">Demo scenario</legend>
-      <p className="help scenario-help">Choose a fictional case. Selecting one fills in the brief below.</p>
+      <p className="help scenario-help">Pick a made-up case. It fills in the search above.</p>
       <ul className="scenario-list">
         {scenarios.map((s) => {
           const selected = s.id === selectedId;

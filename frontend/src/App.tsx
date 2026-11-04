@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
-import { NewInvestigation } from "./pages/NewInvestigation";
+import { Home } from "./pages/Home";
 import { CaseDetail } from "./pages/CaseDetail";
 import { Cases } from "./pages/Cases";
 import { Compare } from "./pages/Compare";
@@ -11,7 +11,7 @@ export default function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route index element={<NewInvestigation />} />
+        <Route index element={<Home />} />
         <Route path="cases" element={<Cases />} />
         <Route path="cases/:id" element={<CaseDetail />} />
         <Route path="compare" element={<Compare />} />

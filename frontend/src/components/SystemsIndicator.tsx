@@ -23,8 +23,9 @@ export function SystemsIndicator() {
     };
   }, [open]);
 
-  const connected = data ? data.providers.filter((p) => p.connected).length : 0;
-  const total = data ? data.providers.length : 0;
+  const counted = data ? data.providers.filter((p) => !p.optional) : [];
+  const connected = counted.filter((p) => p.connected).length;
+  const total = counted.length;
   const summary = loading
     ? "Checking systems"
     : error || !data
@@ -57,7 +58,7 @@ export function SystemsIndicator() {
               <div>
                 <div className="system-label">
                   {p.label} <span className="sr-only">:</span>
-                  <span className="muted small"> - {p.connected ? "Connected" : "Not connected"}</span>
+                  <span className="muted small"> - {p.connected ? "Connected" : p.optional ? "Optional" : "Not connected"}</span>
                 </div>
                 <div className="system-detail">{p.detail}</div>
               </div>
@@ -66,7 +67,9 @@ export function SystemsIndicator() {
           {data ? (
             <p className="small muted" style={{ marginTop: 10, marginBottom: 0 }}>
               {data.live_available
-                ? "Live investigations are available."
+                ? data.data_provider === "free"
+                  ? "Live investigations are available using free data sources."
+                  : "Live investigations are available."
                 : "Live investigations are unavailable until company data is connected. Demo data still works."}
             </p>
           ) : null}

@@ -112,7 +112,10 @@ def run_one(
     if case_id is None:
         case_id = orch.create_case(case_input, run_label=variant).case_id
     t0 = time.monotonic()
-    result = orch.run(case_id, resume=resume)
+    try:
+        result = orch.run(case_id, resume=resume)
+    finally:
+        orch.close()
     return summarize(repo, settings, case_id, result, time.monotonic() - t0)
 
 
@@ -159,19 +162,32 @@ def main() -> int:
                     max_case_credits=args.budget,
                     mode=RunMode.LIVE,
                 )
-                from dealscope.providers.crustdata import CrustdataClient
+                if settings.data_provider == "free":
+                    from dealscope.providers.free_source import FreeDataSource
 
-                idc = CrustdataClient(
-                    settings.crustdata_api_key.get_secret_value(),
-                    api_version=settings.crustdata_api_version,
-                    base_url=settings.crustdata_base_url,
-                    timeout_s=25,
-                    max_retries=1,
-                )
-                checks = [idc.identify_company(d) for d in ci.all_domains()]  # free (FR-01)
-                bad = [c for c in checks if not c.ok]
+                    free = FreeDataSource.from_settings(settings)
+                    try:
+                        if free.pdl_configured:
+                            checks = [free.identify_company(d) for d in ci.all_domains()]
+                        else:
+                            print("identity: not verified (no PDL_API_KEY); using public job boards only")
+                            checks = []
+                    finally:
+                        free.close()
+                else:
+                    from dealscope.providers.crustdata import CrustdataClient
+
+                    idc = CrustdataClient(
+                        settings.crustdata_api_key.get_secret_value(),
+                        api_version=settings.crustdata_api_version,
+                        base_url=settings.crustdata_base_url,
+                        timeout_s=25,
+                        max_retries=1,
+                    )
+                    checks = [idc.identify_company(d) for d in ci.all_domains()]  # free (FR-01)
                 for c in checks:
                     print(f"identity {c.domain}: {c.status} {c.resolved_name or ''} ({c.match_count} matches)")
+                bad = [c for c in checks if not c.ok]
                 if bad:
                     print("Refusing live run: fix ambiguous/unknown domains first (no credits spent).")
                     return 2

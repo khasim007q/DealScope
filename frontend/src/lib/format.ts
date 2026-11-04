@@ -113,3 +113,8 @@ export function splitDomains(text: string): string[] {
     .map(normalizeDomain)
     .filter((d) => d.length > 0);
 }
+
+/** Verdict word from a list label: "Watch (32/100)" -> "Watch". */
+export function verdictWord(riskLabel: string): string {
+  return (riskLabel.split(" (")[0] ?? riskLabel).trim();
+}

@@ -224,7 +224,7 @@ function CompareLoader({ idA, idB }: { idA: string; idB: string }) {
       <>
         <ErrorBox title="Could not load one of the cases" message={error ?? "The cases were not found."} onRetry={reload} />
         <p style={{ marginTop: 14 }}>
-          <Link to="/cases">Back to all cases</Link>
+          <Link to="/cases">Back to history</Link>
         </p>
       </>
     );
@@ -242,7 +242,7 @@ export function Compare() {
   return (
     <>
       <p className="small" style={{ marginBottom: 10 }}>
-        <Link to="/cases">All cases</Link>
+        <Link to="/cases">History</Link>
       </p>
       <PageHeader
         kicker="Side by side"
@@ -253,8 +253,8 @@ export function Compare() {
         <CompareLoader key={`${idA}|${idB}`} idA={idA} idB={idB} />
       ) : (
         <EmptyBox>
-          Pick two different cases to compare. <Link to="/cases">Go to Cases</Link>, tick two rows and choose
-          &ldquo;Compare selected&rdquo;.
+          Pick two different cases to compare. <Link to="/cases">Go to History</Link>, tick two rows and choose
+          &ldquo;Compare two&rdquo;.
         </EmptyBox>
       )}
     </>

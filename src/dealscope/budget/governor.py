@@ -94,7 +94,8 @@ class CreditGovernor:
             unit = self.prices.get(JOB_SEARCH, self.settings.crustdata_job_cost_per_result)
             if unit is None:
                 raise BudgetDenied(UNKNOWN_PRICE, JOB_SEARCH)
-            flat = self.settings.crustdata_job_call_reserve or Decimal("0")
+            # no flat reserve for zero-priced (free) sources
+            flat = (self.settings.crustdata_job_call_reserve or Decimal("0")) if unit > 0 else Decimal("0")
             raw = unit * quantity + flat
         else:
             unit = self.prices.get(operation)

@@ -264,6 +264,8 @@ class ToolExecutor:
             )
             span.set_attribute("credit_estimate", float(reservation.amount))
             self._ctx = {"case_id": state.case_id, "span": span, "tool": tool.value, "retries": 0}
+            if callable(setter := getattr(self.source, "set_case_id", None)):
+                setter(state.case_id)
             try:
                 result = self._call(tool, canonical)
             except UnknownOutcomeError as exc:
@@ -307,7 +309,7 @@ class ToolExecutor:
                     credits_estimate=reservation.amount,
                 )
 
-            actual = result.credits_used if result.provider == "crustdata" else None
+            actual = result.credits_used if result.provider in ("crustdata", "free") else None
             self.governor.settle(reservation, actual)
             ids, new = self._persist_items(state, result, run_id, actual)
             self.repo.finish_tool_run(
@@ -317,7 +319,7 @@ class ToolExecutor:
                 cost_actual=actual,
                 attempt_count=result.attempts,
             )
-            if result.provider == "crustdata":
+            if result.provider in ("crustdata", "free"):
                 self.repo.cache_put(ckey, ENDPOINT[tool], self._result_to_cache(result), self.api_version)
             span.set_attribute("result_count", result.result_count)
             span.set_attribute("attempts", result.attempts)

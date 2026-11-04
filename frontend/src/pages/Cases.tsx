@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { FeaturedCases } from "../components/FeaturedCases";
-import { ErrorBox, Loading, ModeBadge, PageHeader, StatusPill } from "../components/ui";
-import { formatDateTime, formatRelative } from "../lib/format";
+import { ErrorBox, Loading, PageHeader, StatusPill } from "../components/ui";
+import { formatDateTime, formatRelative, verdictWord } from "../lib/format";
 import { useAsync, useDocumentTitle, useNow } from "../lib/hooks";
 
 export function Cases() {
-  useDocumentTitle("Cases");
+  useDocumentTitle("History");
   const navigate = useNavigate();
   const { data, error, loading, reload } = useAsync(() => api.listCases());
   const now = useNow();
@@ -26,50 +26,46 @@ export function Cases() {
 
   return (
     <>
-      <PageHeader
-        kicker="Report index"
-        title="Cases"
-        dek="Every investigation that has been run, newest first. Open one to see its summary, evidence and memo."
-      />
+      <PageHeader title="History" dek="Every search you have run, newest first." />
 
       {loading ? (
-        <Loading label="Loading cases..." />
+        <Loading label="Loading history..." />
       ) : error ? (
-        <ErrorBox title="Could not load cases" message={error} onRetry={reload} />
+        <ErrorBox title="Could not load history" message={error} onRetry={reload} />
       ) : items.length === 0 ? (
         <div className="index-empty">
-          <p className="index-empty-title">The index is empty.</p>
+          <p className="index-empty-title">Nothing here yet.</p>
           <p>
-            No investigations have been filed yet. <Link to="/">Brief the analyst</Link> to open the first one.
+            <Link to="/">Search for a company</Link> to run your first analysis.
           </p>
         </div>
       ) : (
         <>
-          <div className="btn-row index-tools">
-            <button type="button" className="btn" onClick={compare} disabled={selected.length !== 2}>
-              Compare selected
-            </button>
-            <span className="small muted" aria-live="polite">
-              {selected.length === 2
-                ? "Two cases selected."
-                : selected.length === 1
-                  ? "Select one more case to compare."
-                  : "Tick two cases to compare them side by side."}
-            </span>
-          </div>
+          {items.length > 1 ? (
+            <div className="btn-row index-tools">
+              <button type="button" className="btn" onClick={compare} disabled={selected.length !== 2}>
+                Compare two
+              </button>
+              <span className="small muted" aria-live="polite">
+                {selected.length === 2
+                  ? "Two selected."
+                  : selected.length === 1
+                    ? "Tick one more to compare."
+                    : "Tick two rows to compare them side by side."}
+              </span>
+            </div>
+          ) : null}
           <div className="table-wrap">
             <table className="index-table">
-              <caption className="sr-only">Investigations</caption>
+              <caption className="sr-only">Searches</caption>
               <thead>
                 <tr>
                   <th scope="col">
                     <span className="sr-only">Select to compare</span>
                   </th>
-                  <th scope="col">Target</th>
-                  <th scope="col">Data</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Risk result</th>
-                  <th scope="col">Last updated</th>
+                  <th scope="col">Company</th>
+                  <th scope="col">Verdict</th>
+                  <th scope="col">Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -91,14 +87,11 @@ export function Cases() {
                         <Link className="case-link" to={`/cases/${encodeURIComponent(c.case_id)}`}>
                           {c.target}
                         </Link>
+                        {c.mode === "synthetic" ? <span className="demo-tag">Demo</span> : null}
                       </td>
                       <td>
-                        <ModeBadge mode={c.mode} />
+                        <StatusPill tone={c.tone}>{c.status_label === "Complete" ? verdictWord(c.risk_label) : c.status_label}</StatusPill>
                       </td>
-                      <td>
-                        <StatusPill tone={c.tone}>{c.status_label}</StatusPill>
-                      </td>
-                      <td className="index-risk">{c.risk_label}</td>
                       <td className="index-date">
                         <time dateTime={c.updated_at} title={formatDateTime(c.updated_at)}>
                           {formatRelative(c.updated_at, now)}

@@ -1129,11 +1129,24 @@ def score_s4(
     ids = job_ids + ([ctx.target[0].evidence_id] if ctx.target and share is not None else [])
     used = ctx.records(ids)
     field_frac = sum((bool(j.date_added) + bool(j.url) + j.has_openings_field) / 3 for j in ctx.jobs) / len(ctx.jobs)
+    # Postings from a public job board that was matched to the company by name only (ownership unconfirmed) are
+    # weak identity evidence: identity points shrink to a third and the limitation is stated.
+    name_only = [
+        r for r in used if isinstance(r.payload, JobPostingPayload) and r.payload.board_match == "name_only"
+    ]
+    job_recs = [r for r in used if r.kind == EvidenceKind.JOB_POSTING]
+    unconfirmed_frac = len(name_only) / len(job_recs) if job_recs else 0.0
+    if name_only:
+        lims.append(
+            "Job postings come from a public job board matched to the company by name only; the board's "
+            "ownership by this company was not confirmed, so treat the hiring signal as indicative."
+        )
+        reasons.append("JOB_BOARD_NAME_MATCH_ONLY")
     conf = _Conf(
         completeness=30.0 * (0.7 * field_frac + (0.3 if share is not None else 0.0)),
         recency=_recency_points(used, ctx.as_of),
         corroboration=_corroboration_points(used) + (4.0 if corrob else 0.0),
-        identity=15.0 * len(ctx.jobs) / max(1, sum(j.n_records for j in ctx.jobs)),
+        identity=15.0 * len(ctx.jobs) / max(1, sum(j.n_records for j in ctx.jobs)) * (1.0 - 0.67 * unconfirmed_frac),
     )
     conf.corroboration = min(20.0, conf.corroboration)
     return _result(ctx, sid, SignalState.SCORABLE, score, raw=raw, reasons=reasons, evidence_ids=ids, conf=conf,
@@ -1153,6 +1166,12 @@ def score_s5(case_input: CaseInput, evidence: Sequence[EvidenceRecord], as_of: d
         "role criticality and the deal thesis.",
         "Competitor match is by exact normalized domain; parent/subsidiary identity is not resolved.",
     ]
+    if not case_input.competitor_domains:
+        return _not_scored(
+            ctx, sid, "NO_COMPETITORS_GIVEN",
+            {"summary": "No competitors given, so competitor talent movement cannot be assessed."},
+            [*base_lims, "No competitors given; this signal compares departures against listed competitors only."],
+        )  # fmt: skip
     if not ctx.people:
         return _not_scored(ctx, sid, "NO_PERSON_DATA", {"summary": "No person work-history evidence."}, base_lims)
     technical = [p for p in ctx.people if p.role_group != "non_technical"]
